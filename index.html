@@ -102,7 +102,7 @@
          * Hoje ocupa a metade superior; amanhã e depois de amanhã
          * dividem, em partes iguais, a metade inferior.
          */
-        #PIR-area {
+        #pir-area {
             display: grid;
             grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
             gap: var(--page-gap);
@@ -110,7 +110,7 @@
             min-height: 0;
         }
 
-        #PIR-futuro {
+        #pir-futuro {
             display: grid;
             grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
             gap: var(--page-gap);
@@ -152,7 +152,7 @@
             min-height: 0;
         }
 
-        .PIR-map-frame {
+        .pir-map-frame {
             position: absolute;
             inset: 0;
             display: grid;
@@ -168,14 +168,14 @@
          * A pilha tem uma única geometria; assim, cada pixel de cada concelho
          * coincide com o mesmo pixel das restantes camadas.
          */
-        .PIR-image-stack {
+        .pir-image-stack {
             position: relative;
             width: 100%;
             height: 100%;
             overflow: hidden;
         }
 
-        .PIR-image-layer {
+        .pir-image-layer {
             position: absolute;
             inset: 0;
             display: block;
@@ -187,12 +187,70 @@
             user-select: none;
         }
 
-        .PIR-concelho-layer {
+        .pir-concelho-layer {
             z-index: 10;
         }
 
-        .PIR-tracado-layer {
+        .pir-tracado-layer {
             z-index: 20;
+        }
+
+        /*
+         * Informação meteorológica municipal sobre o PIR. O SVG usa o mesmo
+         * viewBox 743 × 662 dos PNG, mantendo os rótulos alinhados mesmo quando
+         * o mapa é redimensionado para caber no painel.
+         */
+        .pir-weather-overlay {
+            position: absolute;
+            z-index: 30;
+            inset: 0;
+            display: block;
+            width: 100%;
+            height: 100%;
+            overflow: visible;
+            pointer-events: none;
+        }
+
+        .pir-weather-label {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            padding: 4px 5px;
+            overflow: hidden;
+            border: 1.5px solid rgb(255 255 255 / 90%);
+            border-radius: 7px;
+            background: rgb(13 22 29 / 84%);
+            box-shadow: 0 1px 5px rgb(0 0 0 / 55%);
+            color: #ffffff;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 11.5px;
+            font-weight: 700;
+            line-height: 1.08;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .pir-weather-label strong {
+            display: block;
+            margin-bottom: 1px;
+            color: #ffe06a;
+            font-size: 13px;
+            line-height: 1;
+            letter-spacing: 0.04em;
+        }
+
+        .pir-weather-label span {
+            display: block;
+        }
+
+        .pir-weather-label.is-unavailable {
+            background: rgb(74 27 30 / 88%);
+        }
+
+        .pir-weather-label.is-unavailable span {
+            white-space: normal;
         }
 
         .map-loading {
@@ -323,33 +381,33 @@
         </header>
 
         <main id="dashboard-grid">
-            <section id="PIR-area" aria-label="Índice de Risco de Incêndio">
-                <article class="palco" id="palco-PIR-hoje">
+            <section id="pir-area" aria-label="Perigo de incêndio rural">
+                <article class="palco" id="palco-pir-hoje">
                     <div class="palco-titulo">PIR — Hoje</div>
                     <div class="palco-conteudo">
-                        <div class="PIR-map-frame">
-                            <div id="mapa-PIR0" class="PIR-image-stack"></div>
+                        <div class="pir-map-frame">
+                            <div id="mapa-pir0" class="pir-image-stack"></div>
                         </div>
                         <div class="map-loading" id="load0">A carregar PIR de hoje…</div>
                     </div>
                 </article>
 
-                <div id="PIR-futuro">
-                    <article class="palco" id="palco-PIR-amanha">
+                <div id="pir-futuro">
+                    <article class="palco" id="palco-pir-amanha">
                         <div class="palco-titulo">PIR — Amanhã</div>
                         <div class="palco-conteudo">
-                            <div class="PIR-map-frame">
-                                <div id="mapa-PIR1" class="PIR-image-stack"></div>
+                            <div class="pir-map-frame">
+                                <div id="mapa-pir1" class="pir-image-stack"></div>
                             </div>
                             <div class="map-loading" id="load1">A carregar PIR de amanhã…</div>
                         </div>
                     </article>
 
-                    <article class="palco" id="palco-PIR-depois">
+                    <article class="palco" id="palco-pir-depois">
                         <div class="palco-titulo">PIR — Depois de amanhã</div>
                         <div class="palco-conteudo">
-                            <div class="PIR-map-frame">
-                                <div id="mapa-PIR2" class="PIR-image-stack"></div>
+                            <div class="pir-map-frame">
+                                <div id="mapa-pir2" class="pir-image-stack"></div>
                             </div>
                             <div class="map-loading" id="load2">A carregar PIR…</div>
                         </div>
@@ -397,12 +455,13 @@
             '1610': 'cerveira'
         };
 
+        /* Os nomes físicos das pastas existentes mantêm "IRI" para não quebrar os PNG. */
         const nivelPasta = {
-            '1': 'PIR Reduzido',
-            '2': 'PIR Moderado',
-            '3': 'PIR Elevado',
-            '4': 'PIR Muito Elevado',
-            '5': 'PIR Maximo'
+            '1': 'IRI Reduzido',
+            '2': 'IRI Moderado',
+            '3': 'IRI Elevado',
+            '4': 'IRI Muito Elevado',
+            '5': 'IRI Maximo'
         };
 
         const nomesRisco = {
@@ -426,8 +485,59 @@
             '1610': 'Vila Nova de Cerveira'
         };
 
-        const intervaloAtualizacaoPIRMs = 60 * 60 * 1000;
-        let atualizacaoPIREmCurso = false;
+        const siglasConcelho = {
+            '1601': 'AVV',
+            '1602': 'CMN',
+            '1603': 'MEL',
+            '1604': 'MON',
+            '1605': 'PC',
+            '1606': 'PB',
+            '1607': 'PL',
+            '1608': 'VAL',
+            '1609': 'VCT',
+            '1610': 'VNC'
+        };
+
+        const globalIdLocalPorDico = {
+            '1601': 1160100,
+            '1602': 1160200,
+            '1603': 1160300,
+            '1604': 1160400,
+            '1605': 1160500,
+            '1606': 1160600,
+            '1607': 1160700,
+            '1608': 1160800,
+            '1609': 1160900,
+            '1610': 1161000
+        };
+
+        /* Centros visuais dos concelhos na tela original de 743 × 662 px. */
+        const posicaoRotuloPorDico = {
+            '1601': { x: 486, y: 294 },
+            '1602': { x: 136, y: 357 },
+            '1603': { x: 616, y: 147 },
+            '1604': { x: 439, y: 151 },
+            '1605': { x: 308, y: 292 },
+            '1606': { x: 522, y: 414 },
+            '1607': { x: 301, y: 479 },
+            '1608': { x: 280, y: 193 },
+            '1609': { x: 146, y: 512 },
+            '1610': { x: 188, y: 276 }
+        };
+
+        const nomesClasseVento = {
+            '1': 'Fraco',
+            '2': 'Moderado',
+            '3': 'Forte',
+            '4': 'Muito forte'
+        };
+
+        const direcoesVentoValidas = new Set([
+            'N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'
+        ]);
+
+        const intervaloAtualizacaoPirMs = 60 * 60 * 1000;
+        let atualizacaoPirEmCurso = false;
 
         function definirEstadoLoading(loadingId, mensagem, erro = false) {
             const elemento = document.getElementById(loadingId);
@@ -465,7 +575,7 @@
                 const urlImagem = `${pasta}/${ficheiro}.png`;
                 const imagem = document.createElement('img');
 
-                imagem.className = 'PIR-image-layer PIR-concelho-layer';
+                imagem.className = 'pir-image-layer pir-concelho-layer';
                 imagem.alt = `${nomesConcelho[dico]} — risco ${nomesRisco[risco]}`;
                 imagem.dataset.dico = dico;
                 imagem.dataset.risco = risco;
@@ -489,7 +599,7 @@
             return new Promise((resolve) => {
                 const tracado = document.createElement('img');
 
-                tracado.className = 'PIR-image-layer PIR-tracado-layer';
+                tracado.className = 'pir-image-layer pir-tracado-layer';
                 tracado.alt = '';
                 tracado.setAttribute('aria-hidden', 'true');
                 tracado.addEventListener(
@@ -509,7 +619,228 @@
             });
         }
 
-        async function carregarConcelhosPNG(pilhaId, dadosRcmIpma, loadingId) {
+        function obterNumeroValido(valor, minimo = -90, maximo = Number.POSITIVE_INFINITY) {
+            const numero = Number(valor);
+
+            return Number.isFinite(numero) && numero >= minimo && numero <= maximo
+                ? numero
+                : null;
+        }
+
+        function obterExtremos(valores) {
+            const validos = valores.filter((valor) => valor !== null);
+
+            if (validos.length === 0) {
+                return { minimo: null, maximo: null };
+            }
+
+            return {
+                minimo: Math.min(...validos),
+                maximo: Math.max(...validos)
+            };
+        }
+
+        function obterModa(valores) {
+            const contagens = new Map();
+            let moda = null;
+            let maiorContagem = 0;
+
+            valores.forEach((valor) => {
+                const novaContagem = (contagens.get(valor) || 0) + 1;
+                contagens.set(valor, novaContagem);
+
+                if (novaContagem > maiorContagem) {
+                    moda = valor;
+                    maiorContagem = novaContagem;
+                }
+            });
+
+            return moda;
+        }
+
+        function extrairDataIso(valor) {
+            const resultado = String(valor ?? '').match(/^\d{4}-\d{2}-\d{2}/);
+            return resultado ? resultado[0] : null;
+        }
+
+        function extrairMeteorologiaDiaria(respostaAggregate, dataReferencia) {
+            const registos = Array.isArray(respostaAggregate)
+                ? respostaAggregate
+                : Array.isArray(respostaAggregate?.data)
+                    ? respostaAggregate.data
+                    : [];
+            const registosDia = registos.filter(
+                (registo) => extrairDataIso(registo?.dataPrev) === dataReferencia
+            );
+            const resumoDiario = registosDia.find(
+                (registo) =>
+                    obterNumeroValido(registo?.tMin, -60, 60) !== null ||
+                    obterNumeroValido(registo?.tMax, -60, 60) !== null
+            ) || {};
+            const temperaturasHorarias = registosDia.map((registo) =>
+                obterNumeroValido(registo?.tMed, -60, 60)
+            );
+            const extremosTemperaturaHoraria = obterExtremos(temperaturasHorarias);
+            const temperaturaMinima =
+                obterNumeroValido(resumoDiario.tMin, -60, 60) ??
+                extremosTemperaturaHoraria.minimo;
+            const temperaturaMaxima =
+                obterNumeroValido(resumoDiario.tMax, -60, 60) ??
+                extremosTemperaturaHoraria.maximo;
+            const extremosHumidade = obterExtremos(
+                registosDia.map((registo) => obterNumeroValido(registo?.hR, 0, 100))
+            );
+            const extremosVento = obterExtremos(
+                registosDia.map((registo) => obterNumeroValido(registo?.ffVento, 0, 300))
+            );
+            const direcaoResumo = String(resumoDiario.ddVento ?? '').toUpperCase();
+            const direcoesHorarias = registosDia
+                .map((registo) => String(registo?.ddVento ?? '').toUpperCase())
+                .filter((direcao) => direcoesVentoValidas.has(direcao));
+            const direcaoVento = direcoesVentoValidas.has(direcaoResumo)
+                ? direcaoResumo
+                : obterModa(direcoesHorarias);
+            const classeVento = nomesClasseVento[String(resumoDiario.idFfxVento)] || null;
+            const dados = {
+                temperaturaMinima,
+                temperaturaMaxima,
+                humidadeMinima: extremosHumidade.minimo,
+                humidadeMaxima: extremosHumidade.maximo,
+                direcaoVento,
+                velocidadeMaximaVento: extremosVento.maximo,
+                classeVento,
+                dataUpdate: resumoDiario.dataUpdate || registosDia[0]?.dataUpdate || null
+            };
+
+            dados.disponivel = [
+                dados.temperaturaMinima,
+                dados.temperaturaMaxima,
+                dados.humidadeMinima,
+                dados.humidadeMaxima,
+                dados.direcaoVento,
+                dados.velocidadeMaximaVento,
+                dados.classeVento
+            ].some((valor) => valor !== null);
+
+            return dados;
+        }
+
+        function formatarNumero(valor) {
+            if (valor === null) {
+                return '—';
+            }
+
+            return new Intl.NumberFormat('pt-PT', {
+                maximumFractionDigits: 0
+            }).format(valor);
+        }
+
+        function formatarIntervalo(minimo, maximo, unidade) {
+            if (minimo === null || maximo === null) {
+                return '—';
+            }
+
+            return `${formatarNumero(minimo)}–${formatarNumero(maximo)}${unidade}`;
+        }
+
+        function adicionarLinhaRotulo(rotulo, texto) {
+            const linha = document.createElementNS('http://www.w3.org/1999/xhtml', 'span');
+            linha.textContent = texto;
+            rotulo.appendChild(linha);
+        }
+
+        function adicionarSobreposicaoMeteorologica(
+            pilha,
+            concelhos,
+            meteorologiaMunicipal,
+            dataReferencia
+        ) {
+            const svgNs = 'http://www.w3.org/2000/svg';
+            const xhtmlNs = 'http://www.w3.org/1999/xhtml';
+            const larguraRotulo = 110;
+            const alturaRotulo = 64;
+            const sobreposicao = document.createElementNS(svgNs, 'svg');
+            const descricoes = [];
+            let indisponiveis = 0;
+
+            sobreposicao.classList.add('pir-weather-overlay');
+            sobreposicao.setAttribute('viewBox', '0 0 743 662');
+            sobreposicao.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+            sobreposicao.setAttribute('role', 'img');
+
+            concelhos.forEach((dico) => {
+                const posicao = posicaoRotuloPorDico[dico];
+                const dados = extrairMeteorologiaDiaria(
+                    meteorologiaMunicipal[dico],
+                    dataReferencia
+                );
+                const foreignObject = document.createElementNS(svgNs, 'foreignObject');
+                const rotulo = document.createElementNS(xhtmlNs, 'div');
+                const sigla = document.createElementNS(xhtmlNs, 'strong');
+
+                foreignObject.setAttribute('x', String(posicao.x - larguraRotulo / 2));
+                foreignObject.setAttribute('y', String(posicao.y - alturaRotulo / 2));
+                foreignObject.setAttribute('width', String(larguraRotulo));
+                foreignObject.setAttribute('height', String(alturaRotulo));
+
+                rotulo.className = 'pir-weather-label';
+                sigla.textContent = siglasConcelho[dico];
+                rotulo.appendChild(sigla);
+
+                if (!dados.disponivel) {
+                    indisponiveis += 1;
+                    rotulo.classList.add('is-unavailable');
+                    adicionarLinhaRotulo(rotulo, 'Dados indisponíveis');
+                    descricoes.push(`${nomesConcelho[dico]}: dados indisponíveis`);
+                } else {
+                    const temperatura = formatarIntervalo(
+                        dados.temperaturaMinima,
+                        dados.temperaturaMaxima,
+                        '°C'
+                    );
+                    const humidade = formatarIntervalo(
+                        dados.humidadeMinima,
+                        dados.humidadeMaxima,
+                        '%'
+                    );
+                    const direcao = dados.direcaoVento || '—';
+                    const velocidade = dados.velocidadeMaximaVento === null
+                        ? dados.classeVento || '—'
+                        : `${formatarNumero(dados.velocidadeMaximaVento)} km/h`;
+                    const vento = `${direcao} · ${velocidade}`;
+
+                    adicionarLinhaRotulo(rotulo, `T ${temperatura}`);
+                    adicionarLinhaRotulo(rotulo, `HR ${humidade}`);
+                    adicionarLinhaRotulo(rotulo, `V ${vento}`);
+
+                    descricoes.push(
+                        `${nomesConcelho[dico]}: temperatura ${temperatura}; ` +
+                        `humidade relativa ${humidade}; vento ${vento}` +
+                        (dados.classeVento ? `, ${dados.classeVento.toLowerCase()}` : '')
+                    );
+                }
+
+                rotulo.title = descricoes[descricoes.length - 1];
+                foreignObject.appendChild(rotulo);
+                sobreposicao.appendChild(foreignObject);
+            });
+
+            sobreposicao.setAttribute(
+                'aria-label',
+                `Previsão meteorológica municipal de ${dataReferencia}. ${descricoes.join('. ')}.`
+            );
+            pilha.appendChild(sobreposicao);
+
+            return indisponiveis;
+        }
+
+        async function carregarConcelhosPNG(
+            pilhaId,
+            dadosRcmIpma,
+            loadingId,
+            meteorologiaMunicipal,
+            dataReferencia
+        ) {
             const pilha = document.getElementById(pilhaId);
             const concelhosComDados = Object.keys(concelhoNomes).filter(
                 (dico) => Boolean(dadosRcmIpma[dico])
@@ -536,6 +867,20 @@
                 falhas.push(resultadoTracado);
             }
 
+            const indisponiveis = adicionarSobreposicaoMeteorologica(
+                pilha,
+                concelhosComDados,
+                meteorologiaMunicipal,
+                dataReferencia
+            );
+
+            if (indisponiveis > 0) {
+                console.warn(
+                    `Meteorologia municipal indisponível em ${indisponiveis} concelho(s) ` +
+                    `para ${dataReferencia}.`
+                );
+            }
+
             if (falhas.length > 0) {
                 console.error('Imagens PIR em falta ou inacessíveis:', falhas);
                 definirEstadoLoading(
@@ -559,16 +904,62 @@
             return resposta.json();
         }
 
-        async function carregarPIR() {
-            const baseUrl = 'https://api.ipma.pt/open-data/forecast/meteorology/rcm/';
-            const pedidos = ['rcm-d0.json', 'rcm-d1.json', 'rcm-d2.json'].map(
-                (ficheiro) => obterJson(baseUrl + ficheiro)
-            );
+        async function carregarMeteorologiaMunicipal() {
+            const baseUrl = 'https://api.ipma.pt/public-data/forecast/aggregate/';
+            const entradas = Object.entries(globalIdLocalPorDico);
+            const respostas = await Promise.allSettled(
+                entradas.map(async ([dico, globalIdLocal]) => {
+                    const dados = await obterJson(`${baseUrl}${globalIdLocal}.json`);
+                    const registos = Array.isArray(dados)
+                        ? dados
+                        : Array.isArray(dados?.data)
+                            ? dados.data
+                            : [];
+                    const correspondeAoConcelho = registos.some(
+                        (registo) => Number(registo?.globalIdLocal) === globalIdLocal
+                    );
 
-            const respostas = await Promise.allSettled(pedidos);
+                    if (!correspondeAoConcelho) {
+                        throw new Error(
+                            `O endpoint ${globalIdLocal} não devolveu o identificador esperado.`
+                        );
+                    }
+
+                    return { dico, dados };
+                })
+            );
+            const meteorologiaMunicipal = {};
+
+            respostas.forEach((resposta, indice) => {
+                const [dico, globalIdLocal] = entradas[indice];
+
+                if (resposta.status === 'fulfilled') {
+                    meteorologiaMunicipal[dico] = resposta.value.dados;
+                    return;
+                }
+
+                console.error(
+                    `Erro na previsão meteorológica de ${nomesConcelho[dico]} ` +
+                    `(${globalIdLocal}):`,
+                    resposta.reason
+                );
+            });
+
+            return meteorologiaMunicipal;
+        }
+
+        async function carregarPir() {
+            const baseUrlPir = 'https://api.ipma.pt/open-data/forecast/meteorology/rcm/';
+            const pedidosPir = ['rcm-d0.json', 'rcm-d1.json', 'rcm-d2.json'].map(
+                (ficheiro) => obterJson(baseUrlPir + ficheiro)
+            );
+            const [respostasPir, meteorologiaMunicipal] = await Promise.all([
+                Promise.allSettled(pedidosPir),
+                carregarMeteorologiaMunicipal()
+            ]);
 
             await Promise.all(
-                respostas.map(async (resposta, indice) => {
+                respostasPir.map(async (resposta, indice) => {
                     const loadingId = `load${indice}`;
 
                     if (resposta.status === 'rejected') {
@@ -579,7 +970,19 @@
 
                     try {
                         const risco = extrairRiscoDistrital(resposta.value);
-                        await carregarConcelhosPNG(`mapa-PIR${indice}`, risco, loadingId);
+                        const dataReferencia = extrairDataIso(resposta.value?.dataPrev);
+
+                        if (!dataReferencia) {
+                            throw new Error('A resposta PIR não identifica a data de previsão.');
+                        }
+
+                        await carregarConcelhosPNG(
+                            `mapa-pir${indice}`,
+                            risco,
+                            loadingId,
+                            meteorologiaMunicipal,
+                            dataReferencia
+                        );
                     } catch (erro) {
                         console.error(`Erro ao apresentar PIR D${indice}:`, erro);
                         definirEstadoLoading(loadingId, 'Não foi possível apresentar o PIR.', true);
@@ -588,17 +991,17 @@
             );
         }
 
-        async function atualizarPIR() {
-            if (atualizacaoPIREmCurso) {
+        async function atualizarPir() {
+            if (atualizacaoPirEmCurso) {
                 return;
             }
 
-            atualizacaoPIREmCurso = true;
+            atualizacaoPirEmCurso = true;
 
             try {
-                await carregarPIR();
+                await carregarPir();
             } finally {
-                atualizacaoPIREmCurso = false;
+                atualizacaoPirEmCurso = false;
             }
         }
 
@@ -676,10 +1079,10 @@
             atualizarDataHora();
             window.setInterval(atualizarDataHora, 1000);
 
-            await Promise.allSettled([atualizarPIR(), carregarAvisos()]);
+            await Promise.allSettled([atualizarPir(), carregarAvisos()]);
 
-            /* Apenas o PIR é atualizado automaticamente, de hora a hora. */
-            window.setInterval(atualizarPIR, intervaloAtualizacaoPIRMs);
+            /* Apenas o PIR e os seus dados meteorológicos são atualizados de hora a hora. */
+            window.setInterval(atualizarPir, intervaloAtualizacaoPirMs);
         }
 
         function atualizarDataHora() {
