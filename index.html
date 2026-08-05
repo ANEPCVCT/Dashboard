@@ -3,17 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Operacional - Alto Minho (Híbrido)</title>
+    <title>Dashboard Operacional - Alto Minho (Híbrido Robusto)</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
     <style>
         body, html { margin: 0; padding: 0; height: 100%; font-family: sans-serif; background-color: #f0f0f0; overflow: hidden; }
 
-        /* Estrutura Principal */
         #main-container { display: flex; height: 100vh; }
 
-        /* Barra Lateral Esquerda */
         #sidebar {
             width: 260px; background-color: white; border-right: 2px solid #333;
             display: flex; flex-direction: column; padding: 10px; box-sizing: border-box;
@@ -26,7 +24,6 @@
         .dropdown-box { width: 100%; padding: 10px; font-size: 18px; font-weight: bold; border: 2px solid #333; border-radius: 5px; }
         #sidebar-map-placeholder { flex: 1; background-color: #e0e0e0; border: 2px dashed #999; margin-top: 10px; display: flex; align-items: center; justify-content: center; color: #666; font-style: italic;}
 
-        /* Área Principal do Dashboard (CSS Grid) */
         #dashboard-grid {
             flex: 1; display: grid; gap: 10px; padding: 10px; box-sizing: border-box;
             grid-template-columns: repeat(3, 1fr);
@@ -49,12 +46,10 @@
         #palco-pir-plus2 { grid-area: pir-plus2; }
         #palco-vazio { grid-area: palco-vazio; background: #fafafa; display: flex; align-items: center; justify-content: center; color: #999; }
 
-        /* ESTILO: Fundo do mapa a cinzento e sem mapa de fundo */
         .mapa-leaflet { width: 100%; height: 100%; background-color: #eee; }
         
         .map-loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 2000; background: rgba(255,255,255,0.9); padding: 10px; border-radius: 5px; font-weight: bold; color: #555;}
 
-        /* Timeline de Avisos */
         #avisos-conteudo { padding: 10px; display: flex; flex-direction: column; gap: 5px; overflow-y: auto; font-size: 13px;}
         .aviso-item { display: flex; align-items: center; border-radius: 5px; padding: 5px; border: 1px solid #ccc; }
         .aviso-icone { width: 28px; height: 28px; margin-right: 8px; }
@@ -65,13 +60,11 @@
         .aviso-orange { background-color: #FFF3E0; border-color: #F57C00; }
         .aviso-red { background-color: #FFEBEE; border-color: #D32F2F; }
         .aviso-green { background-color: #E8F5E9; border-color: #388E3C; }
-
     </style>
 </head>
 <body>
 
 <div id="main-container">
-    <!-- Barra Lateral Esquerda -->
     <div id="sidebar">
         <div class="logo-container">
             <img src="https://upload.wikimedia.org/wikipedia/commons/f/f8/Escudo_da_Autoridade_Nacional_de_Emergência_e_Proteção_Civil.svg" alt="ANEPC">
@@ -93,14 +86,12 @@
         </div>
     </div>
 
-    <!-- Área Principal do Dashboard (Grid) -->
     <div id="dashboard-grid">
-        
         <div class="palco" id="palco-pir">
             <div class="palco-titulo">PIR (Risco Incêndio) - HOJE</div>
             <div class="palco-conteudo">
                 <div id="mapa-pir0" class="mapa-leaflet"></div>
-                <div class="map-loading" id="load0">A carregar contornos...</div>
+                <div class="map-loading" id="load0">A carregar...</div>
             </div>
         </div>
 
@@ -113,7 +104,7 @@
             <div class="palco-titulo">PIR (Risco Incêndio) - AMANHÃ</div>
             <div class="palco-conteudo">
                 <div id="mapa-pir1" class="mapa-leaflet"></div>
-                <div class="map-loading" id="load1">A carregar contornos...</div>
+                <div class="map-loading" id="load1">A carregar...</div>
             </div>
         </div>
 
@@ -121,97 +112,87 @@
             <div class="palco-titulo">PIR (Risco Incêndio) - DEPOIS DE AMANHÃ</div>
             <div class="palco-conteudo">
                 <div id="mapa-pir2" class="mapa-leaflet"></div>
-                <div class="map-loading" id="load2">A carregar contornos...</div>
+                <div class="map-loading" id="load2">A carregar...</div>
             </div>
         </div>
 
         <div class="palco" id="palco-vazio">Área Reservada</div>
-
     </div>
 </div>
 
 <script>
-    // 1. CONFIGURAÇÃO ESTÁTICA
     const centroMapa = [41.85, -8.3];
     const zoomMapa = 10;
     
     // Limites geográficos exatos para a sobreposição das imagens PNG.
-    // AJUSTA ESTES VALORES SE AS IMAGENS NÃO ENCAIXAREM BEM.
     const boundsDistrito = [
         [41.55, -8.88], // Sudoeste
         [42.22, -8.05]  // Nordeste
     ];
 
-    // Mapeamento dos códigos DICO para os nomes dos ficheiros PNG fornecidos
-    const concelhoNomes = {
-        "1601": "arcos", "1602": "caminha", "1603": "melgaco", "1604": "moncao",
-        "1605": "coura", "1606": "pbarca", "1607": "plima", "1608": "valenca",
-        "1609": "viana", "1610": "cerveira"
-    };
+    const concelhoNomes = { "1601": "arcos", "1602": "caminha", "1603": "melgaco", "1604": "moncao", "1605": "coura", "1606": "pbarca", "1607": "plima", "1608": "valenca", "1609": "viana", "1610": "cerveira" };
+    const levelPasta = { "1": "IRI Reduzido", "2": "IRI Moderado", "3": "IRI Elevado", "4": "IRI Muito Elevado", "5": "IRI Maximo" };
 
-    // Mapeamento dos níveis de risco IPMA para os nomes exatos das pastas PNG
-    const levelPasta = {
-        "1": "IRI Reduzido", "2": "IRI Moderado", "3": "IRI Elevado",
-        "4": "IRI Muito Elevado", "5": "IRI Maximo"
-    };
+    const estiloContornos = { stroke: true, color: "#000000", weight: 2.0, opacity: 1.0, fill: false };
 
-    // Estilo para a camada GeoJSON de contornos (linhas divisórias)
-    const estiloContornos = {
-        stroke: true,
-        color: "#000000", // Cor preta para máximo contraste
-        weight: 1.5,      // Espessura da linha
-        opacity: 0.8,     // Opacidade da linha
-        fill: false       // SEM PREENCHIMENTO (transparente)
-    };
-
-    // 2. INICIALIZAR MAPAS
     const mapHoje = L.map('mapa-pir0', { zoomControl: false, attributionControl: false }).setView(centroMapa, zoomMapa);
     const mapAmanha = L.map('mapa-pir1', { zoomControl: false, attributionControl: false }).setView(centroMapa, zoomMapa);
     const mapDepois = L.map('mapa-pir2', { zoomControl: false, attributionControl: false }).setView(centroMapa, zoomMapa);
 
-    // 3. FUNÇÕES DE CARREGAMENTO
-
-    // A. Carregar imagens PNG de risco (Cor)
     function carregarConcelhosPNG(mapa, dadosRcmIpma) {
         Object.keys(concelhoNomes).forEach(dico => {
             const nomePng = concelhoNomes[dico];
-            const riscoIpma = dadosRcmIpma[dico] || 1; // Assume 1 se não houver dados
+            const riscoIpma = dadosRcmIpma[dico] || 1;
             const pastaIri = levelPasta[riscoIpma] || "IRI Reduzido";
             const urlImagem = `${pastaIri}/${nomePng}.png`;
-
-            // Adiciona a imagem overlay (Pai: Mapa)
             L.imageOverlay(urlImagem, boundsDistrito, { opacity: 1.0 }).addTo(mapa);
         });
     }
 
-    // B. Carregar GeoJSON de contornos (Linhas)
     async function carregarGeoJSONContornos(mapa, loadingId) {
+        const loadingElement = document.getElementById(loadingId);
         try {
-            // Carrega o único ficheiro GeoJSON de contornos
+            console.log(`[GEOJSON] A tentar carregar 'contornos_viana.geojson' para o mapa '${mapa.getContainer().id}'...`);
             const response = await fetch('contornos_viana.geojson');
-            if (!response.ok) throw new Error('Falha ao carregar GeoJSON');
-            const dataContornos = await response.ok ? await response.json() : null;
             
-            if (dataContornos) {
-                const camadaContornos = L.geoJSON(dataContornos, { style: estiloContornos });
-                
-                // Adiciona os contornos AO MAPA (ficando por cima das imagens PNG)
-                camadaContornos.addTo(mapa);
-                
-                // Ajusta o zoom para os limites dos contornos reais
-                mapa.fitBounds(camadaContornos.getBounds(), { padding: [5, 5] });
+            if (!response.ok) {
+                if (response.status === 404) {
+                    throw new Error('Ficheiro contornos_viana.geojson NÃO ENCONTRADO na raiz do GitHub (404). Verifique se o enviou corretamente.');
+                } else {
+                    throw new Error(`Falha na rede (Status: ${response.status}).`);
+                }
+            }
+            
+            const dataContornos = await response.json();
+            console.log(`[GEOJSON] Ficheiro carregado e interpretado com sucesso.`);
+
+            // Verifica se a estrutura básica do GeoJSON existe
+            if (!dataContornos || !dataContornos.type || !dataContornos.features) {
+                throw new Error('O ficheiro JSON carregado NÃO tem uma estrutura GeoJSON FeatureCollection válida.');
             }
 
-            // Esconde o loading
-            document.getElementById(loadingId).style.display = 'none';
+            const camadaContornos = L.geoJSON(dataContornos, { style: estiloContornos });
+            camadaContornos.addTo(mapa);
+            
+            // Verifica se o GeoJSON tem geometrias válidas para centrar o mapa
+            const boundsContornos = camadaContornos.getBounds();
+            if (!boundsContornos.isValid()) {
+                throw new Error('O ficheiro GeoJSON NÃO contém geometrias válidas para calcular os limites (bounds). Pode estar vazio ou numa projeção incorreta.');
+            }
+
+            mapa.fitBounds(boundsContornos, { padding: [5, 5] });
+            console.log(`[GEOJSON] Contornos desenhados com sucesso.`);
+            loadingElement.style.display = 'none';
 
         } catch (erro) {
-            console.error(`Erro Contornos (${mapa.getContainer().id}):`, erro);
-            document.getElementById(loadingId).innerText = "Erro Contornos";
+            console.error(`[ERRO CRÍTICO GEOJSON] Mapa '${mapa.getContainer().id}':`, erro.message);
+            loadingElement.innerText = "Erro GeoJSON (Ver Consola F12)";
+            loadingElement.style.color = 'red';
+            // Alerta visual para a TV
+            alert(`ERRO GEOJSON: ${erro.message}`);
         }
     }
 
-    // C. Carregar Avisos (Timeline)
     async function carregarAvisos() {
         const container = document.getElementById('avisos-conteudo');
         const tipoAvisoIcons = { "Precipitação": "https://cdn-icons-png.flaticon.com/512/4005/4005771.png", "Vento": "https://cdn-icons-png.flaticon.com/512/5444/5444465.png", "Agitação Marítima": "https://cdn-icons-png.flaticon.com/512/3104/3104564.png", "Trovoada": "https://cdn-icons-png.flaticon.com/512/4150/4150897.png", "Nevoeiro": "https://cdn-icons-png.flaticon.com/512/760/760444.png", "Tempo Frio": "https://cdn-icons-png.flaticon.com/512/5353/5353179.png" };
@@ -223,7 +204,7 @@
             const avisosViana = data.filter(a => a.idAreaAviso === 'VVC' && a.awarenessLevelID !== 'green');
 
             if (avisosViana.length === 0) {
-                container.innerHTML = '<div class="aviso-item aviso-green" style="text-align:center;">Sem avisos meteorológicos importantes.</div>';
+                container.innerHTML = '<div class="aviso-item aviso-green" style="text-align:center;">Sem avisos meteorológicos ativos.</div>';
                 return;
             }
 
@@ -234,22 +215,12 @@
                 const inicio = new Date(aviso.startTime).toLocaleString('pt-PT', {day: '2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
                 const fim = new Date(aviso.endTime).toLocaleString('pt-PT', {day: '2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
 
-                container.innerHTML += `
-                    <div class="aviso-item ${classeFundo}">
-                        <img src="${icone}" class="aviso-icone" alt="${aviso.awarenessTypeName}">
-                        <div class="aviso-texto">
-                            <strong>${aviso.awarenessTypeName}</strong><br>
-                            <span class="aviso-tempo">Início: ${inicio} - Fim: ${fim}</span>
-                        </div>
-                    </div>
-                `;
+                container.innerHTML += `<div class="aviso-item ${classeFundo}"><img src="${icone}" class="aviso-icone" alt="${aviso.awarenessTypeName}"><div class="aviso-texto"><strong>${aviso.awarenessTypeName}</strong><br><span class="aviso-tempo">Início: ${inicio} - Fim: ${fim}</span></div></div>`;
             });
         } catch (erro) { console.error("Erro Avisos:", erro); }
     }
 
-    // 4. MOTOR PRINCIPAL
     async function iniciar() {
-        // A. Carregar Risco de Incêndio (IRI)
         try {
             const urls = ['rcm-d0.json', 'rcm-d1.json', 'rcm-d2.json'];
             const respostas = await Promise.all(urls.map(u => fetch('https://api.ipma.pt/open-data/forecast/meteorology/rcm/' + u)));
@@ -257,11 +228,7 @@
 
             const extrairRisco = (json) => {
                 const mapeamento = {};
-                if (json.local) {
-                    Object.keys(json.local).forEach(dico => {
-                        if (dico.startsWith('16')) mapeamento[dico] = json.local[dico].data.rcm;
-                    });
-                }
+                if (json.local) { Object.keys(json.local).forEach(dico => { if (dico.startsWith('16')) mapeamento[dico] = json.local[dico].data.rcm; }); }
                 return mapeamento;
             };
 
@@ -269,27 +236,23 @@
             const riscoAmanha = extrairRisco(dados[1]);
             const riscoDepois = extrairRisco(dados[2]);
 
-            // B. Executar carregamentos sequenciais para os 3 mapas
-
-            // 1. Carregar as cores (PNG)
+            // 1. Carregar as cores (PNG) - Sequencial para estabilidade
             carregarConcelhosPNG(mapHoje, riscoHoje);
             carregarConcelhosPNG(mapAmanha, riscoAmanha);
             carregarConcelhosPNG(mapDepois, riscoDepois);
 
-            // 2. Carregar os contornos (GeoJSON) - *Executado depois para ficar por cima*
-            carregarGeoJSONContornos(mapHoje, 'load0');
-            carregarGeoJSONContornos(mapAmanha, 'load1');
-            carregarGeoJSONContornos(mapDepois, 'load2');
+            // 2. Carregar os contornos (GeoJSON) - Sequencial
+            // O código agora trata o erro especificamente
+            await carregarGeoJSONContornos(mapHoje, 'load0');
+            await carregarGeoJSONContornos(mapAmanha, 'load1');
+            await carregarGeoJSONContornos(mapDepois, 'load2');
 
-        } catch(e) { console.error("Erro IPMA IRI", e); }
+        } catch(e) { console.error("Erro IPMA IRI/GeoJSONMotor:", e); }
 
-        // C. Carregar Avisos (Timeline)
         carregarAvisos();
     }
 
-    // INICIAR DASHBOARD
     iniciar();
-
 </script>
 </body>
 </html>
