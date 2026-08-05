@@ -5,18 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Operacional — Alto Minho</title>
 
-    <link
-        rel="stylesheet"
-        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-        integrity="sha256-p4NxAoJBhIINfQ3ynh3ZkH3ZfvQZ86h9ro40mRWe0xY="
-        crossorigin
-    >
-    <script
-        src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-        crossorigin
-    ></script>
-
     <style>
         :root {
             --header-height: clamp(88px, 11vh, 122px);
@@ -152,10 +140,47 @@
             min-height: 0;
         }
 
-        .mapa-leaflet {
+        .iri-map-frame {
+            position: absolute;
+            inset: 0;
+            display: grid;
+            place-items: center;
+            overflow: hidden;
             width: 100%;
             height: 100%;
             background: #e3e6e8;
+        }
+
+        /*
+         * Todos os PNG foram desenhados sobre a mesma tela de 743 × 662 px.
+         * A pilha tem uma única geometria; assim, cada pixel de cada concelho
+         * coincide com o mesmo pixel das restantes camadas.
+         */
+        .iri-image-stack {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .iri-image-layer {
+            position: absolute;
+            inset: 0;
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            object-position: center;
+            pointer-events: none;
+            user-select: none;
+        }
+
+        .iri-concelho-layer {
+            z-index: 10;
+        }
+
+        .iri-tracado-layer {
+            z-index: 20;
         }
 
         .map-loading {
@@ -289,7 +314,9 @@
                 <article class="palco" id="palco-iri-hoje">
                     <div class="palco-titulo">IRI — Hoje</div>
                     <div class="palco-conteudo">
-                        <div id="mapa-iri0" class="mapa-leaflet"></div>
+                        <div class="iri-map-frame">
+                            <div id="mapa-iri0" class="iri-image-stack"></div>
+                        </div>
                         <div class="map-loading" id="load0">A carregar IRI de hoje…</div>
                     </div>
                 </article>
@@ -298,7 +325,9 @@
                     <article class="palco" id="palco-iri-amanha">
                         <div class="palco-titulo">IRI — Amanhã</div>
                         <div class="palco-conteudo">
-                            <div id="mapa-iri1" class="mapa-leaflet"></div>
+                            <div class="iri-map-frame">
+                                <div id="mapa-iri1" class="iri-image-stack"></div>
+                            </div>
                             <div class="map-loading" id="load1">A carregar IRI de amanhã…</div>
                         </div>
                     </article>
@@ -306,7 +335,9 @@
                     <article class="palco" id="palco-iri-depois">
                         <div class="palco-titulo">IRI — Depois de amanhã</div>
                         <div class="palco-conteudo">
-                            <div id="mapa-iri2" class="mapa-leaflet"></div>
+                            <div class="iri-map-frame">
+                                <div id="mapa-iri2" class="iri-image-stack"></div>
+                            </div>
                             <div class="map-loading" id="load2">A carregar IRI…</div>
                         </div>
                     </article>
@@ -339,14 +370,6 @@
 
     <script>
         'use strict';
-
-        const centroMapa = [41.85, -8.3];
-        const zoomMapa = 10;
-
-        const boundsDistrito = [
-            [41.55, -8.88],
-            [42.22, -8.05]
-        ];
 
         const concelhoNomes = {
             '1601': 'arcos',
@@ -390,40 +413,6 @@
             '1610': 'Vila Nova de Cerveira'
         };
 
-        const mapas = [
-            criarMapa('mapa-iri0'),
-            criarMapa('mapa-iri1'),
-            criarMapa('mapa-iri2')
-        ];
-
-        function criarMapa(elementId) {
-            const mapa = L.map(elementId, {
-                zoomControl: false,
-                attributionControl: false,
-                dragging: false,
-                doubleClickZoom: false,
-                scrollWheelZoom: false,
-                boxZoom: false,
-                keyboard: false,
-                tap: false
-            }).setView(centroMapa, zoomMapa);
-
-            /*
-             * Todas as imagens dos concelhos partilham exatamente o mesmo
-             * tamanho e os mesmos limites. O traçado usa uma camada própria
-             * para ficar sempre acima da composição IRI, independentemente da
-             * ordem em que cada PNG termine de carregar.
-             */
-            mapa.createPane('iriConcelhos');
-            mapa.getPane('iriConcelhos').style.zIndex = '400';
-
-            mapa.createPane('iriTracado');
-            mapa.getPane('iriTracado').style.zIndex = '450';
-            mapa.getPane('iriTracado').style.pointerEvents = 'none';
-
-            return mapa;
-        }
-
         function definirEstadoLoading(loadingId, mensagem, erro = false) {
             const elemento = document.getElementById(loadingId);
             elemento.textContent = mensagem;
@@ -453,45 +442,59 @@
             return resultado;
         }
 
-        function adicionarImagemConcelho(mapa, dico, risco) {
+        function adicionarImagemConcelho(pilha, dico, risco) {
             return new Promise((resolve) => {
                 const pasta = nivelPasta[risco];
                 const ficheiro = concelhoNomes[dico];
                 const urlImagem = `${pasta}/${ficheiro}.png`;
-                const imagem = L.imageOverlay(urlImagem, boundsDistrito, {
-                    opacity: 1,
-                    interactive: true,
-                    pane: 'iriConcelhos'
-                });
+                const imagem = document.createElement('img');
 
-                imagem.bindPopup(
-                    `<b>${nomesConcelho[dico]}</b><br>` +
-                    `Risco: ${nomesRisco[risco]} (nível ${risco})`
+                imagem.className = 'iri-image-layer iri-concelho-layer';
+                imagem.alt = `${nomesConcelho[dico]} — risco ${nomesRisco[risco]}`;
+                imagem.dataset.dico = dico;
+                imagem.dataset.risco = risco;
+                imagem.addEventListener(
+                    'load',
+                    () => resolve({ dico, estado: 'carregado' }),
+                    { once: true }
+                );
+                imagem.addEventListener(
+                    'error',
+                    () => resolve({ dico, estado: 'erro', urlImagem }),
+                    { once: true }
                 );
 
-                imagem.once('load', () => resolve({ dico, estado: 'carregado' }));
-                imagem.once('error', () => resolve({ dico, estado: 'erro', urlImagem }));
-                imagem.addTo(mapa);
+                pilha.appendChild(imagem);
+                imagem.src = urlImagem;
             });
         }
 
-        function adicionarTracado(mapa) {
+        function adicionarTracado(pilha) {
             return new Promise((resolve) => {
-                const tracado = L.imageOverlay('tracado.png', boundsDistrito, {
-                    opacity: 1,
-                    interactive: false,
-                    pane: 'iriTracado'
-                });
+                const tracado = document.createElement('img');
 
-                tracado.once('load', () => resolve({ estado: 'carregado' }));
-                tracado.once('error', () =>
-                    resolve({ estado: 'erro', urlImagem: 'tracado.png' })
+                tracado.className = 'iri-image-layer iri-tracado-layer';
+                tracado.alt = '';
+                tracado.setAttribute('aria-hidden', 'true');
+                tracado.addEventListener(
+                    'load',
+                    () => resolve({ estado: 'carregado' }),
+                    { once: true }
                 );
-                tracado.addTo(mapa);
+                tracado.addEventListener(
+                    'error',
+                    () => resolve({ estado: 'erro', urlImagem: 'tracado.png' }),
+                    { once: true }
+                );
+
+                /* Inserido por último e com z-index superior: é sempre o topo. */
+                pilha.appendChild(tracado);
+                tracado.src = 'tracado.png';
             });
         }
 
-        async function carregarConcelhosPNG(mapa, dadosRcmIpma, loadingId) {
+        async function carregarConcelhosPNG(pilhaId, dadosRcmIpma, loadingId) {
+            const pilha = document.getElementById(pilhaId);
             const concelhosComDados = Object.keys(concelhoNomes).filter(
                 (dico) => Boolean(dadosRcmIpma[dico])
             );
@@ -500,15 +503,15 @@
                 throw new Error('A resposta do IPMA não contém dados IRI para o Alto Minho.');
             }
 
-            mapa.fitBounds(boundsDistrito, { animate: false, padding: [2, 2] });
+            pilha.replaceChildren();
 
             const [resultados, resultadoTracado] = await Promise.all([
                 Promise.all(
                     concelhosComDados.map((dico) =>
-                        adicionarImagemConcelho(mapa, dico, dadosRcmIpma[dico])
+                        adicionarImagemConcelho(pilha, dico, dadosRcmIpma[dico])
                     )
                 ),
-                adicionarTracado(mapa)
+                adicionarTracado(pilha)
             ]);
 
             const falhas = resultados.filter((resultado) => resultado.estado === 'erro');
@@ -560,7 +563,7 @@
 
                     try {
                         const risco = extrairRiscoDistrital(resposta.value);
-                        await carregarConcelhosPNG(mapas[indice], risco, loadingId);
+                        await carregarConcelhosPNG(`mapa-iri${indice}`, risco, loadingId);
                     } catch (erro) {
                         console.error(`Erro ao apresentar IRI D${indice}:`, erro);
                         definirEstadoLoading(loadingId, 'Não foi possível apresentar o IRI.', true);
@@ -639,23 +642,9 @@
             }
         }
 
-        function reajustarMapas() {
-            mapas.forEach((mapa) => {
-                mapa.invalidateSize({ animate: false });
-                mapa.fitBounds(boundsDistrito, { animate: false, padding: [2, 2] });
-            });
-        }
-
         async function iniciar() {
-            requestAnimationFrame(reajustarMapas);
             await Promise.allSettled([carregarIri(), carregarAvisos()]);
-            requestAnimationFrame(reajustarMapas);
         }
-
-        const observadorTamanho = new ResizeObserver(() => {
-            requestAnimationFrame(reajustarMapas);
-        });
-        observadorTamanho.observe(document.getElementById('iri-area'));
 
         iniciar();
     </script>
