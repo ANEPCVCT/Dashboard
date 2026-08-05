@@ -413,6 +413,9 @@
             '1610': 'Vila Nova de Cerveira'
         };
 
+        const intervaloAtualizacaoIriMs = 60 * 60 * 1000;
+        let atualizacaoIriEmCurso = false;
+
         function definirEstadoLoading(loadingId, mensagem, erro = false) {
             const elemento = document.getElementById(loadingId);
             elemento.textContent = mensagem;
@@ -572,6 +575,20 @@
             );
         }
 
+        async function atualizarIri() {
+            if (atualizacaoIriEmCurso) {
+                return;
+            }
+
+            atualizacaoIriEmCurso = true;
+
+            try {
+                await carregarIri();
+            } finally {
+                atualizacaoIriEmCurso = false;
+            }
+        }
+
         async function carregarAvisos() {
             const container = document.getElementById('avisos-conteudo');
             const tipoAvisoIcons = {
@@ -643,7 +660,10 @@
         }
 
         async function iniciar() {
-            await Promise.allSettled([carregarIri(), carregarAvisos()]);
+            await Promise.allSettled([atualizarIri(), carregarAvisos()]);
+
+            /* Apenas o IRI é atualizado automaticamente, de hora a hora. */
+            window.setInterval(atualizarIri, intervaloAtualizacaoIriMs);
         }
 
         iniciar();
