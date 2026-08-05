@@ -196,52 +196,101 @@
         }
 
         /*
-         * Informação meteorológica municipal sobre o PIR. O SVG usa o mesmo
-         * viewBox 743 × 662 dos PNG, mantendo os rótulos alinhados mesmo quando
-         * o mapa é redimensionado para caber no painel.
+         * No painel de hoje, a meteorologia fica fora do mapa: cinco concelhos
+         * à esquerda, o mapa ao centro e cinco concelhos à direita.
          */
-        .pir-weather-overlay {
+        .pir-hoje-layout {
             position: absolute;
-            z-index: 30;
             inset: 0;
-            display: block;
-            width: 100%;
-            height: 100%;
-            overflow: visible;
-            pointer-events: none;
+            display: grid;
+            grid-template-columns:
+                minmax(150px, 0.92fr)
+                minmax(250px, 1.45fr)
+                minmax(150px, 0.92fr);
+            min-width: 0;
+            min-height: 0;
+            overflow: hidden;
+            background: #e3e6e8;
         }
 
-        .pir-weather-label {
+        .pir-hoje-map {
+            position: relative;
+            min-width: 0;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        .pir-weather-column {
+            display: grid;
+            grid-template-rows: repeat(5, minmax(0, 1fr));
+            min-width: 0;
+            min-height: 0;
+            overflow: hidden;
+            padding: clamp(4px, 0.35vw, 7px);
+            color: #000000;
+        }
+
+        .pir-weather-column-left {
+            padding-left: clamp(6px, 0.5vw, 10px);
+            text-align: left;
+        }
+
+        .pir-weather-column-right {
+            padding-right: clamp(6px, 0.5vw, 10px);
+            text-align: right;
+        }
+
+        .pir-weather-item {
             display: flex;
             flex-direction: column;
             justify-content: center;
-            width: 100%;
-            height: 100%;
-            padding: 0;
-            overflow: visible;
+            min-width: 0;
+            min-height: 0;
+            padding: 2px 0;
+            overflow: hidden;
             border: 0;
-            border-radius: 0;
             background: transparent;
             box-shadow: none;
             color: #000000;
             font-family: Arial, Helvetica, sans-serif;
-            font-size: 11.5px;
+            font-size: clamp(9px, 0.64vw, 13px);
             font-weight: 700;
-            line-height: 1.08;
-            text-align: center;
+            line-height: 1.12;
             white-space: nowrap;
         }
 
-        .pir-weather-label span {
+        .pir-weather-item strong,
+        .pir-weather-item span {
             display: block;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
-        .pir-weather-label.is-unavailable {
+        .pir-weather-item strong {
+            margin-bottom: 2px;
+            font-size: clamp(10px, 0.74vw, 15px);
+            line-height: 1.05;
+        }
+
+        .pir-weather-item.is-unavailable {
             color: #000000;
         }
 
-        .pir-weather-label.is-unavailable span {
+        .pir-weather-item.is-unavailable span {
             white-space: normal;
+        }
+
+        .pir-weather-column-status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            grid-row: 1 / -1;
+            padding: 8px;
+            color: #000000;
+            font-size: clamp(11px, 0.75vw, 15px);
+            font-weight: 700;
+            line-height: 1.2;
+            text-align: inherit;
         }
 
         .map-loading {
@@ -376,10 +425,28 @@
                 <article class="palco" id="palco-pir-hoje">
                     <div class="palco-titulo">PIR — Hoje</div>
                     <div class="palco-conteudo">
-                        <div class="pir-map-frame">
-                            <div id="mapa-pir0" class="pir-image-stack"></div>
+                        <div class="pir-hoje-layout">
+                            <div
+                                id="meteorologia-hoje-esquerda"
+                                class="pir-weather-column pir-weather-column-left"
+                                aria-label="Meteorologia dos concelhos à esquerda"
+                            >
+                                <div class="pir-weather-column-status">A carregar dados de hoje…</div>
+                            </div>
+
+                            <div class="pir-hoje-map">
+                                <div id="mapa-pir0" class="pir-image-stack"></div>
+                                <div class="map-loading" id="load0">A carregar PIR de hoje…</div>
+                            </div>
+
+                            <div
+                                id="meteorologia-hoje-direita"
+                                class="pir-weather-column pir-weather-column-right"
+                                aria-label="Meteorologia dos concelhos à direita"
+                            >
+                                <div class="pir-weather-column-status">A carregar dados de hoje…</div>
+                            </div>
                         </div>
-                        <div class="map-loading" id="load0">A carregar PIR de hoje…</div>
                     </div>
                 </article>
 
@@ -489,19 +556,21 @@
             '1610': 1161000
         };
 
-        /* Centros visuais dos concelhos na tela original de 743 × 662 px. */
-        const posicaoRotuloPorDico = {
-            '1601': { x: 486, y: 294 },
-            '1602': { x: 136, y: 357 },
-            '1603': { x: 616, y: 147 },
-            '1604': { x: 439, y: 151 },
-            '1605': { x: 308, y: 292 },
-            '1606': { x: 522, y: 414 },
-            '1607': { x: 301, y: 479 },
-            '1608': { x: 280, y: 193 },
-            '1609': { x: 146, y: 512 },
-            '1610': { x: 188, y: 276 }
-        };
+        const concelhosMeteorologiaEsquerda = [
+            '1601',
+            '1602',
+            '1603',
+            '1604',
+            '1605'
+        ];
+
+        const concelhosMeteorologiaDireita = [
+            '1606',
+            '1607',
+            '1608',
+            '1609',
+            '1610'
+        ];
 
         const nomesClasseVento = {
             '1': 'Fraco',
@@ -721,100 +790,109 @@
             return `${formatarNumero(minimo)}–${formatarNumero(maximo)}${unidade}`;
         }
 
-        function adicionarLinhaRotulo(rotulo, texto) {
-            const linha = document.createElementNS('http://www.w3.org/1999/xhtml', 'span');
+        function adicionarLinhaMeteorologia(item, texto) {
+            const linha = document.createElement('span');
             linha.textContent = texto;
-            rotulo.appendChild(linha);
+            item.appendChild(linha);
         }
 
-        function adicionarSobreposicaoMeteorologica(
-            pilha,
+        function criarItemMeteorologia(dico, meteorologiaMunicipal, dataReferencia) {
+            const dados = extrairMeteorologiaDiaria(
+                meteorologiaMunicipal[dico],
+                dataReferencia
+            );
+            const item = document.createElement('div');
+            const nome = document.createElement('strong');
+
+            item.className = 'pir-weather-item';
+            nome.textContent = nomesConcelho[dico];
+            item.appendChild(nome);
+
+            if (!dados.disponivel) {
+                item.classList.add('is-unavailable');
+                adicionarLinhaMeteorologia(item, 'Dados indisponíveis');
+                item.title = `${nomesConcelho[dico]}: dados indisponíveis`;
+                return item;
+            }
+
+            const temperatura = formatarIntervalo(
+                dados.temperaturaMinima,
+                dados.temperaturaMaxima,
+                '°C'
+            );
+            const humidade = formatarIntervalo(
+                dados.humidadeMinima,
+                dados.humidadeMaxima,
+                '%'
+            );
+            const direcao = dados.direcaoVento || '—';
+            const velocidade = dados.velocidadeMaximaVento === null
+                ? dados.classeVento || '—'
+                : `${formatarNumero(dados.velocidadeMaximaVento)} km/h`;
+            const vento = `${direcao} · ${velocidade}`;
+
+            adicionarLinhaMeteorologia(item, `Temperatura: ${temperatura}`);
+            adicionarLinhaMeteorologia(item, `Humidade: ${humidade}`);
+            adicionarLinhaMeteorologia(item, `Vento: ${vento}`);
+
+            item.title =
+                `${nomesConcelho[dico]}: temperatura ${temperatura}; ` +
+                `humidade relativa ${humidade}; vento ${vento}` +
+                (dados.classeVento ? `, ${dados.classeVento.toLowerCase()}` : '');
+
+            return item;
+        }
+
+        function preencherColunaMeteorologia(
+            containerId,
             concelhos,
             meteorologiaMunicipal,
             dataReferencia
         ) {
-            const svgNs = 'http://www.w3.org/2000/svg';
-            const xhtmlNs = 'http://www.w3.org/1999/xhtml';
-            const larguraRotulo = 110;
-            const alturaRotulo = 48;
-            const sobreposicao = document.createElementNS(svgNs, 'svg');
-            const descricoes = [];
-            let indisponiveis = 0;
-
-            sobreposicao.classList.add('pir-weather-overlay');
-            sobreposicao.setAttribute('viewBox', '0 0 743 662');
-            sobreposicao.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-            sobreposicao.setAttribute('role', 'img');
+            const container = document.getElementById(containerId);
+            const fragmento = document.createDocumentFragment();
 
             concelhos.forEach((dico) => {
-                const posicao = posicaoRotuloPorDico[dico];
-                const dados = extrairMeteorologiaDiaria(
-                    meteorologiaMunicipal[dico],
-                    dataReferencia
+                fragmento.appendChild(
+                    criarItemMeteorologia(dico, meteorologiaMunicipal, dataReferencia)
                 );
-                const foreignObject = document.createElementNS(svgNs, 'foreignObject');
-                const rotulo = document.createElementNS(xhtmlNs, 'div');
-
-                foreignObject.setAttribute('x', String(posicao.x - larguraRotulo / 2));
-                foreignObject.setAttribute('y', String(posicao.y - alturaRotulo / 2));
-                foreignObject.setAttribute('width', String(larguraRotulo));
-                foreignObject.setAttribute('height', String(alturaRotulo));
-
-                rotulo.className = 'pir-weather-label';
-
-                if (!dados.disponivel) {
-                    indisponiveis += 1;
-                    rotulo.classList.add('is-unavailable');
-                    adicionarLinhaRotulo(rotulo, 'Dados indisponíveis');
-                    descricoes.push(`${nomesConcelho[dico]}: dados indisponíveis`);
-                } else {
-                    const temperatura = formatarIntervalo(
-                        dados.temperaturaMinima,
-                        dados.temperaturaMaxima,
-                        '°C'
-                    );
-                    const humidade = formatarIntervalo(
-                        dados.humidadeMinima,
-                        dados.humidadeMaxima,
-                        '%'
-                    );
-                    const direcao = dados.direcaoVento || '—';
-                    const velocidade = dados.velocidadeMaximaVento === null
-                        ? dados.classeVento || '—'
-                        : `${formatarNumero(dados.velocidadeMaximaVento)} km/h`;
-                    const vento = `${direcao} · ${velocidade}`;
-
-                    adicionarLinhaRotulo(rotulo, `T ${temperatura}`);
-                    adicionarLinhaRotulo(rotulo, `HR ${humidade}`);
-                    adicionarLinhaRotulo(rotulo, `V ${vento}`);
-
-                    descricoes.push(
-                        `${nomesConcelho[dico]}: temperatura ${temperatura}; ` +
-                        `humidade relativa ${humidade}; vento ${vento}` +
-                        (dados.classeVento ? `, ${dados.classeVento.toLowerCase()}` : '')
-                    );
-                }
-
-                rotulo.title = descricoes[descricoes.length - 1];
-                foreignObject.appendChild(rotulo);
-                sobreposicao.appendChild(foreignObject);
             });
 
-            sobreposicao.setAttribute(
-                'aria-label',
-                `Previsão meteorológica municipal de ${dataReferencia}. ${descricoes.join('. ')}.`
-            );
-            pilha.appendChild(sobreposicao);
+            container.replaceChildren(fragmento);
+        }
 
-            return indisponiveis;
+        function apresentarMeteorologiaHoje(meteorologiaMunicipal, dataReferencia) {
+            preencherColunaMeteorologia(
+                'meteorologia-hoje-esquerda',
+                concelhosMeteorologiaEsquerda,
+                meteorologiaMunicipal,
+                dataReferencia
+            );
+            preencherColunaMeteorologia(
+                'meteorologia-hoje-direita',
+                concelhosMeteorologiaDireita,
+                meteorologiaMunicipal,
+                dataReferencia
+            );
+        }
+
+        function definirMeteorologiaHojeIndisponivel() {
+            const mensagem = document.createElement('div');
+            mensagem.className = 'pir-weather-column-status';
+            mensagem.textContent = 'Dados de hoje indisponíveis.';
+
+            document
+                .getElementById('meteorologia-hoje-esquerda')
+                .replaceChildren(mensagem.cloneNode(true));
+            document
+                .getElementById('meteorologia-hoje-direita')
+                .replaceChildren(mensagem);
         }
 
         async function carregarConcelhosPNG(
             pilhaId,
             dadosRcmIpma,
-            loadingId,
-            meteorologiaMunicipal,
-            dataReferencia
+            loadingId
         ) {
             const pilha = document.getElementById(pilhaId);
             const concelhosComDados = Object.keys(concelhoNomes).filter(
@@ -840,20 +918,6 @@
 
             if (resultadoTracado.estado === 'erro') {
                 falhas.push(resultadoTracado);
-            }
-
-            const indisponiveis = adicionarSobreposicaoMeteorologica(
-                pilha,
-                concelhosComDados,
-                meteorologiaMunicipal,
-                dataReferencia
-            );
-
-            if (indisponiveis > 0) {
-                console.warn(
-                    `Meteorologia municipal indisponível em ${indisponiveis} concelho(s) ` +
-                    `para ${dataReferencia}.`
-                );
             }
 
             if (falhas.length > 0) {
@@ -940,6 +1004,11 @@
                     if (resposta.status === 'rejected') {
                         console.error(`Erro ao carregar PIR D${indice}:`, resposta.reason);
                         definirEstadoLoading(loadingId, 'PIR temporariamente indisponível.', true);
+
+                        if (indice === 0) {
+                            definirMeteorologiaHojeIndisponivel();
+                        }
+
                         return;
                     }
 
@@ -951,16 +1020,25 @@
                             throw new Error('A resposta PIR não identifica a data de previsão.');
                         }
 
+                        if (indice === 0) {
+                            apresentarMeteorologiaHoje(
+                                meteorologiaMunicipal,
+                                dataReferencia
+                            );
+                        }
+
                         await carregarConcelhosPNG(
                             `mapa-pir${indice}`,
                             risco,
-                            loadingId,
-                            meteorologiaMunicipal,
-                            dataReferencia
+                            loadingId
                         );
                     } catch (erro) {
                         console.error(`Erro ao apresentar PIR D${indice}:`, erro);
                         definirEstadoLoading(loadingId, 'Não foi possível apresentar o PIR.', true);
+
+                        if (indice === 0) {
+                            definirMeteorologiaHojeIndisponivel();
+                        }
                     }
                 })
             );
