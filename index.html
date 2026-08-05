@@ -45,7 +45,7 @@
             height: 100dvh;
         }
 
-        /* Cabeçalho geral, fora da área útil de 50% reservada ao IRI. */
+        /* Cabeçalho geral, fora da área útil de 50% reservada ao PIR. */
         #brand-header {
             display: grid;
             grid-template-columns: clamp(78px, 7vw, 112px) minmax(0, 1fr) auto;
@@ -98,11 +98,11 @@
         }
 
         /*
-         * Metade esquerda: apenas IRI.
+         * Metade esquerda: apenas PIR.
          * Hoje ocupa a metade superior; amanhã e depois de amanhã
          * dividem, em partes iguais, a metade inferior.
          */
-        #iri-area {
+        #PIR-area {
             display: grid;
             grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
             gap: var(--page-gap);
@@ -110,7 +110,7 @@
             min-height: 0;
         }
 
-        #iri-futuro {
+        #PIR-futuro {
             display: grid;
             grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
             gap: var(--page-gap);
@@ -152,7 +152,7 @@
             min-height: 0;
         }
 
-        .iri-map-frame {
+        .PIR-map-frame {
             position: absolute;
             inset: 0;
             display: grid;
@@ -168,14 +168,14 @@
          * A pilha tem uma única geometria; assim, cada pixel de cada concelho
          * coincide com o mesmo pixel das restantes camadas.
          */
-        .iri-image-stack {
+        .PIR-image-stack {
             position: relative;
             width: 100%;
             height: 100%;
             overflow: hidden;
         }
 
-        .iri-image-layer {
+        .PIR-image-layer {
             position: absolute;
             inset: 0;
             display: block;
@@ -187,11 +187,11 @@
             user-select: none;
         }
 
-        .iri-concelho-layer {
+        .PIR-concelho-layer {
             z-index: 10;
         }
 
-        .iri-tracado-layer {
+        .PIR-tracado-layer {
             z-index: 20;
         }
 
@@ -221,7 +221,7 @@
 
         /*
          * Metade direita provisória. O conteúdo não é redesenhado nesta fase;
-         * fica separado do IRI para ser definido no passo seguinte.
+         * fica separado do PIR para ser definido no passo seguinte.
          */
         #right-area {
             display: grid;
@@ -323,35 +323,35 @@
         </header>
 
         <main id="dashboard-grid">
-            <section id="iri-area" aria-label="Índice de Risco de Incêndio">
-                <article class="palco" id="palco-iri-hoje">
-                    <div class="palco-titulo">IRI — Hoje</div>
+            <section id="PIR-area" aria-label="Índice de Risco de Incêndio">
+                <article class="palco" id="palco-PIR-hoje">
+                    <div class="palco-titulo">PIR — Hoje</div>
                     <div class="palco-conteudo">
-                        <div class="iri-map-frame">
-                            <div id="mapa-iri0" class="iri-image-stack"></div>
+                        <div class="PIR-map-frame">
+                            <div id="mapa-PIR0" class="PIR-image-stack"></div>
                         </div>
-                        <div class="map-loading" id="load0">A carregar IRI de hoje…</div>
+                        <div class="map-loading" id="load0">A carregar PIR de hoje…</div>
                     </div>
                 </article>
 
-                <div id="iri-futuro">
-                    <article class="palco" id="palco-iri-amanha">
-                        <div class="palco-titulo">IRI — Amanhã</div>
+                <div id="PIR-futuro">
+                    <article class="palco" id="palco-PIR-amanha">
+                        <div class="palco-titulo">PIR — Amanhã</div>
                         <div class="palco-conteudo">
-                            <div class="iri-map-frame">
-                                <div id="mapa-iri1" class="iri-image-stack"></div>
+                            <div class="PIR-map-frame">
+                                <div id="mapa-PIR1" class="PIR-image-stack"></div>
                             </div>
-                            <div class="map-loading" id="load1">A carregar IRI de amanhã…</div>
+                            <div class="map-loading" id="load1">A carregar PIR de amanhã…</div>
                         </div>
                     </article>
 
-                    <article class="palco" id="palco-iri-depois">
-                        <div class="palco-titulo">IRI — Depois de amanhã</div>
+                    <article class="palco" id="palco-PIR-depois">
+                        <div class="palco-titulo">PIR — Depois de amanhã</div>
                         <div class="palco-conteudo">
-                            <div class="iri-map-frame">
-                                <div id="mapa-iri2" class="iri-image-stack"></div>
+                            <div class="PIR-map-frame">
+                                <div id="mapa-PIR2" class="PIR-image-stack"></div>
                             </div>
-                            <div class="map-loading" id="load2">A carregar IRI…</div>
+                            <div class="map-loading" id="load2">A carregar PIR…</div>
                         </div>
                     </article>
                 </div>
@@ -398,11 +398,11 @@
         };
 
         const nivelPasta = {
-            '1': 'IRI Reduzido',
-            '2': 'IRI Moderado',
-            '3': 'IRI Elevado',
-            '4': 'IRI Muito Elevado',
-            '5': 'IRI Maximo'
+            '1': 'PIR Reduzido',
+            '2': 'PIR Moderado',
+            '3': 'PIR Elevado',
+            '4': 'PIR Muito Elevado',
+            '5': 'PIR Maximo'
         };
 
         const nomesRisco = {
@@ -426,8 +426,8 @@
             '1610': 'Vila Nova de Cerveira'
         };
 
-        const intervaloAtualizacaoIriMs = 60 * 60 * 1000;
-        let atualizacaoIriEmCurso = false;
+        const intervaloAtualizacaoPIRMs = 60 * 60 * 1000;
+        let atualizacaoPIREmCurso = false;
 
         function definirEstadoLoading(loadingId, mensagem, erro = false) {
             const elemento = document.getElementById(loadingId);
@@ -465,7 +465,7 @@
                 const urlImagem = `${pasta}/${ficheiro}.png`;
                 const imagem = document.createElement('img');
 
-                imagem.className = 'iri-image-layer iri-concelho-layer';
+                imagem.className = 'PIR-image-layer PIR-concelho-layer';
                 imagem.alt = `${nomesConcelho[dico]} — risco ${nomesRisco[risco]}`;
                 imagem.dataset.dico = dico;
                 imagem.dataset.risco = risco;
@@ -489,7 +489,7 @@
             return new Promise((resolve) => {
                 const tracado = document.createElement('img');
 
-                tracado.className = 'iri-image-layer iri-tracado-layer';
+                tracado.className = 'PIR-image-layer PIR-tracado-layer';
                 tracado.alt = '';
                 tracado.setAttribute('aria-hidden', 'true');
                 tracado.addEventListener(
@@ -516,7 +516,7 @@
             );
 
             if (concelhosComDados.length === 0) {
-                throw new Error('A resposta do IPMA não contém dados IRI para o Alto Minho.');
+                throw new Error('A resposta do IPMA não contém dados PIR para o Alto Minho.');
             }
 
             pilha.replaceChildren();
@@ -537,10 +537,10 @@
             }
 
             if (falhas.length > 0) {
-                console.error('Imagens IRI em falta ou inacessíveis:', falhas);
+                console.error('Imagens PIR em falta ou inacessíveis:', falhas);
                 definirEstadoLoading(
                     loadingId,
-                    `${falhas.length} imagem(ns) IRI não carregaram.`,
+                    `${falhas.length} imagem(ns) PIR não carregaram.`,
                     true
                 );
                 return;
@@ -559,7 +559,7 @@
             return resposta.json();
         }
 
-        async function carregarIri() {
+        async function carregarPIR() {
             const baseUrl = 'https://api.ipma.pt/open-data/forecast/meteorology/rcm/';
             const pedidos = ['rcm-d0.json', 'rcm-d1.json', 'rcm-d2.json'].map(
                 (ficheiro) => obterJson(baseUrl + ficheiro)
@@ -572,33 +572,33 @@
                     const loadingId = `load${indice}`;
 
                     if (resposta.status === 'rejected') {
-                        console.error(`Erro ao carregar IRI D${indice}:`, resposta.reason);
-                        definirEstadoLoading(loadingId, 'IRI temporariamente indisponível.', true);
+                        console.error(`Erro ao carregar PIR D${indice}:`, resposta.reason);
+                        definirEstadoLoading(loadingId, 'PIR temporariamente indisponível.', true);
                         return;
                     }
 
                     try {
                         const risco = extrairRiscoDistrital(resposta.value);
-                        await carregarConcelhosPNG(`mapa-iri${indice}`, risco, loadingId);
+                        await carregarConcelhosPNG(`mapa-PIR${indice}`, risco, loadingId);
                     } catch (erro) {
-                        console.error(`Erro ao apresentar IRI D${indice}:`, erro);
-                        definirEstadoLoading(loadingId, 'Não foi possível apresentar o IRI.', true);
+                        console.error(`Erro ao apresentar PIR D${indice}:`, erro);
+                        definirEstadoLoading(loadingId, 'Não foi possível apresentar o PIR.', true);
                     }
                 })
             );
         }
 
-        async function atualizarIri() {
-            if (atualizacaoIriEmCurso) {
+        async function atualizarPIR() {
+            if (atualizacaoPIREmCurso) {
                 return;
             }
 
-            atualizacaoIriEmCurso = true;
+            atualizacaoPIREmCurso = true;
 
             try {
-                await carregarIri();
+                await carregarPIR();
             } finally {
-                atualizacaoIriEmCurso = false;
+                atualizacaoPIREmCurso = false;
             }
         }
 
@@ -676,10 +676,10 @@
             atualizarDataHora();
             window.setInterval(atualizarDataHora, 1000);
 
-            await Promise.allSettled([atualizarIri(), carregarAvisos()]);
+            await Promise.allSettled([atualizarPIR(), carregarAvisos()]);
 
-            /* Apenas o IRI é atualizado automaticamente, de hora a hora. */
-            window.setInterval(atualizarIri, intervaloAtualizacaoIriMs);
+            /* Apenas o PIR é atualizado automaticamente, de hora a hora. */
+            window.setInterval(atualizarPIR, intervaloAtualizacaoPIRMs);
         }
 
         function atualizarDataHora() {
