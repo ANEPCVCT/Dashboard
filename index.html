@@ -87,22 +87,16 @@
                 }
             });
 
-            // 3. Carregar o Mapa GeoJSON dos Concelhos de Portugal (Repositório Oficial Estável)
-            const resMapa = await fetch('https://raw.githubusercontent.com/nmota/caop_GeoJSON/master/concelhos.geojson');
+            // 3. Carregar o Mapa GeoJSON de uma fonte espelho 100% estável
+            const resMapa = await fetch('https://raw.githubusercontent.com/dssg-pt/covid19pt-data/master/extra/concelhos.geojson');
             const dataMapa = await resMapa.json();
 
-            // Filtrar apenas para o Distrito de Viana do Castelo (DICO começa por "16" ou propriedade equivalente)
+            // Filtrar apenas para o Distrito de Viana do Castelo (DI == "16")
             geoJsonData = {
                 type: "FeatureCollection",
-                features: dataMapa.features.filter(f => {
-                    const p = f.properties;
-                    // O formato do nmota usa propriedades como 'DICO' ou 'Dic' com o código de 4 dígitos
-                    const codigo = p.DICO || p.Dic || (p.DI && p.CO ? p.DI + p.CO : '') || '';
-                    return String(codigo).startsWith('16');
-                })
+                features: dataMapa.features.filter(f => f.properties.DI === '16')
             };
 
-            // Desenhar mapa inicial com o Risco de Incêndio
             desenharPoligonos('iri');
 
         } catch (erro) {
@@ -119,7 +113,7 @@
         camadaMapa = L.geoJSON(geoJsonData, {
             style: function (feature) {
                 const p = feature.properties;
-                const dico = p.DICO || p.Dic || (p.DI && p.CO ? p.DI + p.CO : '');
+                const dico = p.DI + p.CO; // No dssg-pt o DICO forma-se com DI + CO (ex: 16 + 01 = 1601)
                 
                 let cor = '#cccccc';
 
@@ -134,8 +128,8 @@
             },
             onEachFeature: function (feature, layer) {
                 const p = feature.properties;
-                const nome = p.Concelho || p.NAME_2 || p.name || "Concelho";
-                const dico = p.DICO || p.Dic || (p.DI && p.CO ? p.DI + p.CO : '');
+                const nome = p.NAME_2 || "Concelho";
+                const dico = p.DI + p.CO;
                 
                 if (modo === 'iri') {
                     const risco = riscoPorConcelho[dico] || 'N/A';
