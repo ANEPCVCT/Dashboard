@@ -437,72 +437,74 @@
         }
 
         /*
-         * Base dos avisos de risco: início, escala horária de 72 h e fim.
-         * Os cartões verdes não recebem esta área porque representam situação normal.
+         * Linha temporal dos avisos de risco: momento atual, início, fim e
+         * regresso à situação normal. Os cartões verdes não recebem esta área.
          */
         .aviso-escala {
-            display: grid;
-            grid-template-columns: minmax(64px, 0.85fr) minmax(100px, 1.5fr) minmax(64px, 0.85fr);
-            align-items: end;
-            gap: clamp(4px, 0.35vw, 7px);
             flex: 0 0 auto;
             min-width: 0;
             margin-top: auto;
             padding-top: 3px;
-            color: #26343e;
             font-variant-numeric: tabular-nums;
         }
 
-        .aviso-escala-extremo {
+        .aviso-escala-marcos {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            align-items: end;
+            gap: 3px;
             min-width: 0;
-            overflow: hidden;
-            font-size: clamp(7px, 0.49vw, 10px);
-            font-weight: 800;
-            line-height: 1.05;
-            text-overflow: ellipsis;
-            white-space: nowrap;
         }
 
-        .aviso-escala-fim {
+        .aviso-escala-marco {
+            min-width: 0;
+            font-size: clamp(7px, 0.47vw, 10px);
+            font-weight: 800;
+            line-height: 1.05;
+            text-align: center;
+        }
+
+        .aviso-escala-marco:first-child {
+            text-align: left;
+        }
+
+        .aviso-escala-marco:last-child {
             text-align: right;
         }
 
         .aviso-escala-rotulo {
-            margin-right: 3px;
-            color: #5b6872;
+            display: block;
             font-size: 0.82em;
             letter-spacing: 0.02em;
             text-transform: uppercase;
         }
 
-        .aviso-escala-centro {
-            min-width: 0;
-        }
-
-        .aviso-escala-horas {
-            display: flex;
-            justify-content: space-between;
-            min-width: 0;
-            padding: 0 1px;
-            color: #5b6872;
-            font-size: clamp(7px, 0.45vw, 9px);
-            font-weight: 800;
-            line-height: 1;
+        .aviso-escala-marco time {
+            display: block;
+            overflow: hidden;
+            text-overflow: ellipsis;
             white-space: nowrap;
         }
 
+        .aviso-escala-normal {
+            color: #2e7d32;
+        }
+
+        .aviso-escala-risco {
+            color: var(--aviso-cor);
+        }
+
         .aviso-escala-linha {
-            --escala-horas: 72;
-            --escala-blocos-seis-horas: 12;
+            --escala-horas: 24;
             --aviso-inicio: 0%;
             --aviso-largura: 0%;
             position: relative;
             height: clamp(7px, 0.55vw, 10px);
-            margin-top: 2px;
+            margin-top: 3px;
             overflow: hidden;
             border: 1px solid rgb(23 34 43 / 42%);
             border-radius: 2px;
-            background: #e3e8eb;
+            background: #2e7d32;
             box-shadow: inset 0 0 0 1px rgb(255 255 255 / 42%);
         }
 
@@ -527,8 +529,18 @@
                 linear-gradient(to right, rgb(23 34 43 / 42%) 1px, transparent 1px);
             background-size:
                 calc(100% / var(--escala-horas)) 100%,
-                calc(100% / var(--escala-blocos-seis-horas)) 100%;
+                calc(600% / var(--escala-horas)) 100%;
             pointer-events: none;
+        }
+
+        .aviso-escala-legenda {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 1px;
+            color: #5b6872;
+            font-size: clamp(6px, 0.4vw, 8px);
+            font-weight: 700;
+            line-height: 1;
         }
 
         .aviso-com-multiplos-periodos .aviso-descricao {
@@ -1343,7 +1355,7 @@
         }
 
         function formatarInstanteEscalaAvisoUtc(valor) {
-            const data = obterDataAvisoUtc(valor);
+            const data = valor instanceof Date ? valor : obterDataAvisoUtc(valor);
 
             if (!data) {
                 return '—';
@@ -1364,16 +1376,6 @@
                 `${obterParte('day')}/${obterParte('month')} ` +
                 `${obterParte('hour')}:${obterParte('minute')}`
             );
-        }
-
-        function obterJanelaEscalaAvisosUtc() {
-            const inicio = new Date();
-            inicio.setUTCHours(0, 0, 0, 0);
-
-            return {
-                inicio,
-                fim: new Date(inicio.getTime() + 72 * 60 * 60 * 1000)
-            };
         }
 
         function limitarPercentagem(valor) {
@@ -1430,12 +1432,12 @@
             };
         }
 
-        function criarExtremoEscalaAviso(rotulo, valor, dataTime, lado) {
-            const extremo = document.createElement('div');
+        function criarMarcoEscalaAviso(rotulo, valor, dataTime, estado) {
+            const marco = document.createElement('div');
             const nome = document.createElement('span');
             const tempo = document.createElement('time');
 
-            extremo.className = `aviso-escala-extremo aviso-escala-${lado}`;
+            marco.className = `aviso-escala-marco aviso-escala-${estado}`;
             nome.className = 'aviso-escala-rotulo';
             nome.textContent = rotulo;
             tempo.textContent = valor;
@@ -1444,54 +1446,66 @@
                 tempo.dateTime = dataTime;
             }
 
-            extremo.append(nome, tempo);
-            return extremo;
+            marco.append(nome, tempo);
+            return marco;
         }
 
         function criarEscalaPeriodoAviso(aviso) {
             const inicio = obterDataAvisoUtc(aviso.startTime);
             const fim = obterDataAvisoUtc(aviso.endTime);
-            const janela = obterJanelaEscalaAvisosUtc();
-            const duracaoJanela = janela.fim.getTime() - janela.inicio.getTime();
+            const agora = new Date();
+            const umaHoraMs = 60 * 60 * 1000;
+            const fimDaEscala = new Date(Math.max(fim.getTime(), agora.getTime()) + umaHoraMs);
+            const duracaoJanela = fimDaEscala.getTime() - agora.getTime();
             const inicioLimitado = Math.max(
-                janela.inicio.getTime(),
-                Math.min(janela.fim.getTime(), inicio.getTime())
+                agora.getTime(),
+                Math.min(fimDaEscala.getTime(), inicio.getTime())
             );
             const fimLimitado = Math.max(
-                janela.inicio.getTime(),
-                Math.min(janela.fim.getTime(), fim.getTime())
+                agora.getTime(),
+                Math.min(fimDaEscala.getTime(), fim.getTime())
             );
             const posicaoInicio = limitarPercentagem(
-                ((inicioLimitado - janela.inicio.getTime()) / duracaoJanela) * 100
+                ((inicioLimitado - agora.getTime()) / duracaoJanela) * 100
             );
             const posicaoFim = limitarPercentagem(
-                ((fimLimitado - janela.inicio.getTime()) / duracaoJanela) * 100
+                ((fimLimitado - agora.getTime()) / duracaoJanela) * 100
             );
+            const totalHoras = Math.max(1, Math.ceil(duracaoJanela / umaHoraMs));
+            const avisoAtivoAgora = agora >= inicio && agora < fim;
             const escala = document.createElement('div');
-            const centro = document.createElement('div');
-            const horas = document.createElement('div');
+            const marcos = document.createElement('div');
             const linha = document.createElement('div');
             const preenchimento = document.createElement('span');
             const tracos = document.createElement('span');
+            const legenda = document.createElement('div');
             const inicioIso = inicio.toISOString();
             const fimIso = fim.toISOString();
+            const agoraIso = agora.toISOString();
+            const agoraVisivel = formatarInstanteEscalaAvisoUtc(agora);
             const inicioVisivel = formatarInstanteEscalaAvisoUtc(aviso.startTime);
             const fimVisivel = formatarInstanteEscalaAvisoUtc(aviso.endTime);
 
             escala.className = 'aviso-escala';
             escala.setAttribute(
                 'aria-label',
-                `Início ${inicioVisivel} UTC; fim ${fimVisivel} UTC. ` +
-                'A faixa colorida representa o período afetado na escala de 72 horas.'
+                `Agora ${agoraVisivel} UTC; início ${inicioVisivel} UTC; ` +
+                `fim ${fimVisivel} UTC; situação normal a partir de ${fimVisivel} UTC.`
             );
-            centro.className = 'aviso-escala-centro';
-            horas.className = 'aviso-escala-horas';
-            ['0 h', '24 h', '48 h', '72 h'].forEach((rotulo) => {
-                const marcaHora = document.createElement('span');
-                marcaHora.textContent = rotulo;
-                horas.appendChild(marcaHora);
-            });
+            marcos.className = 'aviso-escala-marcos';
+            marcos.append(
+                criarMarcoEscalaAviso(
+                    'Agora',
+                    agoraVisivel,
+                    agoraIso,
+                    avisoAtivoAgora ? 'risco' : 'normal'
+                ),
+                criarMarcoEscalaAviso('Início', inicioVisivel, inicioIso, 'risco'),
+                criarMarcoEscalaAviso('Fim', fimVisivel, fimIso, 'risco'),
+                criarMarcoEscalaAviso('Normal', fimVisivel, fimIso, 'normal')
+            );
             linha.className = 'aviso-escala-linha';
+            linha.style.setProperty('--escala-horas', String(totalHoras));
             linha.style.setProperty('--aviso-inicio', `${posicaoInicio}%`);
             linha.style.setProperty(
                 '--aviso-largura',
@@ -1503,17 +1517,9 @@
             preenchimento.setAttribute('aria-hidden', 'true');
             tracos.setAttribute('aria-hidden', 'true');
             linha.append(preenchimento, tracos);
-            centro.append(horas, linha);
-            escala.append(
-                criarExtremoEscalaAviso(
-                    'Início',
-                    inicioVisivel,
-                    inicioIso,
-                    'inicio'
-                ),
-                centro,
-                criarExtremoEscalaAviso('Fim', fimVisivel, fimIso, 'fim')
-            );
+            legenda.className = 'aviso-escala-legenda';
+            legenda.innerHTML = '<span>Situação normal</span><span>graduação horária</span><span>Normal</span>';
+            escala.append(marcos, linha, legenda);
 
             return escala;
         }
