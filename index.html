@@ -3,22 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Operacional - Alto Minho (Com Sobreposição)</title>
+    <title>Dashboard Operacional - Alto Minho</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet-omnivore@0.3.4/leaflet-omnivore.min.js"></script>
     
     <style>
         body, html { margin: 0; padding: 0; height: 100%; font-family: sans-serif; background-color: #f0f0f0; overflow: hidden; }
 
         /* Estrutura Principal */
-        #main-container { display: flex; height: 100vh; position: relative; } /* Adicionado position: relative */
+        #main-container { display: flex; height: 100vh; position: relative; } /* Adicionado position: relative para a sobreposição global */
 
         /* Barra Lateral Esquerda */
         #sidebar {
             width: 260px; background-color: white; border-right: 2px solid #333;
             display: flex; flex-direction: column; padding: 10px; box-sizing: border-box;
-            z-index: 10; /* Garante que a barra lateral fica por cima se necessário */
         }
         .logo-container { text-align: center; margin-bottom: 10px; }
         .logo-container img { max-width: 90%; height: auto; }
@@ -51,8 +49,12 @@
         #palco-pir-plus2 { grid-area: pir-plus2; }
         #palco-vazio { grid-area: palco-vazio; background: #fafafa; display: flex; align-items: center; justify-content: center; color: #999; }
 
-        .mapa-leaflet { width: 100%; height: 100%; background: #eee; }
+        /* ESTILO DOS MAPAS: Fundo do mapa a cinzento e SEM TILELAYER (mapa base) */
+        .mapa-leaflet { width: 100%; height: 100%; background-color: #eee; }
+        
+        .map-loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1000; background: rgba(255,255,255,0.9); padding: 10px; border-radius: 5px; font-weight: bold; color: #555;}
 
+        /* Timeline de Avisos */
         #avisos-conteudo { padding: 10px; display: flex; flex-direction: column; gap: 5px; overflow-y: auto; font-size: 13px;}
         .aviso-item { display: flex; align-items: center; border-radius: 5px; padding: 5px; border: 1px solid #ccc; }
         .aviso-icone { width: 28px; height: 28px; margin-right: 8px; }
@@ -64,21 +66,20 @@
         .aviso-red { background-color: #FFEBEE; border-color: #D32F2F; }
         .aviso-green { background-color: #E8F5E9; border-color: #388E3C; }
 
-        /* --- Estilo da Sobreposição de Imagem (Traçado) --- */
+        /* --- ESTILO DA SOBREPOSIÇÃO GLOBAL --- */
         #global-overlay {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            z-index: 100; /* Um valor alto para ficar por cima de tudo */
+            z-index: 9999; /* Um valor extremamente alto para ficar por cima de tudo (incluindo o Leaflet popup) */
             pointer-events: none; /* Crucial: permite que os cliques passem para os elementos por baixo */
-            display: none; /* Escondido por defeito, será ativado pelo JS */
         }
         #global-overlay img {
             width: 100%;
             height: 100%;
-            object-fit: cover; /* Ou 'contain', dependendo de como a imagem deve encaixar */
+            object-fit: fill; /* Garante que a imagem cobre todo o ecrã independentemente da proporção */
         }
 
     </style>
@@ -86,10 +87,11 @@
 <body>
 
 <div id="main-container">
-    <!-- Sobreposição Global (Traçado) -->
+    
+    <!-- SOBREPOSIÇÃO GLOBAL (TRACADO.PNG) -->
     <div id="global-overlay">
-        <!-- Substitui o nome do ficheiro pelo nome real que carregaste -->
-        <img src="traçado_dashboard.png" alt="Sobreposição de Traçado">
+        <!-- O ficheiro tracado.png deve estar na raiz do GitHub -->
+        <img src="tracado.png" alt="Sobreposição Global de Traçado">
     </div>
 
     <!-- Barra Lateral Esquerda -->
@@ -114,31 +116,31 @@
         </div>
     </div>
 
-    <!-- Área Principal do Dashboard -->
+    <!-- Área Principal do Dashboard (CSS Grid) -->
     <div id="dashboard-grid">
+        
         <div class="palco" id="palco-pir">
             <div class="palco-titulo">PIR (Risco Incêndio) - HOJE</div>
-            <div class="palco-conteudo">
-                <div id="mapa-pir0" class="mapa-leaflet"></div>
-            </div>
+            <div class="palco-conteudo"><div id="mapa-pir0" class="mapa-leaflet"></div><div class="map-loading" id="load0">A carregar...</div></div>
         </div>
+
         <div class="palco" id="palco-avisos">
             <div class="palco-titulo">Avisos Meteorológicos</div>
             <div class="palco-conteudo" id="avisos-conteudo">A carregar avisos...</div>
         </div>
+
         <div class="palco" id="palco-pir-plus1">
             <div class="palco-titulo">PIR (Risco Incêndio) - AMANHÃ</div>
-            <div class="palco-conteudo">
-                <div id="mapa-pir1" class="mapa-leaflet"></div>
-            </div>
+            <div class="palco-conteudo"><div id="mapa-pir1" class="mapa-leaflet"></div><div class="map-loading" id="load1">A carregar...</div></div>
         </div>
+
         <div class="palco" id="palco-pir-plus2">
             <div class="palco-titulo">PIR (Risco Incêndio) - DEPOIS DE AMANHÃ</div>
-            <div class="palco-conteudo">
-                <div id="mapa-pir2" class="mapa-leaflet"></div>
-            </div>
+            <div class="palco-conteudo"><div id="mapa-pir2" class="mapa-leaflet"></div><div class="map-loading" id="load2">A carregar...</div></div>
         </div>
+
         <div class="palco" id="palco-vazio">Área Reservada</div>
+
     </div>
 </div>
 
@@ -146,57 +148,116 @@
     // Configuração dos Mapas
     const centroMapa = [41.85, -8.3];
     const zoomMapa = 10;
-    const tileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-
-    const mapHoje = L.map('mapa-pir0', { zoomControl: false }).setView(centroMapa, zoomMapa);
-    const mapAmanha = L.map('mapa-pir1', { zoomControl: false }).setView(centroMapa, zoomMapa);
-    const mapDepois = L.map('mapa-pir2', { zoomControl: false }).setView(centroMapa, zoomMapa);
-
-    L.tileLayer(tileUrl).addTo(mapHoje);
-    L.tileLayer(tileUrl).addTo(mapAmanha);
-    L.tileLayer(tileUrl).addTo(mapDepois);
-
-    // Variáveis Globais de Dados
-    const coresIncendio = { 1: '#84C776', 2: '#FFD700', 3: '#FFA500', 4: '#FF0000', 5: '#800080' };
-    const classesAvisos = { 'yellow': 'aviso-yellow', 'orange': 'aviso-orange', 'red': 'aviso-red', 'green': 'aviso-green' };
     
-    // Simulação do carregamento de dados (exemplo simplificado)
-    function iniciarSimulacao() {
-        const concelhos = ['arcos', 'caminha', 'melgaço', 'monção', 'coura', 'pbarca', 'plima', 'valença', 'viana', 'cerveira'];
-        
-        // Cores fixas para simular o RRC 3 ("D0, amanhã e depois")
-        const color = coresIncendio[3];
+    // Limites geográficos exatos para a sobreposição das imagens PNG.
+    const boundsDistrito = [
+        [41.55, -8.88], // Sudoeste (Vila Praia de Âncora/Viana)
+        [42.22, -8.05]  // Nordeste (Melgaço/fronteira)
+    ];
 
-        concelhos.forEach(c => {
-            const urlKML = `./${c}.kml`;
+    // Inicializa os mapas sem controlos de zoom, attribution e SEM MAPA BASE
+    const mapHoje = L.map('mapa-pir0', { zoomControl: false, attributionControl: false }).setView(centroMapa, zoomMapa);
+    const mapAmanha = L.map('mapa-pir1', { zoomControl: false, attributionControl: false }).setView(centroMapa, zoomMapa);
+    const mapDepois = L.map('mapa-pir2', { zoomControl: false, attributionControl: false }).setView(centroMapa, zoomMapa);
+
+    // Mapeamento dos códigos DICO para os nomes dos ficheiros PNG que nos forneceste
+    const concelhoNomes = {
+        "1601": "arcos", "1602": "caminha", "1603": "melgaco", "1604": "moncao",
+        "1605": "coura", "1606": "pbarca", "1607": "plima", "1608": "valenca",
+        "1609": "viana", "1610": "cerveira"
+    };
+
+    // Mapeamento dos níveis de risco IPMA para os nomes exatos das tuas pastas
+    const levelPasta = {
+        "1": "IRI Reduzido", "2": "IRI Moderado", "3": "IRI Elevado",
+        "4": "IRI Muito Elevado", "5": "IRI Maximo"
+    };
+
+    // Função auxiliar para obter o nome amigável do risco
+    const getRiscoNome = (risco) => {
+        const nomes = { "1": "Reduzido", "2": "Moderado", "3": "Elevado", "4": "Muito Elevado", "5": "Máximo" };
+        return nomes[risco] || "N/A";
+    };
+
+    // Função auxiliar para obter o nome amigável do concelho
+    const getConcelhoNome = (dico) => {
+        const nomes = { "1601": "Arcos de Valdevez", "1602": "Caminha", "1603": "Melgaço", "1604": "Monção", "1605": "Paredes de Coura", "1606": "Ponte da Barca", "1607": "Ponte de Lima", "1608": "Valença", "1609": "Viana do Castelo", "1610": "Vila Nova de Cerveira" };
+        return nomes[dico] || "Concelho";
+    };
+
+    // Função para carregar as imagens PNG de cada concelho
+    function carregarConcelhosPNG(mapa, dadosRcmIpma, loadingId) {
+        // Iteramos pelos 10 concelhos definidos no nosso mapeamento
+        Object.keys(concelhoNomes).forEach(dico => {
+            const nomePng = concelhoNomes[dico];
             
-            // Exemplo simplificado usando Leaflet.Omnivore.
-            // Precisarias de lógica adicional para mapear o Risco RRC para as cores.
-            const run = omnivore.kml(urlKML)
-                .on('ready', function(layer) {
-                    layer.eachLayer(function(l) {
-                        l.setStyle({
-                            fillColor: color,
-                            weight: 2,
-                            opacity: 1,
-                            color: 'white',
-                            fillOpacity: 0.7
-                        });
-                        l.bindPopup(`<b>${c.toUpperCase()}</b><br>Risco RRC: Nível ${3}`);
-                    });
-                    this.fitBounds(run.getBounds()); // Mantém no mapa
-                })
-                .addTo(mapHoje); // Só para o exemplo, devia ser para os 3
-        });
-    }
-    
-    // iniciarSimulacao(); // Desativa a simulação para não quebrar se não houver KMLs
+            // Vamos buscar o risco do IPMA para este concelho. Se não houver, assumimos 1 (Reduzido).
+            const riscoIpma = dadosRcmIpma[dico] || 1;
+            
+            // Construímos o caminho da imagem: Pasta/Concelho.png
+            const pastaIri = levelPasta[riscoIpma] || "IRI Reduzido";
+            const urlImagem = `${pastaIri}/${nomePng}.png`;
 
-    // Carregar Avisos Meteorológicos
+            // Adiciona a imagem overlay ao mapa.
+            // Como as imagens sobrepõem-se perfeitamente, elas usam os mesmos bounds.
+            const imgLayer = L.imageOverlay(urlImagem, boundsDistrito, {
+                opacity: 1.0, // Opacidade 1 para tapar o fundo cinzento
+                interactive: true // Permite clicar na imagem (para popups)
+            });
+
+            // Adiciona popup à imagem do concelho
+            imgLayer.bindPopup(`<b>${getConcelhoNome(dico)}</b><br>Risco: ${getRiscoNome(riscoIpma)} (Nível ${riscoIpma})`);
+            
+            imgLayer.addTo(mapa);
+        });
+
+        // Ajusta o zoom final para os limites do distrito
+        mapa.fitBounds(boundsDistrito);
+
+        // Esconde o loading
+        document.getElementById(loadingId).style.display = 'none';
+    }
+
+    // Inicializar dados
+    async function iniciar() {
+        // 1. Carregar Risco de Incêndio (IRI) para Hoje, Amanhã e Depois
+        try {
+            // RCM-D0 (Hoje), D1 (Amanhã), D2 (Depois de Amanhã)
+            const urls = ['rcm-d0.json', 'rcm-d1.json', 'rcm-d2.json'];
+            const respostas = await Promise.all(urls.map(u => fetch('https://api.ipma.pt/open-data/forecast/meteorology/rcm/' + u)));
+            const dados = await Promise.all(respostas.map(r => r.json()));
+
+            // Função auxiliar para extrair os dados de risco para um dicionário {DICO: RCM}
+            const extrairRiscoDistrital = (json) => {
+                const mapeamento = {};
+                if (json.local) {
+                    Object.keys(json.local).forEach(dico => {
+                        // Filtra pelo distrito de Viana do Castelo (16)
+                        if (dico.startsWith('16')) { 
+                            mapeamento[dico] = json.local[dico].data.rcm;
+                        }
+                    });
+                }
+                return mapeamento;
+            };
+
+            const riscoHoje = extrairRiscoDistrital(dados[0]);
+            const riscoAmanha = extrairRiscoDistrital(dados[1]);
+            const riscoDepois = extrairRiscoDistrital(dados[2]);
+
+            // Carregar os 3 mapas com as imagens individuais dos concelhos e popups
+            carregarConcelhosPNG(mapHoje, riscoHoje, 'load0');
+            carregarConcelhosPNG(mapAmanha, riscoAmanha, 'load1');
+            carregarConcelhosPNG(mapDepois, riscoDepois, 'load2');
+
+        } catch(e) { console.error("Erro API IPMA RCM", e); }
+
+        // 2. Carregar Avisos Meteorológicos
+        carregarAvisos();
+    }
+
     async function carregarAvisos() {
         const container = document.getElementById('avisos-conteudo');
-        
-        // Dicionário de ícones para tipos de aviso (exemplos)
         const tipoAvisoIcons = {
             "Precipitação": "https://cdn-icons-png.flaticon.com/512/4005/4005771.png",
             "Vento": "https://cdn-icons-png.flaticon.com/512/5444/5444465.png",
@@ -205,27 +266,26 @@
             "Agitação Marítima": "https://cdn-icons-png.flaticon.com/512/3104/3104564.png",
             "Trovoada": "https://cdn-icons-png.flaticon.com/512/4150/4150897.png"
         };
+        const classes = { 'yellow': 'aviso-yellow', 'orange': 'aviso-orange', 'red': 'aviso-red', 'green': 'aviso-green' };
 
         try {
             const res = await fetch('https://api.ipma.pt/open-data/forecast/warnings/warnings_www.json');
             const data = await res.json();
-            
-            // Filtra por VVC (Viana do Castelo) e remove avisos verdes
             const avisosViana = data.filter(a => a.idAreaAviso === 'VVC' && a.awarenessLevelID !== 'green');
 
             if (avisosViana.length === 0) {
-                container.innerHTML = '<div class="aviso-item aviso-green">Sem avisos meteorológicos ativos para Viana do Castelo.</div>';
+                container.innerHTML = '<div class="aviso-item aviso-green" style="text-align:center;">Sem avisos meteorológicos ativos.</div>';
                 return;
             }
 
-            container.innerHTML = ''; // Limpa o carregamento
+            container.innerHTML = '';
             avisosViana.forEach(aviso => {
-                const icone = tipoAvisoIcons[aviso.awarenessTypeName] || "https://cdn-icons-png.flaticon.com/512/1795/1795519.png"; // Ícone genérico se não houver
-                const classeFundo = classesAvisos[aviso.awarenessLevelID] || '';
+                const icone = tipoAvisoIcons[aviso.awarenessTypeName] || "https://cdn-icons-png.flaticon.com/512/1795/1795519.png";
+                const classeFundo = classes[aviso.awarenessLevelID] || '';
                 const inicio = new Date(aviso.startTime).toLocaleString('pt-PT', {day: '2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
                 const fim = new Date(aviso.endTime).toLocaleString('pt-PT', {day: '2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
 
-                const avisoHtml = `
+                container.innerHTML += `
                     <div class="aviso-item ${classeFundo}">
                         <img src="${icone}" class="aviso-icone" alt="${aviso.awarenessTypeName}">
                         <div class="aviso-texto">
@@ -234,39 +294,15 @@
                         </div>
                     </div>
                 `;
-                container.innerHTML += avisoHtml;
             });
 
         } catch (erro) {
-            console.error("Erro ao carregar avisos:", erro);
-            container.innerHTML = '<div style="color:red; text-align:center;">Erro ao carregar dados de avisos.</div>';
+            console.error("Erro Avisos:", erro);
+            container.innerHTML = '<div style="color:red; text-align:center;">Erro ao carregar avisos.</div>';
         }
     }
 
-    // Função para verificar se a imagem de sobreposição existe e mostrá-la
-    function verificarEMostrarSobreposicao() {
-        const overlay = document.getElementById('global-overlay');
-        const img = overlay.querySelector('img');
-
-        // Cria uma nova imagem para testar se carrega
-        const testImg = new Image();
-        testImg.onload = function() {
-            // A imagem existe e carregou
-            console.log("Sobreposição de traçado carregada com sucesso.");
-            overlay.style.display = 'block';
-        };
-        testImg.onerror = function() {
-            // A imagem não existe na raiz ou tem erro
-            console.warn("Sobreposição de traçado não encontrada na raiz. Verifique o nome do ficheiro (traçado_dashboard.png) no GitHub.");
-            // Garante que o dashboard não fica bloqueado se a imagem falhar
-        };
-        testImg.src = img.src; // Tenta carregar a imagem
-    }
-
-    // Iniciar carregamentos
-    carregarAvisos();
-    verificarEMostrarSobreposicao(); // Tenta carregar o traçado
-
+    iniciar();
 </script>
 </body>
 </html>
