@@ -10,7 +10,6 @@
         body, html { margin: 0; padding: 0; height: 100%; font-family: sans-serif; }
         #map { height: 100vh; width: 100%; }
         
-        /* Estilo da caixa de botões */
         .controlo-mapa {
             position: absolute;
             top: 15px;
@@ -37,7 +36,6 @@
 </head>
 <body>
 
-<!-- Menu de alternância -->
 <div class="controlo-mapa">
     <strong>Escolher Dados (IPMA):</strong>
     <button onclick="desenharPoligonos('iri')">🔥 Risco de Incêndio</button>
@@ -49,26 +47,23 @@
 <script>
     const map = L.map('map').setView([41.85, -8.3], 10);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors | Dados: IPMA'
+        attribution: '© OpenStreetMap contributors | Dados: IPMA & CAOP'
     }).addTo(map);
 
-    // Variáveis Globais
     let geoJsonData = null;
     let camadaMapa = null;
     
-    // Dados armazenados do IPMA
     const riscoPorConcelho = {};
     let maiorAvisoNivel = 'green';
     let maiorAvisoTexto = 'Sem avisos ativos';
 
-    // Dicionários de Cores
     const coresIncendio = { 1: '#84C776', 2: '#FFD700', 3: '#FFA500', 4: '#FF0000', 5: '#800080' };
     const coresAvisos = { 'green': '#84C776', 'yellow': '#FFD700', 'orange': '#FFA500', 'red': '#FF0000' };
     const pesoAvisos = { 'green': 0, 'yellow': 1, 'orange': 2, 'red': 3 };
 
     async function iniciar() {
         try {
-            // 1. CARREGAR IRI (Estrutura IPMA Documentada)
+            // 1. Carregar Risco de Incêndio (IRI) do IPMA
             const resRcm = await fetch('https://api.ipma.pt/open-data/forecast/meteorology/rcm/rcm-d0.json');
             const dataRcm = await resRcm.json();
             
@@ -80,13 +75,11 @@
                 }
             }
 
-            // 2. CARREGAR AVISOS (Estrutura IPMA Documentada)
+            // 2. Carregar Avisos Meteorológicos do IPMA
             const resAviso = await fetch('https://api.ipma.pt/open-data/forecast/warnings/warnings_www.json');
             const dataAviso = await resAviso.json();
             
-            // Filtrar para Viana do Castelo (ID: VVC)
             const avisosVVC = dataAviso.filter(a => a.idAreaAviso === 'VVC');
-            
             avisosVVC.forEach(aviso => {
                 if (pesoAvisos[aviso.awarenessLevelID] > pesoAvisos[maiorAvisoNivel]) {
                     maiorAvisoNivel = aviso.awarenessLevelID;
@@ -94,59 +87,55 @@
                 }
             });
 
-            // 3. CARREGAR MAPA (Novo link fiável)
-            const resMapa = await fetch('https://raw.githubusercontent.com/jgrocha/covid-pt/master/concelhos.geojson');
+            // 3. Carregar o Mapa GeoJSON dos Concelhos de Portugal (Repositório Oficial Estável)
+            const resMapa = await fetch('https://raw.githubusercontent.com/nmota/caop_GeoJSON/master/concelhos.geojson');
             const dataMapa = await resMapa.json();
 
-            // Filtrar polígonos para capturar apenas Viana do Castelo (Distrito 16)
+            // Filtrar apenas para o Distrito de Viana do Castelo (DICO começa por "16" ou propriedade equivalente)
             geoJsonData = {
                 type: "FeatureCollection",
-                features: dataMapa.features.filter(f => 
-                    (f.properties.DI === '16') || 
-                    (f.properties.DICO && f.properties.DICO.startsWith('16')) ||
-                    (f.properties.NAME_1 === 'Viana do Castelo')
-                )
+                features: dataMapa.features.filter(f => {
+                    const p = f.properties;
+                    // O formato do nmota usa propriedades como 'DICO' ou 'Dic' com o código de 4 dígitos
+                    const codigo = p.DICO || p.Dic || (p.DI && p.CO ? p.DI + p.CO : '') || '';
+                    return String(codigo).startsWith('16');
+                })
             };
 
-            // Desenhar mapa por defeito (Incêndio)
+            // Desenhar mapa inicial com o Risco de Incêndio
             desenharPoligonos('iri');
 
         } catch (erro) {
-            console.error(erro);
-            alert("Erro ao carregar dados. Verifique a consola para mais detalhes.");
+            console.error("Erro detalhado:", erro);
+            alert("Erro ao carregar dados. Verifique a consola (F12).");
         }
     }
 
-    // Função que pinta os polígonos consoante o botão clicado
     function desenharPoligonos(modo) {
         if (!geoJsonData) return;
         
-        // Remove os polígonos antigos antes de pintar os novos
         if (camadaMapa) map.removeLayer(camadaMapa);
 
         camadaMapa = L.geoJSON(geoJsonData, {
             style: function (feature) {
-                // Tentar extrair o DICO de forma segura independentemente do formato do mapa
-                let dico = feature.properties.DICO;
-                if (!dico && feature.properties.DI && feature.properties.CO) {
-                    dico = String(feature.properties.DI) + String(feature.properties.CO);
-                }
-
+                const p = feature.properties;
+                const dico = p.DICO || p.Dic || (p.DI && p.CO ? p.DI + p.CO : '');
+                
                 let cor = '#cccccc';
 
                 if (modo === 'iri') {
                     const risco = riscoPorConcelho[dico] || 1;
                     cor = coresIncendio[risco];
                 } else if (modo === 'avisos') {
-                    // Os avisos aplicam-se a todo o distrito igualmente
                     cor = coresAvisos[maiorAvisoNivel];
                 }
 
                 return { fillColor: cor, weight: 2, color: '#ffffff', dashArray: '3', fillOpacity: 0.7 };
             },
             onEachFeature: function (feature, layer) {
-                const nome = feature.properties.NAME_2 || feature.properties.Concelho || "Concelho";
-                let dico = feature.properties.DICO || (feature.properties.DI + feature.properties.CO);
+                const p = feature.properties;
+                const nome = p.Concelho || p.NAME_2 || p.name || "Concelho";
+                const dico = p.DICO || p.Dic || (p.DI && p.CO ? p.DI + p.CO : '');
                 
                 if (modo === 'iri') {
                     const risco = riscoPorConcelho[dico] || 'N/A';
@@ -158,7 +147,6 @@
         }).addTo(map);
     }
 
-    // Arrancar a aplicação
     iniciar();
 </script>
 </body>
