@@ -11,8 +11,10 @@
     <style>
         body, html { margin: 0; padding: 0; height: 100%; font-family: sans-serif; background-color: #f0f0f0; overflow: hidden; }
 
+        /* Estrutura Principal */
         #main-container { display: flex; height: 100vh; }
 
+        /* Barra Lateral Esquerda */
         #sidebar {
             width: 260px; background-color: white; border-right: 2px solid #333;
             display: flex; flex-direction: column; padding: 10px; box-sizing: border-box;
@@ -25,6 +27,7 @@
         .dropdown-box { width: 100%; padding: 10px; font-size: 18px; font-weight: bold; border: 2px solid #333; border-radius: 5px; }
         #sidebar-map-placeholder { flex: 1; background-color: #e0e0e0; border: 2px dashed #999; margin-top: 10px; display: flex; align-items: center; justify-content: center; color: #666; font-style: italic;}
 
+        /* Área Principal do Dashboard (CSS Grid) */
         #dashboard-grid {
             flex: 1; display: grid; gap: 10px; padding: 10px; box-sizing: border-box;
             grid-template-columns: repeat(3, 1fr);
@@ -47,8 +50,11 @@
         #palco-pir-plus2 { grid-area: pir-plus2; }
         #palco-vazio { grid-area: palco-vazio; background: #fafafa; display: flex; align-items: center; justify-content: center; color: #999; }
 
-        .mapa-leaflet { width: 100%; height: 100%; background: #ddd; }
+        /* Estilos dos Mapas e Loading */
+        .mapa-leaflet { width: 100%; height: 100%; background: #eee; }
+        .map-loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1000; background: rgba(255,255,255,0.8); padding: 10px; border-radius: 5px; font-weight: bold; color: #555;}
 
+        /* Timeline de Avisos */
         #avisos-conteudo { padding: 10px; display: flex; flex-direction: column; gap: 5px; overflow-y: auto; font-size: 13px;}
         .aviso-item { display: flex; align-items: center; border-radius: 5px; padding: 5px; border: 1px solid #ccc; }
         .aviso-icone { width: 28px; height: 28px; margin-right: 8px; }
@@ -60,14 +66,12 @@
         .aviso-red { background-color: #FFEBEE; border-color: #D32F2F; }
         .aviso-green { background-color: #E8F5E9; border-color: #388E3C; }
 
-        /* Loading overlay para os mapas */
-        .map-loading { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); display: flex; align-items: center; justify-content: center; z-index: 1000; font-weight: bold; color: #555;}
-
     </style>
 </head>
 <body>
 
 <div id="main-container">
+    <!-- Barra Lateral Esquerda -->
     <div id="sidebar">
         <div class="logo-container">
             <img src="https://upload.wikimedia.org/wikipedia/commons/f/f8/Escudo_da_Autoridade_Nacional_de_Emergência_e_Proteção_Civil.svg" alt="ANEPC">
@@ -89,143 +93,90 @@
         </div>
     </div>
 
+    <!-- Área Principal do Dashboard -->
     <div id="dashboard-grid">
+        
+        <!-- PALCO 1: PIR Hoje -->
         <div class="palco" id="palco-pir">
             <div class="palco-titulo">PIR (Risco Incêndio) - HOJE</div>
-            <div class="palco-conteudo"><div id="mapa-pir0" class="mapa-leaflet"></div><div class="map-loading" id="load0">A carregar mapas...</div></div>
+            <div class="palco-conteudo">
+                <div id="mapa-pir0" class="mapa-leaflet"></div>
+                <div class="map-loading" id="load0">A carregar...</div>
+            </div>
         </div>
+
+        <!-- PALCO 2: Avisos Meteorológicos -->
         <div class="palco" id="palco-avisos">
             <div class="palco-titulo">Avisos Meteorológicos - Viana do Castelo</div>
             <div class="palco-conteudo" id="avisos-conteudo">A carregar avisos...</div>
         </div>
+
+        <!-- PALCO 3: PIR Amanhã -->
         <div class="palco" id="palco-pir-plus1">
             <div class="palco-titulo">PIR (Risco Incêndio) - AMANHÃ</div>
-            <div class="palco-conteudo"><div id="mapa-pir1" class="mapa-leaflet"></div><div class="map-loading" id="load1">A carregar mapas...</div></div>
+            <div class="palco-conteudo">
+                <div id="mapa-pir1" class="mapa-leaflet"></div>
+                <div class="map-loading" id="load1">A carregar...</div>
+            </div>
         </div>
+
+        <!-- PALCO 4: PIR Depois de Amanhã -->
         <div class="palco" id="palco-pir-plus2">
             <div class="palco-titulo">PIR (Risco Incêndio) - DEPOIS DE AMANHÃ</div>
-            <div class="palco-conteudo"><div id="mapa-pir2" class="mapa-leaflet"></div><div class="map-loading" id="load2">A carregar mapas...</div></div>
+            <div class="palco-conteudo">
+                <div id="mapa-pir2" class="mapa-leaflet"></div>
+                <div class="map-loading" id="load2">A carregar...</div>
+            </div>
         </div>
+
+        <!-- PALCO 5: Vazio -->
         <div class="palco" id="palco-vazio">Área Reservada</div>
+
     </div>
 </div>
 
 <script>
-    // Configuração dos mapas
+    // Configuração dos Mapas
     const centroMapa = [41.85, -8.3];
     const zoomMapa = 10;
+    const tileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 
     const mapHoje = L.map('mapa-pir0', { zoomControl: false }).setView(centroMapa, zoomMapa);
     const mapAmanha = L.map('mapa-pir1', { zoomControl: false }).setView(centroMapa, zoomMapa);
     const mapDepois = L.map('mapa-pir2', { zoomControl: false }).setView(centroMapa, zoomMapa);
 
-    const tileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-    L.tileLayer(tileUrl, { attribution: '© OpenStreetMap' }).addTo(mapHoje);
-    L.tileLayer(tileUrl, { attribution: '© OpenStreetMap' }).addTo(mapAmanha);
-    L.tileLayer(tileUrl, { attribution: '© OpenStreetMap' }).addTo(mapDepois);
+    L.tileLayer(tileUrl).addTo(mapHoje);
+    L.tileLayer(tileUrl).addTo(mapAmanha);
+    L.tileLayer(tileUrl).addTo(mapDepois);
 
     const coresIncendio = { 1: '#84C776', 2: '#FFD700', 3: '#FFA500', 4: '#FF0000', 5: '#800080' };
-    
-    const concelhosLista = [
-        { arquivo: 'avv.kml', nome: 'Arcos de Valdevez', dico: '1601' },
-        { arquivo: 'CMN.kml', nome: 'Caminha', dico: '1602' },
-        { arquivo: 'mel.kml', nome: 'Melgaço', dico: '1603' },
-        { arquivo: 'mon.kml', nome: 'Monção', dico: '1604' },
-        { arquivo: 'pc.kml', nome: 'Paredes de Coura', dico: '1605' },
-        { arquivo: 'pb.kml', nome: 'Ponte da Barca', dico: '1606' },
-        { arquivo: 'pl.kml', nome: 'Ponte de Lima', dico: '1607' },
-        { arquivo: 'val.kml', nome: 'Valença', dico: '1608' },
-        { arquivo: 'vct.kml', nome: 'Viana do Castelo', dico: '1609' },
-        { arquivo: 'vnc.kml', nome: 'Vila Nova de Cerveira', dico: '1610' }
-    ];
 
-    // Função auxiliar para esperar (atraso)
-    const esperar = ms => new Promise(resolve => setTimeout(resolve, ms));
+    // Dicionário para traduzir o nome do concelho do KML para o DICO do IPMA
+    // IMPORTANTE: Os nomes no teu KML (Google Earth) têm de corresponder exatamente a estas chaves.
+    const nomeParaDico = {
+        "Arcos de Valdevez": "1601",
+        "Caminha": "1602",
+        "Melgaço": "1603",
+        "Monção": "1604",
+        "Paredes de Coura": "1605",
+        "Ponte da Barca": "1606",
+        "Ponte de Lima": "1607",
+        "Valença": "1608",
+        "Viana do Castelo": "1609",
+        "Vila Nova de Cerveira": "1610"
+    };
 
-    // Motor de carregamento em fila (Sequencial para evitar falhas)
-    async function carregarKMLSequencial(mapa, grupo, dadosRisco, elementoLoading) {
-        const bounds = [];
-        
-        for (const item of concelhosLista) {
-            try {
-                // Cria camada vazia
-                const layer = L.geoJson(null, {
-                    style: () => ({ fillColor: coresIncendio[dadosRisco[item.dico]] || '#cccccc', weight: 1.5, color: '#fff', fillOpacity: 0.7 }),
-                    onEachFeature: (f, l) => {
-                        l.bindPopup(`<b>${item.nome}</b><br>Risco: ${dadosRisco[item.dico] || 'N/A'}`);
-                    }
-                });
+    // Função genérica para carregar um KML e colori-lo
+    function carregarKML(mapa, urlKML, dadosRisco, loadingId) {
+        const customLayer = L.geoJson(null, {
+            style: function (feature) {
+                // O Leaflet lê o nome da propriedade 'name' do KML
+                const nomeConcelho = feature.properties.name || '';
+                // Obtém o DICO pelo nome (ex: "Arcos de Valdevez" -> "1601")
+                const dico = nomeParaDico[nomeConcelho] || '1609'; 
+                // Obtém o risco pelo DICO (ex: "1601" -> 3)
+                const nivelRisco = dadosRisco[dico] || 1;
 
-                // Adiciona ao grupo
-                grupo.addLayer(layer);
-                
-                // Carrega KML (retorna promessa)
-                await new Promise((resolve, reject) => {
-                    const kmlUrl = `./${item.arquivo}?t=${Date.now()}`; // Cache buster
-                    omnivore.kml(kmlUrl, null, layer)
-                        .on('ready', (e) => {
-                            bounds.push(e.target.getBounds());
-                            resolve();
-                        })
-                        .on('error', reject);
-                });
-
-                // Pequena pausa entre carregamentos para estabilizar o navegador
-                await esperar(50); 
-
-            } catch (err) {
-                console.warn(`Falha ao carregar ${item.arquivo}:`, err);
-            }
-        }
-        
-        // Ajusta o zoom final se houver polígonos
-        if (bounds.length > 0) {
-            let overallBounds = bounds[0];
-            for (let i = 1; i < bounds.length; i++) { overallBounds.extend(bounds[i]); }
-            mapa.fitBounds(overallBounds, { padding: [10, 10] });
-        }
-        
-        // Esconde loading
-        document.getElementById(elementoLoading).style.display = 'none';
-    }
-
-    // Inicializar dados
-    async function iniciar() {
-        // 1. Carregar Risco de Incêndio
-        try {
-            const urls = ['rcm-d0.json', 'rcm-d1.json', 'rcm-d2.json'];
-            const respostas = await Promise.all(urls.map(u => fetch('https://api.ipma.pt/open-data/forecast/meteorology/rcm/' + u)));
-            const dados = await Promise.all(respostas.map(r => r.json()));
-
-            const processar = (json) => {
-                const map = {};
-                if (json.local) {
-                    Object.keys(json.local).forEach(d => {
-                        if (d.startsWith('16')) map[d] = json.local[d].data.rcm;
-                    });
-                }
-                return map;
-            };
-
-            // Iniciar as 3 filas de carregamento
-            carregarKMLSequencial(mapHoje, L.featureGroup().addTo(mapHoje), processar(dados[0]), 'load0');
-            carregarKMLSequencial(mapAmanha, L.featureGroup().addTo(mapAmanha), processar(dados[1]), 'load1');
-            carregarKMLSequencial(mapDepois, L.featureGroup().addTo(mapDepois), processar(dados[2]), 'load2');
-
-        } catch(e) { console.error("Erro API IPMA", e); }
-
-        // 2. Carregar Avisos
-        carregarAvisos();
-    }
-
-    async function carregarAvisos() {
-        const container = document.getElementById('avisos-conteudo');
-        const icones = {
-            "Precipitação": "https://cdn-icons-png.flaticon.com/512/4005/4005771.png",
-            "Vento": "https://cdn-icons-png.flaticon.com/512/5444/5444465.png",
-            "Agitação Marítima": "https://cdn-icons-png.flaticon.com/512/3104/3104564.png",
-            "Trovoada": "https://cdn-icons-png.flaticon.com/512/4150/4150897.png",
-            "Nevoeiro": "https://cdn-icons-png.flaticon.com/512/760/760444.png",
-            "Tempo Frio": "https://cdn-icons-png.flaticon.com/512/5353/5353179.png"
-        };
-        const classes = { 'yellow': 'aviso-yellow',
+                return { fillColor: coresIncendio[nivelRisco], weight: 1.5, color: '#fff', fillOpacity: 0.7 };
+            },
+            onEachFeature
