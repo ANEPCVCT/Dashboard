@@ -7,11 +7,42 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
-        body, html { margin: 0; padding: 0; height: 100%; }
+        body, html { margin: 0; padding: 0; height: 100%; font-family: sans-serif; }
         #map { height: 100vh; width: 100%; }
+        
+        /* Estilo da caixa de botões */
+        .controlo-mapa {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            z-index: 1000;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        .controlo-mapa button {
+            display: block;
+            width: 100%;
+            margin-top: 10px;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            background: #f0f0f0;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .controlo-mapa button:hover { background: #e0e0e0; }
     </style>
 </head>
 <body>
+
+<!-- Menu de alternância -->
+<div class="controlo-mapa">
+    <strong>Escolher Dados (IPMA):</strong>
+    <button onclick="desenharPoligonos('iri')">🔥 Risco de Incêndio</button>
+    <button onclick="desenharPoligonos('avisos')">⚠️ Avisos Viana do Castelo</button>
+</div>
 
 <div id="map"></div>
 
@@ -21,78 +52,114 @@
         attribution: '© OpenStreetMap contributors | Dados: IPMA'
     }).addTo(map);
 
-    const coresIncendio = {
-        1: '#84C776', 2: '#FFD700', 3: '#FFA500', 4: '#FF0000', 5: '#800080'
-    };
+    // Variáveis Globais
+    let geoJsonData = null;
+    let camadaMapa = null;
+    
+    // Dados armazenados do IPMA
+    const riscoPorConcelho = {};
+    let maiorAvisoNivel = 'green';
+    let maiorAvisoTexto = 'Sem avisos ativos';
 
-    async function carregarDados() {
+    // Dicionários de Cores
+    const coresIncendio = { 1: '#84C776', 2: '#FFD700', 3: '#FFA500', 4: '#FF0000', 5: '#800080' };
+    const coresAvisos = { 'green': '#84C776', 'yellow': '#FFD700', 'orange': '#FFA500', 'red': '#FF0000' };
+    const pesoAvisos = { 'green': 0, 'yellow': 1, 'orange': 2, 'red': 3 };
+
+    async function iniciar() {
         try {
-            // 1. DADOS DO IPMA (Código Blindado)
+            // 1. CARREGAR IRI (Estrutura IPMA Documentada)
             const resRcm = await fetch('https://api.ipma.pt/open-data/forecast/meteorology/rcm/rcm-d0.json');
             const dataRcm = await resRcm.json();
             
-            let riscoPorConcelho = {};
+            if (dataRcm.local) {
+                for (const dico in dataRcm.local) {
+                    if (dico.startsWith('16')) {
+                        riscoPorConcelho[dico] = dataRcm.local[dico].data.rcm;
+                    }
+                }
+            }
+
+            // 2. CARREGAR AVISOS (Estrutura IPMA Documentada)
+            const resAviso = await fetch('https://api.ipma.pt/open-data/forecast/warnings/warnings_www.json');
+            const dataAviso = await resAviso.json();
             
-            // O IPMA pode enviar os dados num array directo ou dentro de um '.data'
-            const rcmArray = Array.isArray(dataRcm) ? dataRcm : (dataRcm.data || []);
+            // Filtrar para Viana do Castelo (ID: VVC)
+            const avisosVVC = dataAviso.filter(a => a.idAreaAviso === 'VVC');
             
-            // Extrair apenas os de Viana (DICO começa por 16)
-            rcmArray.forEach(item => {
-                if (item && item.dico && String(item.dico).startsWith('16')) {
-                    riscoPorConcelho[item.dico] = item.rcm;
+            avisosVVC.forEach(aviso => {
+                if (pesoAvisos[aviso.awarenessLevelID] > pesoAvisos[maiorAvisoNivel]) {
+                    maiorAvisoNivel = aviso.awarenessLevelID;
+                    maiorAvisoTexto = aviso.awarenessTypeName;
                 }
             });
 
-            // Fallback caso o IPMA envie um dicionário em vez de array
-            if (rcmArray.length === 0 && typeof dataRcm === 'object') {
-                const alvo = dataRcm.data || dataRcm;
-                Object.keys(alvo).forEach(key => {
-                    if (String(key).startsWith('16')) {
-                        riscoPorConcelho[key] = alvo[key].rcm || alvo[key];
-                    }
-                });
-            }
+            // 3. CARREGAR MAPA (Novo link fiável)
+            const resMapa = await fetch('https://raw.githubusercontent.com/jgrocha/covid-pt/master/concelhos.geojson');
+            const dataMapa = await resMapa.json();
 
-            // 2. DADOS DO MAPA (Código Blindado)
-            const resGeoJson = await fetch('https://raw.githubusercontent.com/dssg-pt/covid19pt-data/master/extra/concelhos.geojson');
-            const geoJsonPt = await resGeoJson.json();
-
-            const featureList = geoJsonPt.features || [];
-            
-            const geoJsonViana = {
+            // Filtrar polígonos para capturar apenas Viana do Castelo (Distrito 16)
+            geoJsonData = {
                 type: "FeatureCollection",
-                features: featureList.filter(f => f.properties && f.properties.DI == "16")
+                features: dataMapa.features.filter(f => 
+                    (f.properties.DI === '16') || 
+                    (f.properties.DICO && f.properties.DICO.startsWith('16')) ||
+                    (f.properties.NAME_1 === 'Viana do Castelo')
+                )
             };
 
-            // 3. DESENHAR POLÍGONOS
-            L.geoJSON(geoJsonViana, {
-                style: function (feature) {
-                    const dico = feature.properties.DI + feature.properties.CO; 
-                    const nivelRisco = riscoPorConcelho[dico] || 1; 
-                    return { 
-                        fillColor: coresIncendio[nivelRisco] || '#84C776', 
-                        weight: 2, 
-                        opacity: 1, 
-                        color: '#ffffff', 
-                        dashArray: '3', 
-                        fillOpacity: 0.7 
-                    };
-                },
-                onEachFeature: function (feature, layer) {
-                    const nome = feature.properties.NAME_2 || 'Concelho';
-                    const dico = feature.properties.DI + feature.properties.CO;
-                    const risco = riscoPorConcelho[dico] || 'Desconhecido';
-                    layer.bindPopup(`<b>${nome}</b><br>Risco de Incêndio: Nível ${risco}`);
-                }
-            }).addTo(map);
+            // Desenhar mapa por defeito (Incêndio)
+            desenharPoligonos('iri');
 
-        } catch (error) {
-            console.error(error);
-            alert("Continuamos com dificuldades a ler os dados. Detalhe: " + error.message);
+        } catch (erro) {
+            console.error(erro);
+            alert("Erro ao carregar dados. Verifique a consola para mais detalhes.");
         }
     }
 
-    carregarDados();
+    // Função que pinta os polígonos consoante o botão clicado
+    function desenharPoligonos(modo) {
+        if (!geoJsonData) return;
+        
+        // Remove os polígonos antigos antes de pintar os novos
+        if (camadaMapa) map.removeLayer(camadaMapa);
+
+        camadaMapa = L.geoJSON(geoJsonData, {
+            style: function (feature) {
+                // Tentar extrair o DICO de forma segura independentemente do formato do mapa
+                let dico = feature.properties.DICO;
+                if (!dico && feature.properties.DI && feature.properties.CO) {
+                    dico = String(feature.properties.DI) + String(feature.properties.CO);
+                }
+
+                let cor = '#cccccc';
+
+                if (modo === 'iri') {
+                    const risco = riscoPorConcelho[dico] || 1;
+                    cor = coresIncendio[risco];
+                } else if (modo === 'avisos') {
+                    // Os avisos aplicam-se a todo o distrito igualmente
+                    cor = coresAvisos[maiorAvisoNivel];
+                }
+
+                return { fillColor: cor, weight: 2, color: '#ffffff', dashArray: '3', fillOpacity: 0.7 };
+            },
+            onEachFeature: function (feature, layer) {
+                const nome = feature.properties.NAME_2 || feature.properties.Concelho || "Concelho";
+                let dico = feature.properties.DICO || (feature.properties.DI + feature.properties.CO);
+                
+                if (modo === 'iri') {
+                    const risco = riscoPorConcelho[dico] || 'N/A';
+                    layer.bindPopup(`<b>${nome}</b><br>Risco Incêndio: <b>Nível ${risco}</b>`);
+                } else {
+                    layer.bindPopup(`<b>${nome}</b><br>Aviso Distrital: <b>${maiorAvisoTexto}</b>`);
+                }
+            }
+        }).addTo(map);
+    }
+
+    // Arrancar a aplicação
+    iniciar();
 </script>
 </body>
 </html>
