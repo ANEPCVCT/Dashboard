@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa IPMA - Viana do Castelo</title>
+    <!-- Carregar o Leaflet (Biblioteca de Mapas) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        body, html { margin: 0; padding: 0; height: 100%; }
+        #map { height: 100vh; width: 100%; }
+        .legend { background: white; padding: 10px; border-radius: 5px; box-shadow: 0 0 15px rgba(0,0,0,0.2); }
+    </style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<script>
+    // 1. Inicializar o Mapa centrado em Viana do Castelo
+    const map = L.map('map').setView text([41.85, -8.3], 10);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors | Dados: IPMA'
+    }).addTo(map);
+
+    // Dicionário de cores para o Risco de Incêndio (1 a 5)
+    const coresIncendio = {
+        1: '#84C776', // Reduzido (Verde)
+        2: '#FFD700', // Moderado (Amarelo)
+        3: '#FFA500', // Elevado (Laranja)
+        4: '#FF0000', // Muito Elevado (Vermelho)
+        5: '#800080'  // Máximo (Púrpura)
+    };
+
+    async function carregarDados() {
+        try {
+            // 2. Ir buscar o Risco de Incêndio de Hoje (RCM)
+            const resRcm = await fetch('https://api.ipma.pt/open-data/forecast/meteorology/rcm/rcm-d0.json');
+            const dataRcm = await resRcm.json();
+            
+            // Filtrar apenas os dados do distrito de Viana do Castelo (DICO começa por '16')
+            const rcmViana = dataRcm.data.filter(item => item.dico.startsWith('16'));
+            
+            // Transformar num objecto fácil de pesquisar: { "1601": 4, "1602": 3, ... }
+            const riscoPorConcelho = {};
+            rcmViana.forEach(item => {
+                riscoPorConcelho[item.dico] = item.rcm; 
+            });
+
+            // 3. Ir buscar os polígonos (GeoJSON)
+            // NOTA: Terás de colocar um ficheiro geojson no teu github com os concelhos.
+            // Para o exemplo, usamos um repositório público com os concelhos de Portugal.
+            const resGeoJson = await fetch('https://raw.githubusercontent.com/dssg-pt/covid19pt-data/master/extra/concelhos.geojson');
+            const geoJsonPt = await resGeoJson.json();
+
+            // Filtrar apenas o Distrito de Viana do Castelo (ID Distrito 16)
+            const geoJsonViana = {
+                type: "FeatureCollection",
+                features: geoJsonPt.features.filter(f => f.properties.DI == "16")
+            };
+
+            // 4. Desenhar os polígonos no mapa e aplicar cores
+            L.geoJSON(geoJsonViana, {
+                style: function (feature) {
+                    // O DICO no GeoJSON normalmente é a junção do DI com o CO
+                    const dico = feature.properties.DI + feature.properties.CO; 
+                    const nivelRisco = riscoPorConcelho[dico] || 1; // Default 1 se falhar
+
+                    return {
+                        fillColor: coresIncendio[nivelRisco],
+                        weight: 2,
+                        opacity: 1,
+                        color: '#ffffff', // Contorno branco
+                        dashArray: '3',
+                        fillOpacity: 0.7
+                    };
+                },
+                onEachFeature: function (feature, layer) {
+                    const nome = feature.properties.NAME_2;
+                    const dico = feature.properties.DI + feature.properties.CO;
+                    const risco = riscoPorConcelho[dico] || 'Desconhecido';
+                    
+                    layer.bindPopup(`<b>${nome}</b><br>Risco de Incêndio: Nível ${risco}`);
+                }
+            }).addTo(map);
+
+        } catch (error) {
+            console.error("Erro a carregar dados:", error);
+            alert("Erro ao conectar à API do IPMA.");
+        }
+    }
+
+    carregarDados();
+</script>
+</body>
+</html>
