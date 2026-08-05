@@ -3,154 +3,101 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mapa IPMA - Viana do Castelo</title>
-    <!-- Leaflet CSS & JS -->
+    <title>Dashboard Operacional - Alto Minho</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <!-- Leaflet Omnivore (Link Estável Atualizado) -->
     <script src="https://unpkg.com/leaflet-omnivore@0.3.4/leaflet-omnivore.min.js"></script>
     
     <style>
-        body, html { margin: 0; padding: 0; height: 100%; font-family: sans-serif; }
-        #map { height: 100vh; width: 100%; }
-        
-        .controlo-mapa {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            z-index: 1000;
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        body, html { margin: 0; padding: 0; height: 100%; font-family: sans-serif; background-color: #f0f0f0; overflow: hidden; }
+
+        /* --- Estrutura Principal (Sidebar + Content) --- */
+        #main-container {
+            display: flex;
+            height: 100vh;
         }
-        .controlo-mapa button {
-            display: block;
-            width: 100%;
-            margin-top: 10px;
+
+        /* --- Barra Lateral Esquerda (Logos e Comandos) --- */
+        #sidebar {
+            width: 260px;
+            background-color: white;
+            border-right: 2px solid #333;
+            display: flex;
+            flex-direction: column;
             padding: 10px;
-            border: none;
-            border-radius: 5px;
-            background: #f0f0f0;
-            cursor: pointer;
-            font-weight: bold;
+            box-sizing: border-box;
         }
-        .controlo-mapa button:hover { background: #e0e0e0; }
+        .logo-container { text-align: center; margin-bottom: 10px; }
+        .logo-container img { max-width: 90%; height: auto; }
+        #sidebar-title { font-size: 24px; font-weight: bold; text-align: center; color: #333; margin-top: 10px;}
+        
+        /* Área da Dropdown e Mapa Predefinido */
+        #controls-area { flex: 1; display: flex; flex-direction: column; margin-top: 20px; border-top: 1px solid #ccc; padding-top: 10px;}
+        .dropdown-box { width: 100%; padding: 10px; font-size: 18px; font-weight: bold; border: 2px solid #333; border-radius: 5px; }
+        #sidebar-map-placeholder { flex: 1; background-color: #e0e0e0; border: 2px dashed #999; margin-top: 10px; display: flex; align-items: center; justify-content: center; color: #666; font-style: italic;}
+
+        /* --- Área Principal do Dashboard (Grid) --- */
+        #dashboard-grid {
+            flex: 1;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+            gap: 10px;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        /* Estilo Genérico dos Painéis (Palcos) */
+        .palco {
+            background-color: white;
+            border: 2px solid #333;
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .palco-titulo { font-size: 20px; font-weight: bold; color: #666; padding: 5px 10px; border-bottom: 1px solid #ccc; background-color: #f9f9f9;}
+        .palco-conteudo { flex: 1; position: relative; }
+
+        /* Layout Específico para os mapas */
+        .mapa-container { width: 100%; height: 100%; }
+
+        /* --- Avisos Meteorológicos (Timeline) --- */
+        #avisos-conteudo {
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            overflow-y: auto;
+        }
+        .aviso-item {
+            display: flex;
+            align-items: center;
+            background-color: #fff3cd; /* Amarelo placeholder */
+            border: 1px solid #ffeeba;
+            padding: 8px;
+            border-radius: 5px;
+        }
+        .aviso-icone { width: 30px; height: 30px; margin-right: 10px; }
+        .aviso-info { flex: 1; font-size: 14px; }
+        .aviso-hora { font-weight: bold; display: block; }
+
+        /* Cores de Fundo para Níveis de Aviso (Exemplo) */
+        .aviso-amarelo { background-color: #fff3cd; border-color: #ffeeba; }
+        .aviso-laranja { background-color: #ffeeba; border-color: #ffdf7e; }
+        .aviso-vermelho { background-color: #f8d7da; border-color: #f5c6cb; }
+
     </style>
 </head>
 <body>
 
-<div class="controlo-mapa">
-    <strong>Escolher Dados (IPMA):</strong>
-    <button onclick="mudarModo('iri')">🔥 Risco de Incêndio</button>
-    <button onclick="mudarModo('avisos')">⚠️ Avisos Viana do Castelo</button>
-</div>
-
-<div id="map"></div>
-
-<script>
-    const map = L.map('map').setView([41.85, -8.3], 10);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors | Dados: IPMA & KML'
-    }).addTo(map);
-
-    let riscoPorConcelho = {};
-    let maiorAvisoNivel = 'green';
-    let maiorAvisoTexto = 'Sem avisos ativos';
-    let modoAtual = 'iri';
-    let grupoCamadas = L.featureGroup().addTo(map);
-
-    const coresIncendio = { 1: '#84C776', 2: '#FFD700', 3: '#FFA500', 4: '#FF0000', 5: '#800080' };
-    const coresAvisos = { 'green': '#84C776', 'yellow': '#FFD700', 'orange': '#FFA500', 'red': '#FF0000' };
-    const pesoAvisos = { 'green': 0, 'yellow': 1, 'orange': 2, 'red': 3 };
-
-    // Lista dos 10 concelhos com os teus ficheiros KML exatos e códigos DICO do IPMA
-    const concelhosLista = [
-        { arquivo: 'avv.kml', nome: 'Arcos de Valdevez', dico: '1601' },
-        { arquivo: 'CMN.kml', nome: 'Caminha', dico: '1602' },
-        { arquivo: 'mel.kml', nome: 'Melgaço', dico: '1603' },
-        { arquivo: 'mon.kml', nome: 'Monção', dico: '1604' },
-        { arquivo: 'pc.kml', nome: 'Paredes de Coura', dico: '1605' },
-        { arquivo: 'pb.kml', nome: 'Ponte da Barca', dico: '1606' },
-        { arquivo: 'pl.kml', nome: 'Ponte de Lima', dico: '1607' },
-        { arquivo: 'val.kml', nome: 'Valença', dico: '1608' },
-        { arquivo: 'vct.kml', nome: 'Viana do Castelo', dico: '1609' },
-        { arquivo: 'vnc.kml', nome: 'Vila Nova de Cerveira', dico: '1610' }
-    ];
-
-    async function carregarDadosIPMA() {
-        try {
-            // 1. Risco de Incêndio (IRI)
-            const resRcm = await fetch('https://api.ipma.pt/open-data/forecast/meteorology/rcm/rcm-d0.json');
-            const dataRcm = await resRcm.json();
-            if (dataRcm.local) {
-                for (const dico in dataRcm.local) {
-                    if (dico.startsWith('16')) {
-                        riscoPorConcelho[dico] = dataRcm.local[dico].data.rcm;
-                    }
-                }
-            }
-
-            // 2. Avisos Meteorológicos
-            const resAviso = await fetch('https://api.ipma.pt/open-data/forecast/warnings/warnings_www.json');
-            const dataAviso = await resAviso.json();
-            const avisosVVC = dataAviso.filter(a => a.idAreaAviso === 'VVC');
-            avisosVVC.forEach(aviso => {
-                if (pesoAvisos[aviso.awarenessLevelID] > pesoAvisos[maiorAvisoNivel]) {
-                    maiorAvisoNivel = aviso.awarenessLevelID;
-                    maiorAvisoTexto = aviso.awarenessTypeName;
-                }
-            });
-        } catch (erro) {
-            console.error("Erro ao carregar dados do IPMA:", erro);
-        }
-    }
-
-    async function inicializarMapa() {
-        await carregarDadosIPMA();
-        desenharConcelhos();
-    }
-
-    function desenharConcelhos() {
-        grupoCamadas.clearLayers();
-
-        concelhosLista.forEach(item => {
-            const customLayer = L.geoJson(null, {
-                style: function () {
-                    let cor = '#cccccc';
-                    if (modoAtual === 'iri') {
-                        const risco = riscoPorConcelho[item.dico] || 1;
-                        cor = coresIncendio[risco];
-                    } else if (modoAtual === 'avisos') {
-                        cor = coresAvisos[maiorAvisoNivel];
-                    }
-                    return { fillColor: cor, weight: 2, color: '#ffffff', fillOpacity: 0.75 };
-                },
-                onEachFeature: function (feature, layer) {
-                    if (modoAtual === 'iri') {
-                        const risco = riscoPorConcelho[item.dico] || 'N/A';
-                        layer.bindPopup(`<b>${item.nome}</b><br>Risco Incêndio: <b>Nível ${risco}</b>`);
-                    } else {
-                        layer.bindPopup(`<b>${item.nome}</b><br>Aviso Distrital: <b>${maiorAvisoTexto}</b>`);
-                    }
-                }
-            });
-
-            omnivore.kml(`./${item.arquivo}`, null, customLayer)
-                .on('ready', function(e) {
-                    grupoCamadas.addLayer(e.target);
-                    map.fitBounds(grupoCamadas.getBounds());
-                })
-                .addTo(grupoCamadas);
-        });
-    }
-
-    function mudarModo(modo) {
-        modoAtual = modo;
-        desenharConcelhos();
-    }
-
-    inicializarMapa();
-</script>
-</body>
-</html>
+<div id="main-container">
+    <!-- Barra Lateral -->
+    <div id="sidebar">
+        <div class="logo-container">
+            <img src="https://i.imgur.com/pXW69uP.png" alt="Logo ANEPC"> <!-- Logo ANEPC placeholder -->
+        </div>
+        <div id="sidebar-title">Comando Sub-Regional<br>do Alto Minho</div>
+        <div class="logo-container" style="margin-top: auto">
+             <img src="https://i.imgur.com/U7X5Y4v.png" alt="Logo Regional"> <!-- Logo Regional placeholder -->
+        </div>
