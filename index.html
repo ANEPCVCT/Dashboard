@@ -10,165 +10,168 @@
     
     <style>
         body, html { margin: 0; padding: 0; height: 100%; font-family: sans-serif; background-color: #f0f0f0; overflow: hidden; }
+
+        /* Estrutura Principal */
         #main-container { display: flex; height: 100vh; }
-        #sidebar { width: 260px; background-color: white; border-right: 2px solid #333; display: flex; flex-direction: column; padding: 10px; box-sizing: border-box; }
+
+        /* Barra Lateral Esquerda */
+        #sidebar {
+            width: 260px; background-color: white; border-right: 2px solid #333;
+            display: flex; flex-direction: column; padding: 10px; box-sizing: border-box;
+        }
         .logo-container { text-align: center; margin-bottom: 10px; }
         .logo-container img { max-width: 90%; height: auto; }
         #sidebar-title { font-size: 20px; font-weight: bold; text-align: center; color: #333; margin-top: 10px;}
+        
         #controls-area { flex: 1; display: flex; flex-direction: column; margin-top: 20px; border-top: 1px solid #ccc; padding-top: 10px;}
         .dropdown-box { width: 100%; padding: 10px; font-size: 18px; font-weight: bold; border: 2px solid #333; border-radius: 5px; }
         #sidebar-map-placeholder { flex: 1; background-color: #e0e0e0; border: 2px dashed #999; margin-top: 10px; display: flex; align-items: center; justify-content: center; color: #666; font-style: italic;}
-        #dashboard-grid { flex: 1; display: grid; gap: 10px; padding: 10px; box-sizing: border-box; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); grid-template-areas: "pir pir avisos" "pir-plus1 pir-plus2 palco-vazio"; }
-        .palco { background-color: white; border: 2px solid #333; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; }
+
+        /* Área Principal do Dashboard (CSS Grid) */
+        #dashboard-grid {
+            flex: 1; display: grid; gap: 10px; padding: 10px; box-sizing: border-box;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+            grid-template-areas: 
+                "mapa-ipma mapa-ipma avisos"
+                "mapa-ipma mapa-ipma palco-vazio";
+        }
+
+        .palco {
+            background-color: white; border: 2px solid #333; border-radius: 8px;
+            overflow: hidden; display: flex; flex-direction: column;
+        }
         .palco-titulo { font-size: 18px; font-weight: bold; color: #666; padding: 5px 8px; border-bottom: 1px solid #ccc; background-color: #f9f9f9;}
         .palco-conteudo { flex: 1; position: relative; min-height: 150px;}
-        #palco-pir { grid-area: pir; }
+
+        /* Posicionamento dos Palcos na Grid (Alterado para usar o mapa IPMA) */
+        #palco-mapa-ipma { grid-area: mapa-ipma; }
         #palco-avisos { grid-area: avisos; }
-        #palco-pir-plus1 { grid-area: pir-plus1; }
-        #palco-pir-plus2 { grid-area: pir-plus2; }
         #palco-vazio { grid-area: palco-vazio; background: #fafafa; display: flex; align-items: center; justify-content: center; color: #999; }
-        .mapa-leaflet { width: 100%; height: 100%; background: #eee; }
-        .map-loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1000; background: rgba(255,255,255,0.8); padding: 10px; border-radius: 5px; font-weight: bold; color: #555;}
+
+        /* Estilos para o iframe do IPMA */
+        .ipma-iframe { width: 100%; height: 100%; border: none; }
+
+        /* Timeline de Avisos */
         #avisos-conteudo { padding: 10px; display: flex; flex-direction: column; gap: 5px; overflow-y: auto; font-size: 13px;}
         .aviso-item { display: flex; align-items: center; border-radius: 5px; padding: 5px; border: 1px solid #ccc; }
         .aviso-icone { width: 28px; height: 28px; margin-right: 8px; }
         .aviso-texto { flex: 1; line-height: 1.2; }
         .aviso-tempo { font-weight: bold; color: #333; display: block; font-size: 11px;}
+
         .aviso-yellow { background-color: #FFFDE7; border-color: #FBC02D; }
         .aviso-orange { background-color: #FFF3E0; border-color: #F57C00; }
         .aviso-red { background-color: #FFEBEE; border-color: #D32F2F; }
         .aviso-green { background-color: #E8F5E9; border-color: #388E3C; }
+
     </style>
 </head>
 <body>
 
 <div id="main-container">
+    <!-- Barra Lateral Esquerda -->
     <div id="sidebar">
-        <div class="logo-container"><img src="https://upload.wikimedia.org/wikipedia/commons/f/f8/Escudo_da_Autoridade_Nacional_de_Emergência_e_Proteção_Civil.svg" alt="ANEPC"></div>
+        <div class="logo-container">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/f/f8/Escudo_da_Autoridade_Nacional_de_Emergência_e_Proteção_Civil.svg" alt="ANEPC">
+        </div>
         <div id="sidebar-title">Comando Sub-Regional<br>do Alto Minho</div>
         <div id="controls-area">
             <strong>Nível Operacional (CDOS):</strong>
-            <select class="dropdown-box"><option>N (Normal)</option><option>I (Elevado)</option><option>II (Muito Elevado)</option><option>III (Máximo)</option><option>IV (Catástrofe)</option></select>
+            <select class="dropdown-box">
+                <option>N (Normal)</option>
+                <option>I (Elevado)</option>
+                <option>II (Muito Elevado)</option>
+                <option>III (Máximo)</option>
+                <option>IV (Catástrofe)</option>
+            </select>
             <div id="sidebar-map-placeholder">Mapa Predefinido</div>
         </div>
-        <div class="logo-container" style="margin-top: auto"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Flag_of_Portugal.svg/1200px-Flag_of_Portugal.svg.png" alt="Portugal"></div>
+        <div class="logo-container" style="margin-top: auto">
+             <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Flag_of_Portugal.svg/1200px-Flag_of_Portugal.svg.png" alt="Portugal">
+        </div>
     </div>
 
+    <!-- Área Principal do Dashboard (Grid alterado) -->
     <div id="dashboard-grid">
-        <div class="palco" id="palco-pir">
-            <div class="palco-titulo">PIR (Risco Incêndio) - HOJE</div>
-            <div class="palco-conteudo"><div id="mapa-pir0" class="mapa-leaflet"></div><div class="map-loading" id="load0">A carregar...</div></div>
+        
+        <!-- PALCO 1: Mapa IPMA (Ocupa a área dos 3 PIRs anteriores) -->
+        <div class="palco" id="palco-mapa-ipma">
+            <div class="palco-titulo">PIR (Risco Incêndio) - Dados Oficiais IPMA</div>
+            <div class="palco-conteudo">
+                <!-- Iframe que carrega o mapa interativo do IPMA centrado no Continente -->
+                <iframe class="ipma-iframe" src="https://www.ipma.pt/pt/riscoincendio/rcm.pt/index.jsp" title="Mapa Risco Incêndio IPMA"></iframe>
+            </div>
         </div>
+
+        <!-- PALCO 2: Avisos Meteorológicos -->
         <div class="palco" id="palco-avisos">
-            <div class="palco-titulo">Avisos Meteorológicos</div>
+            <div class="palco-titulo">Avisos Meteorológicos - Viana do Castelo</div>
             <div class="palco-conteudo" id="avisos-conteudo">A carregar avisos...</div>
         </div>
-        <div class="palco" id="palco-pir-plus1">
-            <div class="palco-titulo">PIR (Risco Incêndio) - AMANHÃ</div>
-            <div class="palco-conteudo"><div id="mapa-pir1" class="mapa-leaflet"></div><div class="map-loading" id="load1">A carregar...</div></div>
+
+        <!-- PALCO 3: Vazio -->
+        <div class="palco" id="palco-vazio">
+            Área Reservada
         </div>
-        <div class="palco" id="palco-pir-plus2">
-            <div class="palco-titulo">PIR (Risco Incêndio) - DEPOIS DE AMANHÃ</div>
-            <div class="palco-conteudo"><div id="mapa-pir2" class="mapa-leaflet"></div><div class="map-loading" id="load2">A carregar...</div></div>
-        </div>
-        <div class="palco" id="palco-vazio">Área Reservada</div>
+
     </div>
 </div>
 
 <script>
-    const centroMapa = [41.85, -8.3];
-    const zoomMapa = 10;
-    const tileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-
-    const mapHoje = L.map('mapa-pir0', { zoomControl: false }).setView(centroMapa, zoomMapa);
-    const mapAmanha = L.map('mapa-pir1', { zoomControl: false }).setView(centroMapa, zoomMapa);
-    const mapDepois = L.map('mapa-pir2', { zoomControl: false }).setView(centroMapa, zoomMapa);
-
-    L.tileLayer(tileUrl).addTo(mapHoje);
-    L.tileLayer(tileUrl).addTo(mapAmanha);
-    L.tileLayer(tileUrl).addTo(mapDepois);
-
-    const coresIncendio = { 1: '#84C776', 2: '#FFD700', 3: '#FFA500', 4: '#FF0000', 5: '#800080' };
-
-    // Dicionário de Mapeamento (Nomes no KML -> Código DICO IPMA)
-    const nomeParaDico = {
-        "Arcos de Valdevez": "1601",
-        "Caminha": "1602",
-        "Melgaço": "1603",
-        "Monção": "1604",
-        "Paredes de Coura": "1605",
-        "Ponte da Barca": "1606",
-        "Ponte de Lima": "1607",
-        "Valença": "1608",
-        "Viana do Castelo": "1609",
-        "Vila Nova de Cerveira": "1610"
-    };
-
-    function carregarKML(mapa, urlKML, dadosRisco, loadingId) {
-        const customLayer = L.geoJson(null, {
-            style: function (feature) {
-                // LINHA IMPORTANTE: Lê o nome do KML e mostra na Consola (F12)
-                const nomeConcelho = feature.properties.name || '';
-                console.log('[DETETIVE] Nome lido no KML:', JSON.stringify(nomeConcelho));
-
-                // Tenta encontrar o código
-                const dico = nomeParaDico[nomeConcelho] || '1609'; 
-                const nivelRisco = dadosRisco[dico] || 1;
-
-                return { fillColor: coresIncendio[nivelRisco], weight: 1.5, color: '#fff', fillOpacity: 0.7 };
-            },
-            onEachFeature: function (feature, layer) {
-                const nomeConcelho = feature.properties.name || 'Concelho';
-                const dico = nomeParaDico[nomeConcelho] || '1609';
-                const risco = dadosRisco[dico] || 'N/A';
-                layer.bindPopup(`<b>${nomeConcelho}</b><br>Risco: Nível ${risco}`);
-            }
-        });
-
-        omnivore.kml(urlKML, null, customLayer)
-            .on('ready', function(e) {
-                mapa.fitBounds(e.target.getBounds());
-                document.getElementById(loadingId).style.display = 'none';
-            });
-            
-        customLayer.addTo(mapa);
-    }
-
-    async function iniciar() {
-        try {
-            const urls = ['rcm-d0.json', 'rcm-d1.json', 'rcm-d2.json'];
-            const respostas = await Promise.all(urls.map(u => fetch('https://api.ipma.pt/open-data/forecast/meteorology/rcm/' + u)));
-            const dados = await Promise.all(respostas.map(r => r.json()));
-
-            const extrairRisco = (json) => {
-                const mapeamento = {};
-                if (json.local) {
-                    Object.keys(json.local).forEach(dico => {
-                        if (dico.startsWith('16')) { mapeamento[dico] = json.local[dico].data.rcm; }
-                    });
-                }
-                return mapeamento;
-            };
-
-            carregarKML(mapHoje, 'viana_hoje.kml', extrairRisco(dados[0]), 'load0');
-            carregarKML(mapAmanha, 'viana_amanha.kml', extrairRisco(dados[1]), 'load1');
-            carregarKML(mapDepois, 'viana_depoisamanha.kml', extrairRisco(dados[2]), 'load2');
-
-        } catch(e) { console.error("Erro IPMA RCM", e); }
-
-        carregarAvisos();
-    }
-
+    // Carregar Avisos Meteorológicos (Esta parte mantém-se, pois é estável)
     async function carregarAvisos() {
         const container = document.getElementById('avisos-conteudo');
-        const icones = { "Precipitação": "https://cdn-icons-png.flaticon.com/512/4005/4005771.png", "Vento": "https://cdn-icons-png.flaticon.com/512/5444/5444465.png", "Agitação Marítima": "https://cdn-icons-png.flaticon.com/512/3104/3104564.png", "Trovoada": "https://cdn-icons-png.flaticon.com/512/4150/4150897.png", "Nevoeiro": "https://cdn-icons-png.flaticon.com/512/760/760444.png", "Tempo Frio": "https://cdn-icons-png.flaticon.com/512/5353/5353179.png" };
-        const classes = { 'yellow': 'aviso-yellow', 'orange': 'aviso-orange', 'red': 'aviso-red', 'green': 'aviso-green' };
-        const pesos = { 'green': 0, 'yellow': 1, 'orange': 2, 'red': 3 };
+        const tipoAvisoIcons = {
+            "Precipitação": "https://cdn-icons-png.flaticon.com/512/4005/4005771.png",
+            "Vento": "https://cdn-icons-png.flaticon.com/512/5444/5444465.png",
+            "Agitação Marítima": "https://cdn-icons-png.flaticon.com/512/3104/3104564.png",
+            "Trovoada": "https://cdn-icons-png.flaticon.com/512/4150/4150897.png",
+            "Neve": "https://cdn-icons-png.flaticon.com/512/642/642000.png",
+            "Nevoeiro": "https://cdn-icons-png.flaticon.com/512/760/760444.png",
+            "Tempo Quente": "https://cdn-icons-png.flaticon.com/512/5344/5344755.png",
+            "Tempo Frio": "https://cdn-icons-png.flaticon.com/512/5353/5353179.png"
+        };
+
+        const classes = { 'yellow': 'aviso-yellow', 'orange': 'aviso-orange', 'red': 'aviso-red' };
 
         try {
             const res = await fetch('https://api.ipma.pt/open-data/forecast/warnings/warnings_www.json');
             const data = await res.json();
+            
             const avisosViana = data.filter(a => a.idAreaAviso === 'VVC' && a.awarenessLevelID !== 'green');
 
             if (avisosViana.length === 0) {
-                container.innerHTML = '<div class="av
+                container.innerHTML = '<div class="aviso-item aviso-green" style="text-align:center;">Sem avisos meteorológicos importantes para Viana do Castelo.</div>';
+                return;
+            }
+
+            container.innerHTML = '';
+            avisosViana.forEach(aviso => {
+                const icone = tipoAvisoIcons[aviso.awarenessTypeName] || "https://cdn-icons-png.flaticon.com/512/1795/1795519.png";
+                const classeFundo = classes[aviso.awarenessLevelID] || '';
+                const inicio = new Date(aviso.startTime).toLocaleString('pt-PT', {day: '2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
+                const fim = new Date(aviso.endTime).toLocaleString('pt-PT', {day: '2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
+
+                const avisoHtml = `
+                    <div class="aviso-item ${classeFundo}">
+                        <img src="${icone}" class="aviso-icone" alt="${aviso.awarenessTypeName}">
+                        <div class="aviso-texto">
+                            <strong>${aviso.awarenessTypeName}</strong><br>
+                            <span class="aviso-tempo">Início: ${inicio} - Fim: ${fim}</span>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += avisoHtml;
+            });
+
+        } catch (erro) {
+            console.error("Erro ao carregar avisos:", erro);
+            container.innerHTML = '<div style="color:red; text-align:center;">Erro ao carregar dados de avisos.</div>';
+        }
+    }
+
+    // Iniciar carregamento
+    carregarAvisos();
+</script>
+</body>
+</html>
