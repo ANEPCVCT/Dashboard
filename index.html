@@ -47,7 +47,7 @@
 <script>
     const map = L.map('map').setView([41.85, -8.3], 10);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors | Dados: IPMA & CAOP'
+        attribution: '© OpenStreetMap contributors | Dados: IPMA'
     }).addTo(map);
 
     let geoJsonData = null;
@@ -87,15 +87,9 @@
                 }
             });
 
-            // 3. Carregar o Mapa GeoJSON de uma fonte espelho 100% estável
-            const resMapa = await fetch('https://raw.githubusercontent.com/dssg-pt/covid19pt-data/master/extra/concelhos.geojson');
-            const dataMapa = await resMapa.json();
-
-            // Filtrar apenas para o Distrito de Viana do Castelo (DI == "16")
-            geoJsonData = {
-                type: "FeatureCollection",
-                features: dataMapa.features.filter(f => f.properties.DI === '16')
-            };
+            // 3. Carregar o nosso próprio ficheiro GeoJSON local guardado no repositório
+            const resMapa = await fetch('./concelhos.geojson');
+            geoJsonData = await resMapa.json();
 
             desenharPoligonos('iri');
 
@@ -113,7 +107,7 @@
         camadaMapa = L.geoJSON(geoJsonData, {
             style: function (feature) {
                 const p = feature.properties;
-                const dico = p.DI + p.CO; // No dssg-pt o DICO forma-se com DI + CO (ex: 16 + 01 = 1601)
+                const dico = p.DI + p.CO; 
                 
                 let cor = '#cccccc';
 
