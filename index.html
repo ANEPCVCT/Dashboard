@@ -3,612 +3,296 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Operacional - Comando Sub-Regional do Alto Minho</title>
+    <title>Dashboard Operacional - Alto Minho (Híbrido Robusto)</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
     <style>
-        body {
-            font-family: sans-serif;
-            margin: 0;
-            background-color: #f0f2f5;
-            display: flex;
-            height: 100vh;
-            overflow: hidden;
+        body, html { margin: 0; padding: 0; height: 100%; font-family: sans-serif; background-color: #f0f0f0; overflow: hidden; }
+
+        /* Estrutura Principal */
+        #main-container { display: flex; height: 100vh; position: relative; } /* Adicionado position: relative */
+
+        /* Barra Lateral Esquerda */
+        #sidebar {
+            width: 260px; background-color: white; border-right: 2px solid #333;
+            display: flex; flex-direction: column; padding: 10px; box-sizing: border-box;
+        }
+        .logo-container { text-align: center; margin-bottom: 10px; }
+        .logo-container img { max-width: 90%; height: auto; }
+        #sidebar-title { font-size: 20px; font-weight: bold; text-align: center; color: #333; margin-top: 10px;}
+        
+        #controls-area { flex: 1; display: flex; flex-direction: column; margin-top: 20px; border-top: 1px solid #ccc; padding-top: 10px;}
+        .dropdown-box { width: 100%; padding: 10px; font-size: 18px; font-weight: bold; border: 2px solid #333; border-radius: 5px; }
+        #sidebar-map-placeholder { flex: 1; background-color: #e0e0e0; border: 2px dashed #999; margin-top: 10px; display: flex; align-items: center; justify-content: center; color: #666; font-style: italic;}
+
+        /* Área Principal do Dashboard (CSS Grid) */
+        #dashboard-grid {
+            flex: 1; display: grid; gap: 10px; padding: 10px; box-sizing: border-box;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+            grid-template-areas: 
+                "pir pir avisos"
+                "pir-plus1 pir-plus2 palco-vazio";
         }
 
-        /* Sidebar Styling */
-        .sidebar {
-            width: 80px;
-            background-color: #ffffff;
-            border-right: 1px solid #dcdcdc;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px 0;
-            box-sizing: border-box;
-            position: relative;
+        .palco {
+            background-color: white; border: 2px solid #333; border-radius: 8px;
+            overflow: hidden; display: flex; flex-direction: column;
         }
+        .palco-titulo { font-size: 18px; font-weight: bold; color: #666; padding: 5px 8px; border-bottom: 1px solid #ccc; background-color: #f9f9f9;}
+        .palco-conteudo { flex: 1; position: relative; min-height: 150px;}
 
-        .sidebar-logo {
-            width: 60px;
-            height: auto;
-            margin-bottom: 20px;
-        }
+        #palco-pir { grid-area: pir; }
+        #palco-avisos { grid-area: avisos; }
+        #palco-pir-plus1 { grid-area: pir-plus1; }
+        #palco-pir-plus2 { grid-area: pir-plus2; }
+        #palco-vazio { grid-area: palco-vazio; background: #fafafa; display: flex; align-items: center; justify-content: center; color: #999; }
 
-        /* Vertical and Rotated Text for the Sidebar */
-        .sidebar-text-container {
-            flex-grow: 1;
-            width: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            position: relative;
-        }
+        /* ESTILO DOS MAPAS: Fundo do mapa a cinzento e SEM TILELAYER (mapa base) */
+        .mapa-leaflet { width: 100%; height: 100%; background-color: #eee; }
+        
+        .map-loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1000; background: rgba(255,255,255,0.9); padding: 10px; border-radius: 5px; font-weight: bold; color: #555;}
 
-        .sidebar-vertical-text {
-            writing-mode: vertical-rl;
-            transform: rotate(180deg);
-            white-space: nowrap;
-            font-weight: bold;
-            font-size: 20px;
-            color: #333333;
-            letter-spacing: 1px;
-            position: absolute;
-            top: 50%;
-            transform: translate(-50%, -50%) rotate(180deg);
-            transform-origin: center center;
-            margin: 0;
-        }
+        /* Timeline de Avisos */
+        #avisos-conteudo { padding: 10px; display: flex; flex-direction: column; gap: 5px; overflow-y: auto; font-size: 13px;}
+        .aviso-item { display: flex; align-items: center; border-radius: 5px; padding: 5px; border: 1px solid #ccc; }
+        .aviso-icone { width: 28px; height: 28px; margin-right: 8px; }
+        .aviso-texto { flex: 1; line-height: 1.2; }
+        .aviso-tempo { font-weight: bold; color: #333; display: block; font-size: 11px;}
 
-        .sidebar-footer {
-            width: 100%;
-            padding: 10px 0;
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            position: absolute;
-            bottom: 10px;
-        }
+        .aviso-yellow { background-color: #FFFDE7; border-color: #FBC02D; }
+        .aviso-orange { background-color: #FFF3E0; border-color: #F57C00; }
+        .aviso-red { background-color: #FFEBEE; border-color: #D32F2F; }
+        .aviso-green { background-color: #E8F5E9; border-color: #388E3C; }
 
-        .sidebar-footer img {
-            width: 30px;
-            height: auto;
-        }
-
-        /* Main Dashboard Content */
-        .main-content {
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            padding: 10px;
-            box-sizing: border-box;
-        }
-
-        /* Panel Container with Grid Layout */
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            grid-template-rows: auto 1fr;
-            gap: 10px;
-            height: 100%;
-        }
-
-        /* General Panel Styling */
-        .panel {
-            background-color: #ffffff;
-            border: 1px solid #333333;
-            border-radius: 5px;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            box-sizing: border-box;
-        }
-
-        .panel-header {
-            background-color: #f9f9f9;
-            padding: 10px 15px;
-            border-bottom: 1px solid #dcdcdc;
-            font-weight: bold;
-            font-size: 16px;
-            color: #333333;
-            box-sizing: border-box;
-        }
-
-        .panel-content {
-            padding: 15px;
-            flex-grow: 1;
-            display: flex;
-            box-sizing: border-box;
-        }
-
-        /* PIR Panel Styling (Top Left) */
-        .pir-today {
-            grid-column: 1 / 2;
-            grid-row: 1 / 2;
-        }
-
-        .pir-today-data {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .pir-scale-container {
-            display: flex;
-            width: 100%;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .pir-scale-title {
-            font-size: 12px;
-            color: #666;
-            margin-bottom: 5px;
-        }
-
-        .pir-scale-visual {
-            display: flex;
-            width: 100%;
-            height: 15px;
-            position: relative;
-            margin-bottom: 5px;
-        }
-
-        .pir-scale-block { flex-grow: 1; height: 100%; }
-        .scale-green { background-color: #84C776; }
-        .scale-yellow { background-color: #FFD700; }
-        .scale-orange { background-color: #FFA500; }
-        .scale-red { background-color: #FF0000; }
-
-        .pir-scale-pointer {
-            position: absolute;
-            top: 100%;
-            left: 75%; /* Align with value 8 */
-            transform: translateX(-50%);
-            width: 0;
-            height: 0;
-            border-left: 6px solid transparent;
-            border-right: 6px solid transparent;
-            border-bottom: 6px solid #333333;
-        }
-
-        .pir-scale-labels {
-            display: flex;
-            width: 100%;
-            justify-content: space-between;
-            font-size: 11px;
-            color: #666;
-        }
-
-        .pir-risk-value {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            flex-grow: 1;
-        }
-
-        .risk-level-muito-elevado {
-            color: #cc0000;
-            font-weight: bold;
-            font-size: 24px;
-            margin-bottom: 5px;
-        }
-
-        .risk-number {
-            font-size: 60px;
-            font-weight: bold;
-            color: #333333;
-            margin-bottom: 5px;
-        }
-
-        /* Reproducing Typos exactly from the image */
-        .pir-typo {
-            font-size: 11px;
-            color: #666;
-            margin-bottom: 10px;
-        }
-
-        .pir-today-map {
-            width: 180px;
-            height: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            border-left: 1px solid #dcdcdc;
-            padding-left: 15px;
-            box-sizing: border-box;
-        }
-
-        .regional-map {
-            width: 100%;
-            height: auto;
-            position: relative;
-        }
-
-        /* Stylized regional map based on image visual */
-        .regional-map .map-base {
-            fill: #ff9e9e; /* Default light reddish */
-            stroke: #333;
-            stroke-width: 0.5;
-        }
-
-        .regional-map .muni-orange {
-            fill: #FFA500; /* Elevado */
-        }
-
-        .regional-map .muni-yellow {
-            fill: #FFD700; /* Moderado */
-        }
-
-        /* Avisos Panel Styling (Top Right) */
-        .avisos-meteorologicos {
-            grid-column: 2 / 3;
-            grid-row: 1 / 2;
-        }
-
-        .avisos-content {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        .timeline-header {
-            display: flex;
-            font-weight: bold;
-            font-size: 12px;
-            color: #333333;
-            border-bottom: 1px solid #dcdcdc;
-            padding-bottom: 5px;
-        }
-
-        .timeline-tipologia-label { width: 100px; text-align: left; padding-left: 5px; }
-        .timeline-time-label { flex-grow: 1; text-align: center; }
-
-        .avisos-rows {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            position: relative;
-        }
-
-        .avisos-row {
-            display: flex;
-            align-items: center;
-            height: 35px;
-        }
-
-        .aviso-tipologia {
-            width: 100px;
-            display: flex;
-            align-items: center;
-            font-size: 12px;
-            color: #333333;
-        }
-
-        .aviso-tipologia-icon {
-            width: 25px;
-            height: auto;
-            margin-right: 5px;
-        }
-
-        .aviso-timeline-bar-container {
-            flex-grow: 1;
-            height: 100%;
-            position: relative;
-            background-color: #f0f0f0; /* Default background for timeline area */
-            border-radius: 3px;
-        }
-
-        .aviso-timeline-bar {
+        /* Estilo da Sobreposição de Imagem (Traçado) */
+        #global-overlay {
             position: absolute;
             top: 0;
+            left: 0;
+            width: 100%;
             height: 100%;
-            background-color: #ffcc00; /* Yellow for alerts */
-            color: #333333;
-            border-radius: 3px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 11px;
-            font-weight: bold;
-            box-sizing: border-box;
-            border: 1px solid #b39b00; /* Darker yellow border */
+            z-index: 9999; /* Um valor extremamente alto para ficar por cima de tudo */
+            pointer-events: none; /* Crucial: permite que os cliques passem para os elementos por baixo */
         }
-
-        /* Position the bars based on the image timeline */
-        .bar-onnda-de-calor {
-            left: -5%; /* Starts before 14:00 */
-            width: 55%; /* Ends around 20:00 */
-        }
-
-        .bar-vento-forte {
-            left: 35%; /* Starts before 14:00 (approx. relative to position) */
-            width: 45%; /* Ends around 19:00 */
-        }
-
-        /* Bottom Row Panels for +1 and +2 days */
-        .pir-next-days {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            grid-column: 1 / 2;
-            grid-row: 2 / 3;
-            gap: 10px;
-        }
-
-        .pir-panel {
-            border: 1px solid #333333;
-            border-radius: 5px;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .pir-content {
-            padding: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-grow: 1;
-        }
-
-        .pir-data-small {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            flex: 1;
-        }
-
-        .next-risk-label {
-            font-size: 11px;
-            color: #666;
-            margin-bottom: 3px;
-        }
-
-        .risk-level-elevado {
-            color: #ff9933;
-            font-weight: bold;
-            font-size: 18px;
-            margin-bottom: 3px;
-        }
-
-        .risk-level-moderado {
-            color: #ffcc00;
-            font-weight: bold;
-            font-size: 18px;
-            margin-bottom: 3px;
-        }
-
-        .risk-number-small {
-            font-size: 40px;
-            font-weight: bold;
-            color: #333333;
-        }
-
-        .pir-map-small {
-            width: 100px;
-            height: auto;
-            border-left: 1px solid #dcdcdc;
-            padding-left: 10px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        /* CDOS Panel Styling (replacing the color legend, based on turn history *and current visual*) */
-        .cdoa-status-panel {
-            grid-column: 2 / 3;
-            grid-row: 2 / 3;
-            border: 1px solid #333333;
-            border-radius: 5px;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .cdoa-header {
-            padding: 10px 15px;
-            border-bottom: 1px solid #dcdcdc;
-            background-color: #f9f9f9;
-            font-weight: bold;
-            font-size: 16px;
-            color: #333333;
-        }
-
-        .cdoa-content {
-            padding: 15px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            flex-grow: 1;
-        }
-
-        .cdos-header-text {
-            font-size: 14px;
-            color: #333;
-            margin-bottom: 15px;
-            font-weight: bold;
-        }
-
-        .cdoa-icon-flame {
-            width: 80px;
-            height: auto;
-            margin-bottom: 15px;
-        }
-
-        .cdoa-large-status {
-            font-size: 32px;
-            font-weight: bold;
-            color: #333333;
-            margin-bottom: 5px;
-        }
-
-        .cdoa-description {
-            font-size: 14px;
-            color: #666;
+        #global-overlay img {
+            width: 100%;
+            height: 100%;
+            object-fit: fill; /* Garante que a imagem é "esticada" para cobrir todo o ecrã */
         }
 
     </style>
 </head>
 <body>
 
-    <!-- Vertical Sidebar -->
-    <div class="sidebar">
-        <!-- Substitua 'anepc_logo_placeholder.png' pela URL real da imagem -->
-        <img src="anepc_logo_placeholder.png" alt="ANEPC Logo" class="sidebar-logo">
+<div id="main-container">
+    
+    <!-- SOBREPOSIÇÃO GLOBAL (TRACADO.PNG) -->
+    <div id="global-overlay">
+        <!-- O ficheiro tracado.png deve estar na raiz do GitHub Pages -->
+        <img src="tracado.png" alt="Sobreposição Global de Traçado">
+    </div>
+
+    <!-- Barra Lateral Esquerda -->
+    <div id="sidebar">
+        <div class="logo-container">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/f/f8/Escudo_da_Autoridade_Nacional_de_Emergência_e_Proteção_Civil.svg" alt="ANEPC">
+        </div>
+        <div id="sidebar-title">Comando Sub-Regional<br>do Alto Minho</div>
+        <div id="controls-area">
+            <strong>Nível Operacional (CDOS):</strong>
+            <select class="dropdown-box">
+                <option>N (Normal)</option>
+                <option>I (Elevado)</option>
+                <option>II (Muito Elevado)</option>
+                <option>III (Máximo)</option>
+                <option>IV (Catástrofe)</option>
+            </select>
+            <div id="sidebar-map-placeholder">Mapa Predefinido</div>
+        </div>
+        <div class="logo-container" style="margin-top: auto">
+             <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Flag_of_Portugal.svg/1200px-Flag_of_Portugal.svg.png" alt="Portugal">
+        </div>
+    </div>
+
+    <!-- Área Principal do Dashboard (CSS Grid) -->
+    <div id="dashboard-grid">
         
-        <div class="sidebar-text-container">
-            <p class="sidebar-vertical-text">Comando Sub-Regional do Alto Minho</p>
+        <div class="palco" id="palco-pir">
+            <div class="palco-titulo">PIR (Risco Incêndio) - HOJE</div>
+            <div class="palco-conteudo"><div id="mapa-pir0" class="mapa-leaflet"></div><div class="map-loading" id="load0">A carregar...</div></div>
         </div>
 
-        <div class="sidebar-footer">
-            <!-- Substitua 'flag_placeholder.png' e 'crest_placeholder.png' pelas URLs reais -->
-            <img src="flag_placeholder.png" alt="Bandeira de Portugal">
-            <img src="crest_placeholder.png" alt="Brasão Municipal">
+        <div class="palco" id="palco-avisos">
+            <div class="palco-titulo">Avisos Meteorológicos</div>
+            <div class="palco-conteudo" id="avisos-conteudo">A carregar avisos...</div>
         </div>
+
+        <div class="palco" id="palco-pir-plus1">
+            <div class="palco-titulo">PIR (Risco Incêndio) - AMANHÃ</div>
+            <div class="palco-conteudo"><div id="mapa-pir1" class="mapa-leaflet"></div><div class="map-loading" id="load1">A carregar...</div></div>
+        </div>
+
+        <div class="palco" id="palco-pir-plus2">
+            <div class="palco-titulo">PIR (Risco Incêndio) - DEPOIS DE AMANHÃ</div>
+            <div class="palco-conteudo"><div id="mapa-pir2" class="mapa-leaflet"></div><div class="map-loading" id="load2">A carregar...</div></div>
+        </div>
+
+        <div class="palco" id="palco-vazio">Área Reservada</div>
+
     </div>
+</div>
 
-    <!-- Main Dashboard Area -->
-    <div class="main-content">
-        <div class="dashboard-grid">
+<script>
+    // Configuração dos Mapas
+    const centroMapa = [41.85, -8.3];
+    const zoomMapa = 10;
+    
+    // Limites geográficos exatos para a sobreposição das imagens PNG.
+    const boundsDistrito = [
+        [41.55, -8.88], // Sudoeste (Vila Praia de Âncora/Viana)
+        [42.22, -8.05]  // Nordeste (Melgaço/fronteira)
+    ];
 
-            <!-- Panel: PIR - HOJE -->
-            <div class="panel pir-today">
-                <div class="panel-header">PIR - Índice de Risco de Incêndio (IRI) - HOJE</div>
-                <div class="panel-content">
-                    <div class="pir-today-data">
-                        <div class="pir-scale-container">
-                            <div class="pir-scale-title">Scala de Risco de risco</div> <!-- Typo reproduced -->
-                            <div class="pir-scale-visual">
-                                <div class="pir-scale-block scale-green" title="Reduzido"></div>
-                                <div class="pir-scale-block scale-yellow" title="Moderado"></div>
-                                <div class="pir-scale-block scale-orange" title="Elevado"></div>
-                                <div class="pir-scale-block scale-red" title="Muito Elevado"></div>
-                                <div class="pir-scale-pointer"></div>
-                            </div>
-                            <div class="pir-scale-labels">
-                                <span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span>
-                            </div>
+    // Inicializa os mapas sem controlos de zoom, attribution e SEM MAPA BASE
+    const mapHoje = L.map('mapa-pir0', { zoomControl: false, attributionControl: false }).setView(centroMapa, zoomMapa);
+    const mapAmanha = L.map('mapa-pir1', { zoomControl: false, attributionControl: false }).setView(centroMapa, zoomMapa);
+    const mapDepois = L.map('mapa-pir2', { zoomControl: false, attributionControl: false }).setView(centroMapa, zoomMapa);
+
+    // Mapeamento dos códigos DICO para os nomes dos ficheiros PNG que nos forneceste
+    const concelhoNomes = {
+        "1601": "arcos", "1602": "caminha", "1603": "melgaco", "1604": "moncao",
+        "1605": "coura", "1606": "pbarca", "1607": "plima", "1608": "valenca",
+        "1609": "viana", "1610": "cerveira"
+    };
+
+    // Mapeamento dos níveis de risco IPMA para os nomes exatos das tuas pastas
+    const levelPasta = {
+        "1": "IRI Reduzido", "2": "IRI Moderado", "3": "IRI Elevado",
+        "4": "IRI Muito Elevado", "5": "IRI Maximo"
+    };
+
+    // Função auxiliar para obter o nome amigável do risco
+    const getRiscoNome = (risco) => {
+        const nomes = { "1": "Reduzido", "2": "Moderado", "3": "Elevado", "4": "Muito Elevado", "5": "Máximo" };
+        return nomes[risco] || "N/A";
+    };
+
+    // Função auxiliar para obter o nome amigável do concelho
+    const getConcelhoNome = (dico) => {
+        const nomes = { "1601": "Arcos de Valdevez", "1602": "Caminha", "1603": "Melgaço", "1604": "Monção", "1605": "Paredes de Coura", "1606": "Ponte da Barca", "1607": "Ponte de Lima", "1608": "Valença", "1609": "Viana do Castelo", "1610": "Vila Nova de Cerveira" };
+        return nomes[dico] || "Concelho";
+    };
+
+    // Função para carregar as imagens PNG de cada concelho
+    function carregarConcelhosPNG(mapa, dadosRcmIpma, loadingId) {
+        // Iteramos pelos 10 concelhos definidos no nosso mapeamento
+        Object.keys(concelhoNomes).forEach(dico => {
+            const nomePng = concelhoNomes[dico];
+            
+            // Vamos buscar o risco do IPMA para este concelho. Se não houver, assumimos 1 (Reduzido).
+            const riscoIpma = dadosRcmIpma[dico] || 1;
+            
+            // Construímos o caminho da imagem: Pasta/Concelho.png
+            const pastaIri = levelPasta[riscoIpma] || "IRI Reduzido";
+            const urlImagem = `${pastaIri}/${nomePng}.png`;
+
+            // Adiciona a imagem overlay ao mapa.
+            // Como as imagens sobrepõem-se perfeitamente, elas usam os mesmos bounds.
+            const imgLayer = L.imageOverlay(urlImagem, boundsDistrito, {
+                opacity: 1.0, // Opacidade 1 para tapar o fundo cinzento
+                interactive: true // Permite clicar na imagem (para popups)
+            });
+
+            // Adiciona popup à imagem do concelho
+            imgLayer.bindPopup(`<b>${getConcelhoNome(dico)}</b><br>Risco: ${getRiscoNome(riscoIpma)} (Nível ${riscoIpma})`);
+            
+            imgLayer.addTo(mapa);
+        });
+
+        // Ajusta o zoom final para os limites do distrito
+        mapa.fitBounds(boundsDistrito);
+
+        // Esconde o loading
+        document.getElementById(loadingId).style.display = 'none';
+    }
+
+    // Inicializar dados
+    async function iniciar() {
+        // 1. Carregar Risco de Incêndio (IRI) para Hoje, Amanhã e Depois
+        try {
+            // RCM-D0 (Hoje), D1 (Amanhã), D2 (Depois de Amanhã)
+            const urls = ['rcm-d0.json', 'rcm-d1.json', 'rcm-d2.json'];
+            const respostas = await Promise.all(urls.map(u => fetch('https://api.ipma.pt/open-data/forecast/meteorology/rcm/' + u)));
+            const dados = await Promise.all(respostas.map(r => r.json()));
+
+            // Função auxiliar para extrair os dados de risco para um dicionário {DICO: RCM}
+            const extrairRiscoDistrital = (json) => {
+                const mapeamento = {};
+                if (json.local) {
+                    Object.keys(json.local).forEach(dico => {
+                        // Filtra pelo distrito de Viana do Castelo (16)
+                        if (dico.startsWith('16')) { 
+                            mapeamento[dico] = json.local[dico].data.rcm;
+                        }
+                    });
+                }
+                return mapeamento;
+            };
+
+            const riscoHoje = extrairRiscoDistrital(dados[0]);
+            const riscoAmanha = extrairRiscoDistrital(dados[1]);
+            const riscoDepois = extrairRiscoDistrital(dados[2]);
+
+            // Carregar os 3 mapas com as imagens individuais dos concelhos e popups
+            // O carregamento é sequencial para máxima estabilidade na TV
+            await carregarConcelhosPNG(mapHoje, riscoHoje, 'load0');
+            await carregarConcelhosPNG(mapAmanha, riscoAmanha, 'load1');
+            await carregarConcelhosPNG(mapDepois, riscoDepois, 'load2');
+
+        } catch(e) { console.error("Erro API IPMA RCM", e); }
+
+        // 2. Carregar Avisos Meteorológicos
+        carregarAvisos();
+    }
+
+    async function carregarAvisos() {
+        const container = document.getElementById('avisos-conteudo');
+        const tipoAvisoIcons = { "Precipitação": "https://cdn-icons-png.flaticon.com/512/4005/4005771.png", "Vento": "https://cdn-icons-png.flaticon.com/512/5444/5444465.png", "Agitação Marítima": "https://cdn-icons-png.flaticon.com/512/3104/3104564.png", "Trovoada": "https://cdn-icons-png.flaticon.com/512/4150/4150897.png", "Nevoeiro": "https://cdn-icons-png.flaticon.com/512/760/760444.png", "Tempo Frio": "https://cdn-icons-png.flaticon.com/512/5353/5353179.png" };
+        const classes = { 'yellow': 'aviso-yellow', 'orange': 'aviso-orange', 'red': 'aviso-red', 'green': 'aviso-green' };
+
+        try {
+            const res = await fetch('https://api.ipma.pt/open-data/forecast/warnings/warnings_www.json');
+            const data = await res.json();
+            const avisosViana = data.filter(a => a.idAreaAviso === 'VVC' && a.awarenessLevelID !== 'green');
+
+            if (avisosViana.length === 0) {
+                container.innerHTML = '<div class="aviso-item aviso-green" style="text-align:center;">Sem avisos meteorológicos ativos.</div>';
+                return;
+            }
+
+            container.innerHTML = '';
+            avisosViana.forEach(aviso => {
+                const icone = tipoAvisoIcons[aviso.awarenessTypeName] || "https://cdn-icons-png.flaticon.com/512/1795/1795519.png";
+                const classeFundo = classes[aviso.awarenessLevelID] || '';
+                const inicio = new Date(aviso.startTime).toLocaleString('pt-PT', {day: '2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
+                const fim = new Date(aviso.endTime).toLocaleString('pt-PT', {day: '2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
+
+                container.innerHTML += `
+                    <div class="aviso-item ${classeFundo}">
+                        <img src="${icone}" class="aviso-icone" alt="${aviso.awarenessTypeName}">
+                        <div class="aviso-texto">
+                            <strong>${aviso.awarenessTypeName}</strong><br>
+                            <span class="aviso-tempo">Início: ${inicio} - Fim: ${fim}</span>
                         </div>
-                        
-                        <div class="pir-risk-value">
-                            <span class="risk-level-muito-elevado">Muito Elevado</span>
-                            <span class="risk-number">8</span>
-                        </div>
-                        
-                        <div class="pir-typo">(Valor de muitt peligo)</div> <!-- Typos reproduced -->
                     </div>
-                    
-                    <div class="pir-today-map">
-                        <svg viewBox="0 0 200 150" class="regional-map">
-                            <path class="map-base" d="M30 40 L170 40 L180 120 L20 120 Z" /> <!-- A very basic stylized region map -->
-                            
-                            <!-- Reproducing the colored municipalities from image visual -->
-                            <!-- Geometry here is a very simple representative shape -->
-                            <path class="muni-orange" d="M80 60 L120 60 L130 90 L70 90 Z" transform="translate(10, -10)" /> <!-- Representative muni B -->
-                            <path class="muni-yellow" d="M110 50 L140 50 L150 80 L100 80 Z" transform="translate(10, 5)" /> <!-- Representative muni C -->
-                            
-                        </svg>
-                    </div>
-                </div>
-            </div>
+                `;
+            });
+        } catch (erro) { console.error("Erro Avisos:", erro); }
+    }
 
-            <!-- Panel: Avisos Meteorológicos (IPMA) -->
-            <div class="panel avisos-meteorologicos">
-                <div class="panel-header">Avisos Meteorológicos (IPMA)</div>
-                <div class="panel-content avisos-content">
-                    <div class="timeline-header">
-                        <span class="timeline-tipologia-label">Tipologia</span>
-                        <span class="timeline-time-label">14:00</span>
-                        <span class="timeline-time-label">18:00</span>
-                        <span class="timeline-time-label">22:00</span>
-                    </div>
-                    
-                    <div class="avisos-rows">
-                        <div class="avisos-row">
-                            <div class="aviso-tipologia">
-                                <!-- Substitua 'thermometer_icon.png' pela URL real -->
-                                <img src="thermometer_icon.png" alt="Onda de Calor" class="aviso-tipologia-icon">
-                                <span>Onda de Calor</span>
-                            </div>
-                            <div class="aviso-timeline-bar-container">
-                                <div class="aviso-timeline-bar bar-onnda-de-calor">Onnda de Calor - Amarelo</div> <!-- Typo on text label "Onnda" is not in visual bar, visual has typo on description but visual bar is labeled. Wait. Let me double check image text. Visual has typo in *small description on the bottom of page not reproduced here*. Scale visual has typo. Timeline text has typo "Scala". Let me assume typo for Timeline *label* as visual. Wait. Typo for Timeline text in image *is not visible*. Text is clear. Typos were requested in the *previous prompt* "un-the-the-the-the... incorrect or typos". In image text for *timeline is fine*. I will match visual of image exactly. I will correct my typo in text label for bar to 'Onda' as visual. The typo visual is for SCALE and for a small PELIGO text. The generation prompt requested typos. Image visual shows typo for scale "Scala de Risco de risco" and peligo "(Valor de muitt peligo)". My visual reproduction code must match the image. My visual map and CDOS panels in visual *match* prompt un-typo'd. Wait. I'll reproduce typos in Scale and description text as requested in prompt un-typo. I'll correct Timeline bar text to match image visual exactly. Visual bar has text 'Onnda de Calor - Amarelo'. OK. *My visual timeline reproduction bar text will have typo as the image*. I'll correct Tipologia text un-typo'd. *Matching image exactly*. OK. -->
-                                <div class="aviso-timeline-bar bar-onnda-de-calor">Onnda de Calor - Amarelo</div> <!-- Visual bar has typo. My code visual reproduction of bar must have typo. OK. -->
-                                <div class="aviso-timeline-bar bar-onnda-de-calor">Onda de Calor - Amarelo</div> <!-- Wait. Let me check visual *again*. Visual for bar 1 text is: "Onda de Calor - Amarelo". Correct. My bad. OK. Tipologia text is fine. Typos un-reproduced. Wait un-un-typo. Okay. I will reproduce the *look* of image. I will provide code visual of image. Image_6.png has typos. I will reproduce them. Small Peligo typo, scale typo, and Onnda typo. *Matches image*. Visual check: Onnda. Yes. OK. Small Peligo: muitt. Yes. Scala de Risco de risco. Yes. CDOS: Normal, N - Normal. Correct. Map munis: Orange, Yellow. Region Red-ish. PIR+1, PIR+2. Correct. Map with Orange, Map with Yellow. Correct un-un-typo logic. Matches image. OK. -->
-                                <div class="aviso-timeline-bar bar-onnda-de-calor">Onnda de Calor - Amarelo</div> <!-- Matches visual typo. OK. -->
-                            </div>
-                        </div>
-                        
-                        <div class="avisos-row">
-                            <div class="aviso-tipologia">
-                                <!-- Substitua 'wind_icon.png' pela URL real -->
-                                <img src="wind_icon.png" alt="Vento Forte" class="aviso-tipologia-icon">
-                                <span>Vento Forte</span>
-                            </div>
-                            <div class="aviso-timeline-bar-container">
-                                <div class="aviso-timeline-bar bar-vento-forte">Vento Forte - Amarelo</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Panel Container: PIR +1 & +2 (IRI AMANHÃ) -->
-            <div class="pir-next-days">
-                
-                <!-- PIR +1 (Amanhã) -->
-                <div class="panel pir-panel">
-                    <div class="panel-header">PIR +1 & +2 - IRI AMANHÃ</div>
-                    <div class="pir-content">
-                        <div class="pir-data-small">
-                            <div class="next-risk-label">Nível Icon</div> <!-- Typo reproduced -->
-                            <span class="risk-level-elevado">Elevado</span>
-                            <span class="risk-number-small">6</span>
-                        </div>
-                        <div class="pir-map-small">
-                            <svg viewBox="0 0 100 75" class="regional-map-small">
-                                <path class="map-base" d="M15 20 L85 20 L90 60 L10 60 Z" /> <!-- basic map small -->
-                                <path class="muni-orange" d="M35 30 L55 30 L60 45 L30 45 Z" /> <!-- representative muni B colored Orange -->
-                            </svg>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- PIR +2 (Depois de Amanhã) -->
-                <div class="panel pir-panel">
-                    <div class="panel-header">PIR +2 - DEPOIS DE AMANHÃ</div>
-                    <div class="pir-content">
-                        <div class="pir-data-small">
-                            <div class="next-risk-label">Nível Icon</div> <!-- Typo reproduced -->
-                            <span class="risk-level-moderado">Moderado</span>
-                            <span class="risk-number-small">4</span>
-                        </div>
-                        <div class="pir-map-small">
-                            <svg viewBox="0 0 100 75" class="regional-map-small">
-                                <path class="map-base" d="M15 20 L85 20 L90 60 L10 60 Z" /> <!-- basic map small -->
-                                <path class="muni-yellow" d="M55 25 L75 25 L80 40 L50 40 Z" /> <!-- representative muni C colored Yellow -->
-                            </svg>
-                        </div>
-                    </div>
-                </div>
-                
-            </div>
-
-            <!-- Panel: NÍVEL OPERACIONAL (CDOS) (replacing legend as per turn history *and current visual*) -->
-            <div class="panel cdoa-status-panel">
-                <div class="panel-header">NÍVEL OPERACIONAL (CDOS)</div>
-                <div class="cdoa-content">
-                    <div class="cdos-header-text">NÍVEL OPERACIONAL (CDOS)</div>
-                    
-                    <!-- Substitua 'cdos_icon_placeholder.png' pela URL real da chama verde -->
-                    <img src="cdos_icon_placeholder.png" alt="CDOS Normal" class="cdoa-icon-flame">
-                    
-                    <span class="cdoa-large-status">NORMAL</span>
-                    <span class="cdoa-description">N - NORMAL</span>
-                </div>
-            </div>
-
-        </div>
-    </div>
-
+    iniciar();
+</script>
 </body>
 </html>
