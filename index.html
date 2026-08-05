@@ -7,8 +7,8 @@
     <!-- Leaflet CSS & JS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <!-- Leaflet Omnivore (Plugin para ler KML) -->
-    <script src="https://api.mapbox.com/mapbox.js/plugins/leaflet-omnivore/v0.3.4/leaflet-omnivore.min.js"></script>
+    <!-- Leaflet Omnivore (Link Estável Atualizado) -->
+    <script src="https://unpkg.com/leaflet-omnivore@0.3.4/leaflet-omnivore.min.js"></script>
     
     <style>
         body, html { margin: 0; padding: 0; height: 100%; font-family: sans-serif; }
@@ -64,7 +64,7 @@
     const coresAvisos = { 'green': '#84C776', 'yellow': '#FFD700', 'orange': '#FFA500', 'red': '#FF0000' };
     const pesoAvisos = { 'green': 0, 'yellow': 1, 'orange': 2, 'red': 3 };
 
-    // Lista oficial dos 10 concelhos com os respetivos ficheiros e códigos DICO do IPMA
+    // Lista dos 10 concelhos com os teus ficheiros KML exatos e códigos DICO do IPMA
     const concelhosLista = [
         { arquivo: 'avv.kml', nome: 'Arcos de Valdevez', dico: '1601' },
         { arquivo: 'CMN.kml', nome: 'Caminha', dico: '1602' },
@@ -112,7 +112,6 @@
     }
 
     function desenharConcelhos() {
-        // Limpar camadas anteriores
         grupoCamadas.clearLayers();
 
         concelhosLista.forEach(item => {
@@ -137,7 +136,6 @@
                 }
             });
 
-            // Ler cada KML individualmente e adicioná-lo ao grupo
             omnivore.kml(`./${item.arquivo}`, null, customLayer)
                 .on('ready', function(e) {
                     grupoCamadas.addLayer(e.target);
@@ -152,7 +150,6 @@
         desenharConcelhos();
     }
 
-    // Arrancar a aplicação
     inicializarMapa();
 </script>
 </body>
