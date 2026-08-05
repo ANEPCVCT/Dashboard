@@ -48,7 +48,7 @@
         /* Cabeçalho geral, fora da área útil de 50% reservada ao IRI. */
         #brand-header {
             display: grid;
-            grid-template-columns: clamp(78px, 7vw, 112px) minmax(0, 1fr);
+            grid-template-columns: clamp(78px, 7vw, 112px) minmax(0, 1fr) auto;
             align-items: center;
             gap: clamp(12px, 1.2vw, 24px);
             min-width: 0;
@@ -73,6 +73,18 @@
             line-height: 1.05;
             letter-spacing: 0.01em;
             color: #202b34;
+        }
+
+        #current-datetime {
+            margin: 0;
+            white-space: nowrap;
+            text-align: right;
+            font-size: clamp(19px, 1.55vw, 30px);
+            font-weight: 700;
+            line-height: 1;
+            letter-spacing: 0.01em;
+            color: #202b34;
+            font-variant-numeric: tabular-nums;
         }
 
         /* Duas metades horizontais iguais abaixo do cabeçalho. */
@@ -307,6 +319,7 @@
         <header id="brand-header">
             <img src="anepc_logo.png" alt="Logótipo da ANEPC">
             <h1>Comando Sub-Regional do Alto Minho</h1>
+            <time id="current-datetime"></time>
         </header>
 
         <main id="dashboard-grid">
@@ -660,10 +673,31 @@
         }
 
         async function iniciar() {
+            atualizarDataHora();
+            window.setInterval(atualizarDataHora, 1000);
+
             await Promise.allSettled([atualizarIri(), carregarAvisos()]);
 
             /* Apenas o IRI é atualizado automaticamente, de hora a hora. */
             window.setInterval(atualizarIri, intervaloAtualizacaoIriMs);
+        }
+
+        function atualizarDataHora() {
+            const agora = new Date();
+            const diaSemana = new Intl.DateTimeFormat('pt-PT', {
+                weekday: 'long'
+            }).format(agora);
+            const hora = new Intl.DateTimeFormat('pt-PT', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            }).format(agora);
+            const diaFormatado = diaSemana.charAt(0).toUpperCase() + diaSemana.slice(1);
+            const elemento = document.getElementById('current-datetime');
+
+            elemento.textContent = `${diaFormatado} · ${hora}`;
+            elemento.dateTime = agora.toISOString();
         }
 
         iniciar();
