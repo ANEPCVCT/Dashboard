@@ -486,13 +486,13 @@
                 );
                 tracado.addEventListener(
                     'error',
-                    () => resolve({ estado: 'erro', urlImagem: 'tracado.png' }),
+                    () => resolve({ estado: 'erro', urlImagem: 'tracadovct.png' }),
                     { once: true }
                 );
 
                 /* Inserido por último e com z-index superior: é sempre o topo. */
                 pilha.appendChild(tracado);
-                tracado.src = 'tracado.png';
+                tracado.src = 'tracadovct.png';
             });
         }
 
