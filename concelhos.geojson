@@ -1,0 +1,55 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "DI": "16", "CO": "01", "NAME_2": "Arcos de Valdevez" },
+      "geometry": { "type": "Polygon", "coordinates": [[[-8.45, 41.85], [-8.35, 41.85], [-8.35, 41.95], [-8.45, 41.95], [-8.45, 41.85]]] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "DI": "16", "CO": "02", "NAME_2": "Caminha" },
+      "geometry": { "type": "Polygon", "coordinates": [[[-8.85, 41.85], [-8.75, 41.85], [-8.75, 41.95], [-8.85, 41.95], [-8.85, 41.85]]] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "DI": "16", "CO": "03", "NAME_2": "Melgaço" },
+      "geometry": { "type": "Polygon", "coordinates": [[[-8.30, 42.05], [-8.20, 42.05], [-8.20, 42.15], [-8.30, 42.15], [-8.30, 42.05]]] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "DI": "16", "CO": "04", "NAME_2": "Monção" },
+      "geometry": { "type": "Polygon", "coordinates": [[[-8.50, 42.00], [-8.40, 42.00], [-8.40, 42.10], [-8.50, 42.10], [-8.50, 42.00]]] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "DI": "16", "CO": "05", "NAME_2": "Paredes de Coura" },
+      "geometry": { "type": "Polygon", "coordinates": [[[-8.60, 41.85], [-8.50, 41.85], [-8.50, 41.95], [-8.60, 41.95], [-8.60, 41.85]]] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "DI": "16", "CO": "06", "NAME_2": "Ponte da Barca" },
+      "geometry": { "type": "Polygon", "coordinates": [[[-8.45, 41.75], [-8.35, 41.75], [-8.35, 41.85], [-8.45, 41.85], [-8.45, 41.75]]] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "DI": "16", "CO": "07", "NAME_2": "Ponte de Lima" },
+      "geometry": { "type": "Polygon", "coordinates": [[[-8.65, 41.70], [-8.55, 41.70], [-8.55, 41.80], [-8.65, 41.80], [-8.65, 41.70]]] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "DI": "16", "CO": "08", "NAME_2": "Valença" },
+      "geometry": { "type": "Polygon", "coordinates": [[[-8.65, 41.95], [-8.55, 41.95], [-8.55, 42.05], [-8.65, 42.05], [-8.65, 41.95]]] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "DI": "16", "CO": "09", "NAME_2": "Viana do Castelo" },
+      "geometry": { "type": "Polygon", "coordinates": [[[-8.85, 41.65], [-8.75, 41.65], [-8.75, 41.75], [-8.85, 41.75], [-8.85, 41.65]]] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "DI": "16", "CO": "10", "NAME_2": "Vila Nova de Cerveira" },
+      "geometry": { "type": "Polygon", "coordinates": [[[-8.80, 41.90], [-8.70, 41.90], [-8.70, 42.00], [-8.80, 42.00], [-8.80, 41.90]]] }
+    }
+  ]
+}
