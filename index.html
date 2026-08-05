@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mapa IPMA - Viana do Castelo</title>
-    <!-- Carregar o Leaflet (Biblioteca de Mapas) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
@@ -17,72 +16,74 @@
 <div id="map"></div>
 
 <script>
-    // 1. Inicializar o Mapa centrado em Viana do Castelo (CORRIGIDO)
     const map = L.map('map').setView([41.85, -8.3], 10);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors | Dados: IPMA'
+        attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
-    // Dicionário de cores para o Risco de Incêndio (1 a 5)
     const coresIncendio = {
-        1: '#84C776', // Reduzido (Verde)
-        2: '#FFD700', // Moderado (Amarelo)
-        3: '#FFA500', // Elevado (Laranja)
-        4: '#FF0000', // Muito Elevado (Vermelho)
-        5: '#800080'  // Máximo (Púrpura)
+        1: '#84C776', 2: '#FFD700', 3: '#FFA500', 4: '#FF0000', 5: '#800080'
     };
 
     async function carregarDados() {
         try {
-            // 2. Ir buscar o Risco de Incêndio de Hoje (RCM)
+            // Teste 1: Ligar ao IPMA
             const resRcm = await fetch('https://api.ipma.pt/open-data/forecast/meteorology/rcm/rcm-d0.json');
-            const dataRcm = await resRcm.json();
+            if (!resRcm.ok) {
+                throw new Error("O IPMA rejeitou a ligação. Código: " + resRcm.status);
+            }
             
-            // Filtrar apenas os dados do distrito de Viana do Castelo (DICO começa por '16')
-            const rcmViana = dataRcm.data.filter(item => item.dico.startsWith('16'));
+            // Verificar se os dados do IPMA são válidos
+            const textRcm = await resRcm.text();
+            let dataRcm;
+            try {
+                dataRcm = JSON.parse(textRcm);
+            } catch(e) {
+                throw new Error("O IPMA enviou uma resposta com formato inválido.");
+            }
             
+            const rcmViana = dataRcm.data.filter(item => item.dico && item.dico.startsWith('16'));
             const riscoPorConcelho = {};
-            rcmViana.forEach(item => {
-                riscoPorConcelho[item.dico] = item.rcm; 
-            });
+            rcmViana.forEach(item => { riscoPorConcelho[item.dico] = item.rcm; });
 
-            // 3. Ir buscar os polígonos (GeoJSON)
+            // Teste 2: Ligar ao Mapa GeoJSON
             const resGeoJson = await fetch('https://raw.githubusercontent.com/dssg-pt/covid19pt-data/master/extra/concelhos.geojson');
-            const geoJsonPt = await resGeoJson.json();
+            if (!resGeoJson.ok) {
+                throw new Error("O ficheiro do Mapa (GeoJSON) não foi encontrado online. Código: " + resGeoJson.status);
+            }
+            
+            // Verificar se o mapa é válido
+            const textGeo = await resGeoJson.text();
+            let geoJsonPt;
+            try {
+                geoJsonPt = JSON.parse(textGeo);
+            } catch(e) {
+                throw new Error("O ficheiro do Mapa não está num formato JSON válido.");
+            }
 
-            // Filtrar apenas o Distrito de Viana do Castelo (ID Distrito 16)
             const geoJsonViana = {
                 type: "FeatureCollection",
                 features: geoJsonPt.features.filter(f => f.properties.DI == "16")
             };
 
-            // 4. Desenhar os polígonos no mapa
+            // Desenhar os polígonos
             L.geoJSON(geoJsonViana, {
                 style: function (feature) {
                     const dico = feature.properties.DI + feature.properties.CO; 
                     const nivelRisco = riscoPorConcelho[dico] || 1; 
-
-                    return {
-                        fillColor: coresIncendio[nivelRisco],
-                        weight: 2,
-                        opacity: 1,
-                        color: '#ffffff',
-                        dashArray: '3',
-                        fillOpacity: 0.7
-                    };
+                    return { fillColor: coresIncendio[nivelRisco], weight: 2, opacity: 1, color: '#ffffff', dashArray: '3', fillOpacity: 0.7 };
                 },
                 onEachFeature: function (feature, layer) {
                     const nome = feature.properties.NAME_2;
                     const dico = feature.properties.DI + feature.properties.CO;
                     const risco = riscoPorConcelho[dico] || 'Desconhecido';
-                    
                     layer.bindPopup(`<b>${nome}</b><br>Risco de Incêndio: Nível ${risco}`);
                 }
             }).addTo(map);
 
         } catch (error) {
-            console.error("Erro a carregar dados:", error);
-            alert("Erro ao carregar os dados. O IPMA ou o mapa podem estar indisponíveis.");
+            console.error(error);
+            alert("ERRO DETETADO:\n" + error.message);
         }
     }
 
