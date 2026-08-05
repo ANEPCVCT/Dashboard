@@ -397,7 +397,7 @@
         ];
 
         function criarMapa(elementId) {
-            return L.map(elementId, {
+            const mapa = L.map(elementId, {
                 zoomControl: false,
                 attributionControl: false,
                 dragging: false,
@@ -407,6 +407,21 @@
                 keyboard: false,
                 tap: false
             }).setView(centroMapa, zoomMapa);
+
+            /*
+             * Todas as imagens dos concelhos partilham exatamente o mesmo
+             * tamanho e os mesmos limites. O traçado usa uma camada própria
+             * para ficar sempre acima da composição IRI, independentemente da
+             * ordem em que cada PNG termine de carregar.
+             */
+            mapa.createPane('iriConcelhos');
+            mapa.getPane('iriConcelhos').style.zIndex = '400';
+
+            mapa.createPane('iriTracado');
+            mapa.getPane('iriTracado').style.zIndex = '450';
+            mapa.getPane('iriTracado').style.pointerEvents = 'none';
+
+            return mapa;
         }
 
         function definirEstadoLoading(loadingId, mensagem, erro = false) {
@@ -445,7 +460,8 @@
                 const urlImagem = `${pasta}/${ficheiro}.png`;
                 const imagem = L.imageOverlay(urlImagem, boundsDistrito, {
                     opacity: 1,
-                    interactive: true
+                    interactive: true,
+                    pane: 'iriConcelhos'
                 });
 
                 imagem.bindPopup(
@@ -456,6 +472,22 @@
                 imagem.once('load', () => resolve({ dico, estado: 'carregado' }));
                 imagem.once('error', () => resolve({ dico, estado: 'erro', urlImagem }));
                 imagem.addTo(mapa);
+            });
+        }
+
+        function adicionarTracado(mapa) {
+            return new Promise((resolve) => {
+                const tracado = L.imageOverlay('tracado.png', boundsDistrito, {
+                    opacity: 1,
+                    interactive: false,
+                    pane: 'iriTracado'
+                });
+
+                tracado.once('load', () => resolve({ estado: 'carregado' }));
+                tracado.once('error', () =>
+                    resolve({ estado: 'erro', urlImagem: 'tracado.png' })
+                );
+                tracado.addTo(mapa);
             });
         }
 
@@ -470,13 +502,20 @@
 
             mapa.fitBounds(boundsDistrito, { animate: false, padding: [2, 2] });
 
-            const resultados = await Promise.all(
-                concelhosComDados.map((dico) =>
-                    adicionarImagemConcelho(mapa, dico, dadosRcmIpma[dico])
-                )
-            );
+            const [resultados, resultadoTracado] = await Promise.all([
+                Promise.all(
+                    concelhosComDados.map((dico) =>
+                        adicionarImagemConcelho(mapa, dico, dadosRcmIpma[dico])
+                    )
+                ),
+                adicionarTracado(mapa)
+            ]);
 
             const falhas = resultados.filter((resultado) => resultado.estado === 'erro');
+
+            if (resultadoTracado.estado === 'erro') {
+                falhas.push(resultadoTracado);
+            }
 
             if (falhas.length > 0) {
                 console.error('Imagens IRI em falta ou inacessíveis:', falhas);
