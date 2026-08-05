@@ -6,15 +6,12 @@
     <title>Dashboard Operacional - Alto Minho</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet-omnivore@0.3.4/leaflet-omnivore.min.js"></script>
     
     <style>
         body, html { margin: 0; padding: 0; height: 100%; font-family: sans-serif; background-color: #f0f0f0; overflow: hidden; }
 
-        /* Estrutura Principal */
         #main-container { display: flex; height: 100vh; }
 
-        /* Barra Lateral Esquerda */
         #sidebar {
             width: 260px; background-color: white; border-right: 2px solid #333;
             display: flex; flex-direction: column; padding: 10px; box-sizing: border-box;
@@ -27,14 +24,13 @@
         .dropdown-box { width: 100%; padding: 10px; font-size: 18px; font-weight: bold; border: 2px solid #333; border-radius: 5px; }
         #sidebar-map-placeholder { flex: 1; background-color: #e0e0e0; border: 2px dashed #999; margin-top: 10px; display: flex; align-items: center; justify-content: center; color: #666; font-style: italic;}
 
-        /* Área Principal do Dashboard (CSS Grid) */
         #dashboard-grid {
             flex: 1; display: grid; gap: 10px; padding: 10px; box-sizing: border-box;
             grid-template-columns: repeat(3, 1fr);
             grid-template-rows: repeat(2, 1fr);
             grid-template-areas: 
-                "mapa-ipma mapa-ipma avisos"
-                "mapa-ipma mapa-ipma palco-vazio";
+                "pir pir avisos"
+                "pir-plus1 pir-plus2 palco-vazio";
         }
 
         .palco {
@@ -44,15 +40,17 @@
         .palco-titulo { font-size: 18px; font-weight: bold; color: #666; padding: 5px 8px; border-bottom: 1px solid #ccc; background-color: #f9f9f9;}
         .palco-conteudo { flex: 1; position: relative; min-height: 150px;}
 
-        /* Posicionamento dos Palcos na Grid (Alterado para usar o mapa IPMA) */
-        #palco-mapa-ipma { grid-area: mapa-ipma; }
+        #palco-pir { grid-area: pir; }
         #palco-avisos { grid-area: avisos; }
+        #palco-pir-plus1 { grid-area: pir-plus1; }
+        #palco-pir-plus2 { grid-area: pir-plus2; }
         #palco-vazio { grid-area: palco-vazio; background: #fafafa; display: flex; align-items: center; justify-content: center; color: #999; }
 
-        /* Estilos para o iframe do IPMA */
-        .ipma-iframe { width: 100%; height: 100%; border: none; }
+        /* ESTILO MODIFICADO: Fundo do mapa a cinzento e sem borda de mapa */
+        .mapa-leaflet { width: 100%; height: 100%; background-color: #eee; }
+        
+        .map-loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1000; background: rgba(255,255,255,0.9); padding: 10px; border-radius: 5px; font-weight: bold; color: #555;}
 
-        /* Timeline de Avisos */
         #avisos-conteudo { padding: 10px; display: flex; flex-direction: column; gap: 5px; overflow-y: auto; font-size: 13px;}
         .aviso-item { display: flex; align-items: center; border-radius: 5px; padding: 5px; border: 1px solid #ccc; }
         .aviso-icone { width: 28px; height: 28px; margin-right: 8px; }
@@ -69,7 +67,6 @@
 <body>
 
 <div id="main-container">
-    <!-- Barra Lateral Esquerda -->
     <div id="sidebar">
         <div class="logo-container">
             <img src="https://upload.wikimedia.org/wikipedia/commons/f/f8/Escudo_da_Autoridade_Nacional_de_Emergência_e_Proteção_Civil.svg" alt="ANEPC">
@@ -91,57 +88,145 @@
         </div>
     </div>
 
-    <!-- Área Principal do Dashboard (Grid alterado) -->
     <div id="dashboard-grid">
-        
-        <!-- PALCO 1: Mapa IPMA (Ocupa a área dos 3 PIRs anteriores) -->
-        <div class="palco" id="palco-mapa-ipma">
-            <div class="palco-titulo">PIR (Risco Incêndio) - Dados Oficiais IPMA</div>
-            <div class="palco-conteudo">
-                <!-- Iframe que carrega o mapa interativo do IPMA centrado no Continente -->
-                <iframe class="ipma-iframe" src="https://www.ipma.pt/pt/riscoincendio/rcm.pt/index.jsp" title="Mapa Risco Incêndio IPMA"></iframe>
-            </div>
+        <div class="palco" id="palco-pir">
+            <div class="palco-titulo">PIR (Risco Incêndio) - HOJE</div>
+            <div class="palco-conteudo"><div id="mapa-pir0" class="mapa-leaflet"></div><div class="map-loading" id="load0">A carregar...</div></div>
         </div>
-
-        <!-- PALCO 2: Avisos Meteorológicos -->
         <div class="palco" id="palco-avisos">
             <div class="palco-titulo">Avisos Meteorológicos - Viana do Castelo</div>
             <div class="palco-conteudo" id="avisos-conteudo">A carregar avisos...</div>
         </div>
-
-        <!-- PALCO 3: Vazio -->
-        <div class="palco" id="palco-vazio">
-            Área Reservada
+        <div class="palco" id="palco-pir-plus1">
+            <div class="palco-titulo">PIR (Risco Incêndio) - AMANHÃ</div>
+            <div class="palco-conteudo"><div id="mapa-pir1" class="mapa-leaflet"></div><div class="map-loading" id="load1">A carregar...</div></div>
         </div>
-
+        <div class="palco" id="palco-pir-plus2">
+            <div class="palco-titulo">PIR (Risco Incêndio) - DEPOIS DE AMANHÃ</div>
+            <div class="palco-conteudo"><div id="mapa-pir2" class="mapa-leaflet"></div><div class="map-loading" id="load2">A carregar...</div></div>
+        </div>
+        <div class="palco" id="palco-vazio">Área Reservada</div>
     </div>
 </div>
 
 <script>
-    // Carregar Avisos Meteorológicos (Esta parte mantém-se, pois é estável)
+    // Configuração dos Mapas (SEM TILELAYER DE FUNDO)
+    // Definimos as coordenadas aproximadas de Viana do Castelo para centrar o mapa
+    const centroMapa = [41.85, -8.3];
+    const zoomMapa = 10;
+
+    // Inicializa os mapas sem controlos de zoom e com fundo cinzento via CSS (.mapa-leaflet)
+    const mapHoje = L.map('mapa-pir0', { zoomControl: false }).setView(centroMapa, zoomMapa);
+    const mapAmanha = L.map('mapa-pir1', { zoomControl: false }).setView(centroMapa, zoomMapa);
+    const mapDepois = L.map('mapa-pir2', { zoomControl: false }).setView(centroMapa, zoomMapa);
+
+    // Definimos os limites geográficos exatos para todo o distrito.
+    // COMO AS IMAGENS ENCAIXAM, ELAS USAM OS MESMOS BOUNDS.
+    // Estas coordenadas têm de ser exatas para que a imagem PNG se sobreponha perfeitamente.
+    // Podes ajustar estes valores se a imagem não encaixar bem.
+    const boundsDistrito = [
+        [41.55, -8.88], // Sudoeste (Vila Praia de Âncora/Viana)
+        [42.22, -8.05]  // Nordeste (Melgaço/fronteira)
+    ];
+
+    // Mapeamento dos códigos DICO para os nomes dos ficheiros PNG que nos forneceste
+    const concelhoNomes = {
+        "1601": "arcos",
+        "1602": "caminha",
+        "1603": "melgaco",
+        "1604": "moncao",
+        "1605": "coura", // Paredes de Coura
+        "1606": "pbarca", // Ponte da Barca
+        "1607": "plima", // Ponte de Lima
+        "1608": "valenca",
+        "1609": "viana", // Viana do Castelo
+        "1610": "cerveira" // Vila Nova de Cerveira
+    };
+
+    // Mapeamento dos níveis de risco IPMA para os nomes exatos das tuas pastas
+    const levelPasta = {
+        "1": "IRI Reduzido",
+        "2": "IRI Moderado",
+        "3": "IRI Elevado", // Assumindo que 3=Elevado baseado em prompt anterior
+        "4": "IRI Muito Elevado",
+        "5": "IRI Maximo" // Assumindo que 5=Maximo ou Extremo baseado em prompt anterior
+    };
+
+    // Função para carregar as imagens PNG de cada concelho
+    function carregarConcelhos(mapa, dadosRcmIpma, loadingId) {
+        // Iteramos pelos 10 concelhos definidos no nosso mapeamento
+        Object.keys(concelhoNomes).forEach(dico => {
+            const nomePng = concelhoNomes[dico];
+            
+            // Vamos buscar o risco do IPMA para este concelho. Se não houver, assumimos 1 (Reduzido).
+            const riscoIpma = dadosRcmIpma[dico] || 1;
+            
+            // Construímos o caminho da imagem: Pasta/Concelho.png
+            const pastaIri = levelPasta[riscoIpma] || "IRI Reduzido";
+            const urlImagem = `${pastaIri}/${nomePng}.png`;
+
+            // Adiciona a imagem overlay ao mapa.
+            // COMO AS IMAGENS SOBREPÕEM-SE PERFEITAMENTE, ELAS USAM OS MESMOS BOUNDS.
+            L.imageOverlay(urlImagem, boundsDistrito, {
+                opacity: 1.0 // Opacidade 1 para tapar o fundo cinzento
+            }).addTo(mapa);
+        });
+
+        // Ajusta o zoom final para os limites do distrito
+        mapa.fitBounds(boundsDistrito);
+
+        // Esconde o loading
+        document.getElementById(loadingId).style.display = 'none';
+    }
+
+    // Inicializar dados
+    async function iniciar() {
+        // 1. Carregar Risco de Incêndio (IRI) para Hoje, Amanhã e Depois
+        try {
+            // RCM-D0 (Hoje), D1 (Amanhã), D2 (Depois de Amanhã)
+            const urls = ['rcm-d0.json', 'rcm-d1.json', 'rcm-d2.json'];
+            const respostas = await Promise.all(urls.map(u => fetch('https://api.ipma.pt/open-data/forecast/meteorology/rcm/' + u)));
+            const dados = await Promise.all(respostas.map(r => r.json()));
+
+            // Função auxiliar para extrair os dados de risco para um dicionário {DICO: RCM}
+            const extrairRiscoDistrital = (json) => {
+                const mapeamento = {};
+                if (json.local) {
+                    Object.keys(json.local).forEach(dico => {
+                        // Filtra pelo distrito de Viana do Castelo (16)
+                        if (dico.startsWith('16')) { 
+                            mapeamento[dico] = json.local[dico].data.rcm;
+                        }
+                    });
+                }
+                return mapeamento;
+            };
+
+            // Carregar os 3 mapas com as imagens individuais dos concelhos
+            carregarConcelhos(mapHoje, extrairRiscoDistrital(dados[0]), 'load0');
+            carregarConcelhos(mapAmanha, extrairRiscoDistrital(dados[1]), 'load1');
+            carregarConcelhos(mapDepois, extrairRiscoDistrital(dados[2]), 'load2');
+
+        } catch(e) { console.error("Erro API IPMA RCM", e); }
+
+        // 2. Carregar Avisos Meteorológicos (Mantido)
+        carregarAvisos();
+    }
+
+    // Função de Avisos (Mantida igual)
     async function carregarAvisos() {
         const container = document.getElementById('avisos-conteudo');
-        const tipoAvisoIcons = {
-            "Precipitação": "https://cdn-icons-png.flaticon.com/512/4005/4005771.png",
-            "Vento": "https://cdn-icons-png.flaticon.com/512/5444/5444465.png",
-            "Agitação Marítima": "https://cdn-icons-png.flaticon.com/512/3104/3104564.png",
-            "Trovoada": "https://cdn-icons-png.flaticon.com/512/4150/4150897.png",
-            "Neve": "https://cdn-icons-png.flaticon.com/512/642/642000.png",
-            "Nevoeiro": "https://cdn-icons-png.flaticon.com/512/760/760444.png",
-            "Tempo Quente": "https://cdn-icons-png.flaticon.com/512/5344/5344755.png",
-            "Tempo Frio": "https://cdn-icons-png.flaticon.com/512/5353/5353179.png"
-        };
-
-        const classes = { 'yellow': 'aviso-yellow', 'orange': 'aviso-orange', 'red': 'aviso-red' };
+        const tipoAvisoIcons = { "Precipitação": "https://cdn-icons-png.flaticon.com/512/4005/4005771.png", "Vento": "https://cdn-icons-png.flaticon.com/512/5444/5444465.png", "Agitação Marítima": "https://cdn-icons-png.flaticon.com/512/3104/3104564.png", "Trovoada": "https://cdn-icons-png.flaticon.com/512/4150/4150897.png", "Nevoeiro": "https://cdn-icons-png.flaticon.com/512/760/760444.png", "Tempo Frio": "https://cdn-icons-png.flaticon.com/512/5353/5353179.png" };
+        const classes = { 'yellow': 'aviso-yellow', 'orange': 'aviso-orange', 'red': 'aviso-red', 'green': 'aviso-green' };
+        const pesos = { 'green': 0, 'yellow': 1, 'orange': 2, 'red': 3 };
 
         try {
             const res = await fetch('https://api.ipma.pt/open-data/forecast/warnings/warnings_www.json');
             const data = await res.json();
-            
             const avisosViana = data.filter(a => a.idAreaAviso === 'VVC' && a.awarenessLevelID !== 'green');
 
             if (avisosViana.length === 0) {
-                container.innerHTML = '<div class="aviso-item aviso-green" style="text-align:center;">Sem avisos meteorológicos importantes para Viana do Castelo.</div>';
+                container.innerHTML = '<div class="aviso-item aviso-green" style="text-align:center;">Sem avisos meteorológicos importantes.</div>';
                 return;
             }
 
@@ -170,8 +255,8 @@
         }
     }
 
-    // Iniciar carregamento
-    carregarAvisos();
+    // Iniciar
+    iniciar();
 </script>
 </body>
 </html>
