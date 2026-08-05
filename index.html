@@ -3,17 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Operacional - Alto Minho</title>
+    <title>Dashboard Operacional - Alto Minho (Solução Traçado Individual)</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
     <style>
         body, html { margin: 0; padding: 0; height: 100%; font-family: sans-serif; background-color: #f0f0f0; overflow: hidden; }
 
-        /* Estrutura Principal */
-        #main-container { display: flex; height: 100vh; position: relative; } /* Adicionado position: relative para a sobreposição global */
+        #main-container { display: flex; height: 100vh; }
 
-        /* Barra Lateral Esquerda */
         #sidebar {
             width: 260px; background-color: white; border-right: 2px solid #333;
             display: flex; flex-direction: column; padding: 10px; box-sizing: border-box;
@@ -26,14 +24,15 @@
         .dropdown-box { width: 100%; padding: 10px; font-size: 18px; font-weight: bold; border: 2px solid #333; border-radius: 5px; }
         #sidebar-map-placeholder { flex: 1; background-color: #e0e0e0; border: 2px dashed #999; margin-top: 10px; display: flex; align-items: center; justify-content: center; color: #666; font-style: italic;}
 
-        /* Área Principal do Dashboard (CSS Grid) */
+        /* Nova Grid 3x3 para layout de 2 colunas para mapas e 1 para avisos/legenda */
         #dashboard-grid {
             flex: 1; display: grid; gap: 10px; padding: 10px; box-sizing: border-box;
             grid-template-columns: repeat(3, 1fr);
-            grid-template-rows: repeat(2, 1fr);
+            grid-template-rows: repeat(3, 1fr);
             grid-template-areas: 
-                "pir pir avisos"
-                "pir-plus1 pir-plus2 palco-vazio";
+                "pir-hoje pir-hoje avisos"
+                "pir-amanha pir-amanha legenda"
+                "pir-depois pir-depois vazio";
         }
 
         .palco {
@@ -43,11 +42,12 @@
         .palco-titulo { font-size: 18px; font-weight: bold; color: #666; padding: 5px 8px; border-bottom: 1px solid #ccc; background-color: #f9f9f9;}
         .palco-conteudo { flex: 1; position: relative; min-height: 150px;}
 
-        #palco-pir { grid-area: pir; }
+        #palco-pir-hoje { grid-area: pir-hoje; }
+        #palco-pir-amanha { grid-area: pir-amanha; }
+        #palco-pir-depois { grid-area: pir-depois; }
         #palco-avisos { grid-area: avisos; }
-        #palco-pir-plus1 { grid-area: pir-plus1; }
-        #palco-pir-plus2 { grid-area: pir-plus2; }
-        #palco-vazio { grid-area: palco-vazio; background: #fafafa; display: flex; align-items: center; justify-content: center; color: #999; }
+        #palco-legenda { grid-area: legenda; padding: 10px; display: flex; flex-direction: column; gap: 5px;}
+        #palco-vazio { grid-area: vazio; background: #fafafa; display: flex; align-items: center; justify-content: center; color: #999; }
 
         /* ESTILO DOS MAPAS: Fundo do mapa a cinzento e SEM TILELAYER (mapa base) */
         .mapa-leaflet { width: 100%; height: 100%; background-color: #eee; }
@@ -66,21 +66,9 @@
         .aviso-red { background-color: #FFEBEE; border-color: #D32F2F; }
         .aviso-green { background-color: #E8F5E9; border-color: #388E3C; }
 
-        /* --- ESTILO DA SOBREPOSIÇÃO GLOBAL --- */
-        #global-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 9999; /* Um valor extremamente alto para ficar por cima de tudo (incluindo o Leaflet popup) */
-            pointer-events: none; /* Crucial: permite que os cliques passem para os elementos por baixo */
-        }
-        #global-overlay img {
-            width: 100%;
-            height: 100%;
-            object-fit: fill; /* Garante que a imagem cobre todo o ecrã independentemente da proporção */
-        }
+        /* Estilo da Legenda */
+        .legenda-item { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #555; }
+        .legenda-cor { width: 20px; height: 20px; border-radius: 3px; border: 1px solid #333; }
 
     </style>
 </head>
@@ -88,12 +76,6 @@
 
 <div id="main-container">
     
-    <!-- SOBREPOSIÇÃO GLOBAL (TRACADO.PNG) -->
-    <div id="global-overlay">
-        <!-- O ficheiro tracado.png deve estar na raiz do GitHub -->
-        <img src="tracado.png" alt="Sobreposição Global de Traçado">
-    </div>
-
     <!-- Barra Lateral Esquerda -->
     <div id="sidebar">
         <div class="logo-container">
@@ -119,7 +101,7 @@
     <!-- Área Principal do Dashboard (CSS Grid) -->
     <div id="dashboard-grid">
         
-        <div class="palco" id="palco-pir">
+        <div class="palco" id="palco-pir-hoje">
             <div class="palco-titulo">PIR (Risco Incêndio) - HOJE</div>
             <div class="palco-conteudo"><div id="mapa-pir0" class="mapa-leaflet"></div><div class="map-loading" id="load0">A carregar...</div></div>
         </div>
@@ -129,12 +111,17 @@
             <div class="palco-conteudo" id="avisos-conteudo">A carregar avisos...</div>
         </div>
 
-        <div class="palco" id="palco-pir-plus1">
+        <div class="palco" id="palco-pir-amanha">
             <div class="palco-titulo">PIR (Risco Incêndio) - AMANHÃ</div>
             <div class="palco-conteudo"><div id="mapa-pir1" class="mapa-leaflet"></div><div class="map-loading" id="load1">A carregar...</div></div>
         </div>
 
-        <div class="palco" id="palco-pir-plus2">
+        <div class="palco" id="palco-legenda">
+            <div class="palco-titulo">Legenda (PIR)</div>
+            <div class="palco-conteudo" id="legenda-conteudo">A carregar...</div>
+        </div>
+
+        <div class="palco" id="palco-pir-depois">
             <div class="palco-titulo">PIR (Risco Incêndio) - DEPOIS DE AMANHÃ</div>
             <div class="palco-conteudo"><div id="mapa-pir2" class="mapa-leaflet"></div><div class="map-loading" id="load2">A carregar...</div></div>
         </div>
@@ -211,6 +198,13 @@
             imgLayer.addTo(mapa);
         });
 
+        // --- Adicionar o TRACADO.PNG por cima de CADA mapa ---
+        L.imageOverlay('tracado.png', boundsDistrito, {
+            opacity: 1.0,
+            zIndex: 100, // zIndex alto para ficar por cima de tudo
+            interactive: false // pointer-events: none; para que os cliques passem para os concelhos
+        }).addTo(mapa);
+
         // Ajusta o zoom final para os limites do distrito
         mapa.fitBounds(boundsDistrito);
 
@@ -245,15 +239,19 @@
             const riscoAmanha = extrairRiscoDistrital(dados[1]);
             const riscoDepois = extrairRiscoDistrital(dados[2]);
 
-            // Carregar os 3 mapas com as imagens individuais dos concelhos e popups
-            carregarConcelhosPNG(mapHoje, riscoHoje, 'load0');
-            carregarConcelhosPNG(mapAmanha, riscoAmanha, 'load1');
-            carregarConcelhosPNG(mapDepois, riscoDepois, 'load2');
+            // Carregar os 3 mapas com as imagens individuais dos concelhos e popups, e depois o traçado
+            // O carregamento é sequencial para máxima estabilidade na TV
+            await carregarConcelhosPNG(mapHoje, riscoHoje, 'load0');
+            await carregarConcelhosPNG(mapAmanha, riscoAmanha, 'load1');
+            await carregarConcelhosPNG(mapDepois, riscoDepois, 'load2');
 
         } catch(e) { console.error("Erro API IPMA RCM", e); }
 
         // 2. Carregar Avisos Meteorológicos
         carregarAvisos();
+
+        // 3. Carregar Legenda
+        carregarLegenda();
     }
 
     async function carregarAvisos() {
@@ -299,6 +297,21 @@
         } catch (erro) {
             console.error("Erro Avisos:", erro);
             container.innerHTML = '<div style="color:red; text-align:center;">Erro ao carregar avisos.</div>';
+        }
+    }
+
+    function carregarLegenda() {
+        const container = document.getElementById('legenda-conteudo');
+        const coresIpma = { 1: '#84C776', 2: '#FFD700', 3: '#FFA500', 4: '#FF0000', 5: '#800080' };
+        container.innerHTML = ''; // Limpa o carregamento
+        // Itera pelos níveis do IRI, do Máximo ao Reduzido
+        for (let i = 5; i >= 1; i--) {
+            container.innerHTML += `
+                <div class="legenda-item">
+                    <div class="legenda-cor" style="background-color: ${coresIpma[i]}"></div>
+                    <div class="legenda-texto">${getRiscoNome(i)} (Nível ${i})</div>
+                </div>
+            `;
         }
     }
 
