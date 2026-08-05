@@ -10,7 +10,6 @@
     <style>
         body, html { margin: 0; padding: 0; height: 100%; }
         #map { height: 100vh; width: 100%; }
-        .legend { background: white; padding: 10px; border-radius: 5px; box-shadow: 0 0 15px rgba(0,0,0,0.2); }
     </style>
 </head>
 <body>
@@ -18,8 +17,8 @@
 <div id="map"></div>
 
 <script>
-    // 1. Inicializar o Mapa centrado em Viana do Castelo
-    const map = L.map('map').setView text([41.85, -8.3], 10);
+    // 1. Inicializar o Mapa centrado em Viana do Castelo (CORRIGIDO)
+    const map = L.map('map').setView([41.85, -8.3], 10);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors | Dados: IPMA'
     }).addTo(map);
@@ -42,15 +41,12 @@
             // Filtrar apenas os dados do distrito de Viana do Castelo (DICO começa por '16')
             const rcmViana = dataRcm.data.filter(item => item.dico.startsWith('16'));
             
-            // Transformar num objecto fácil de pesquisar: { "1601": 4, "1602": 3, ... }
             const riscoPorConcelho = {};
             rcmViana.forEach(item => {
                 riscoPorConcelho[item.dico] = item.rcm; 
             });
 
             // 3. Ir buscar os polígonos (GeoJSON)
-            // NOTA: Terás de colocar um ficheiro geojson no teu github com os concelhos.
-            // Para o exemplo, usamos um repositório público com os concelhos de Portugal.
             const resGeoJson = await fetch('https://raw.githubusercontent.com/dssg-pt/covid19pt-data/master/extra/concelhos.geojson');
             const geoJsonPt = await resGeoJson.json();
 
@@ -60,18 +56,17 @@
                 features: geoJsonPt.features.filter(f => f.properties.DI == "16")
             };
 
-            // 4. Desenhar os polígonos no mapa e aplicar cores
+            // 4. Desenhar os polígonos no mapa
             L.geoJSON(geoJsonViana, {
                 style: function (feature) {
-                    // O DICO no GeoJSON normalmente é a junção do DI com o CO
                     const dico = feature.properties.DI + feature.properties.CO; 
-                    const nivelRisco = riscoPorConcelho[dico] || 1; // Default 1 se falhar
+                    const nivelRisco = riscoPorConcelho[dico] || 1; 
 
                     return {
                         fillColor: coresIncendio[nivelRisco],
                         weight: 2,
                         opacity: 1,
-                        color: '#ffffff', // Contorno branco
+                        color: '#ffffff',
                         dashArray: '3',
                         fillOpacity: 0.7
                     };
@@ -87,7 +82,7 @@
 
         } catch (error) {
             console.error("Erro a carregar dados:", error);
-            alert("Erro ao conectar à API do IPMA.");
+            alert("Erro ao carregar os dados. O IPMA ou o mapa podem estar indisponíveis.");
         }
     }
 
