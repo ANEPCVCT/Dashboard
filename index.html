@@ -1,298 +1,624 @@
 <!DOCTYPE html>
-<html lang="pt">
+<html lang="pt-PT">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Operacional - Alto Minho (Híbrido Robusto)</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    
+    <title>Dashboard Operacional — Alto Minho</title>
+
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIINfQ3ynh3ZkH3ZfvQZ86h9ro40mRWe0xY="
+        crossorigin
+    >
+    <script
+        src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+        crossorigin
+    ></script>
+
     <style>
-        body, html { margin: 0; padding: 0; height: 100%; font-family: sans-serif; background-color: #f0f0f0; overflow: hidden; }
-
-        /* Estrutura Principal */
-        #main-container { display: flex; height: 100vh; position: relative; } /* Adicionado position: relative */
-
-        /* Barra Lateral Esquerda */
-        #sidebar {
-            width: 260px; background-color: white; border-right: 2px solid #333;
-            display: flex; flex-direction: column; padding: 10px; box-sizing: border-box;
+        :root {
+            --header-height: clamp(88px, 11vh, 122px);
+            --page-gap: clamp(8px, 0.65vw, 14px);
+            --page-padding: clamp(8px, 0.65vw, 14px);
+            --border-color: #25313b;
+            --panel-background: #ffffff;
+            --panel-title-background: #f3f5f6;
+            --page-background: #e8ecef;
+            --text-color: #18232d;
+            --muted-color: #5b6872;
+            --brand-red: #a7191f;
         }
-        .logo-container { text-align: center; margin-bottom: 10px; }
-        .logo-container img { max-width: 90%; height: auto; }
-        #sidebar-title { font-size: 20px; font-weight: bold; text-align: center; color: #333; margin-top: 10px;}
-        
-        #controls-area { flex: 1; display: flex; flex-direction: column; margin-top: 20px; border-top: 1px solid #ccc; padding-top: 10px;}
-        .dropdown-box { width: 100%; padding: 10px; font-size: 18px; font-weight: bold; border: 2px solid #333; border-radius: 5px; }
-        #sidebar-map-placeholder { flex: 1; background-color: #e0e0e0; border: 2px dashed #999; margin-top: 10px; display: flex; align-items: center; justify-content: center; color: #666; font-style: italic;}
 
-        /* Área Principal do Dashboard (CSS Grid) */
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        body {
+            background: var(--page-background);
+            color: var(--text-color);
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        #main-container {
+            display: grid;
+            grid-template-rows: var(--header-height) minmax(0, 1fr);
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+        }
+
+        /* Cabeçalho geral, fora da área útil de 50% reservada ao IRI. */
+        #brand-header {
+            display: grid;
+            grid-template-columns: clamp(78px, 7vw, 112px) minmax(0, 1fr);
+            align-items: center;
+            gap: clamp(12px, 1.2vw, 24px);
+            min-width: 0;
+            padding: 8px var(--page-padding);
+            background: #ffffff;
+            border-bottom: 3px solid var(--brand-red);
+        }
+
+        #brand-header img {
+            display: block;
+            width: 100%;
+            max-height: calc(var(--header-height) - 16px);
+            object-fit: contain;
+            object-position: left center;
+        }
+
+        #brand-header h1 {
+            min-width: 0;
+            margin: 0;
+            font-size: clamp(25px, 2.2vw, 42px);
+            font-weight: 700;
+            line-height: 1.05;
+            letter-spacing: 0.01em;
+            color: #202b34;
+        }
+
+        /* Duas metades horizontais iguais abaixo do cabeçalho. */
         #dashboard-grid {
-            flex: 1; display: grid; gap: 10px; padding: 10px; box-sizing: border-box;
-            grid-template-columns: repeat(3, 1fr);
-            grid-template-rows: repeat(2, 1fr);
-            grid-template-areas: 
-                "pir pir avisos"
-                "pir-plus1 pir-plus2 palco-vazio";
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            gap: var(--page-gap);
+            min-width: 0;
+            min-height: 0;
+            padding: var(--page-padding);
+        }
+
+        /*
+         * Metade esquerda: apenas IRI.
+         * Hoje ocupa a metade superior; amanhã e depois de amanhã
+         * dividem, em partes iguais, a metade inferior.
+         */
+        #iri-area {
+            display: grid;
+            grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+            gap: var(--page-gap);
+            min-width: 0;
+            min-height: 0;
+        }
+
+        #iri-futuro {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            gap: var(--page-gap);
+            min-width: 0;
+            min-height: 0;
         }
 
         .palco {
-            background-color: white; border: 2px solid #333; border-radius: 8px;
-            overflow: hidden; display: flex; flex-direction: column;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            min-height: 0;
+            overflow: hidden;
+            background: var(--panel-background);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgb(29 43 54 / 12%);
         }
-        .palco-titulo { font-size: 18px; font-weight: bold; color: #666; padding: 5px 8px; border-bottom: 1px solid #ccc; background-color: #f9f9f9;}
-        .palco-conteudo { flex: 1; position: relative; min-height: 150px;}
 
-        #palco-pir { grid-area: pir; }
-        #palco-avisos { grid-area: avisos; }
-        #palco-pir-plus1 { grid-area: pir-plus1; }
-        #palco-pir-plus2 { grid-area: pir-plus2; }
-        #palco-vazio { grid-area: palco-vazio; background: #fafafa; display: flex; align-items: center; justify-content: center; color: #999; }
+        .palco-titulo {
+            flex: 0 0 auto;
+            min-height: clamp(34px, 4.1vh, 48px);
+            display: flex;
+            align-items: center;
+            padding: 5px clamp(8px, 0.7vw, 14px);
+            background: var(--panel-title-background);
+            border-bottom: 1px solid #c8d0d5;
+            color: #35434e;
+            font-size: clamp(15px, 1vw, 20px);
+            font-weight: 700;
+            line-height: 1.1;
+            text-transform: uppercase;
+        }
 
-        /* ESTILO DOS MAPAS: Fundo do mapa a cinzento e SEM TILELAYER (mapa base) */
-        .mapa-leaflet { width: 100%; height: 100%; background-color: #eee; }
-        
-        .map-loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1000; background: rgba(255,255,255,0.9); padding: 10px; border-radius: 5px; font-weight: bold; color: #555;}
+        .palco-conteudo {
+            position: relative;
+            flex: 1 1 auto;
+            min-width: 0;
+            min-height: 0;
+        }
 
-        /* Timeline de Avisos */
-        #avisos-conteudo { padding: 10px; display: flex; flex-direction: column; gap: 5px; overflow-y: auto; font-size: 13px;}
-        .aviso-item { display: flex; align-items: center; border-radius: 5px; padding: 5px; border: 1px solid #ccc; }
-        .aviso-icone { width: 28px; height: 28px; margin-right: 8px; }
-        .aviso-texto { flex: 1; line-height: 1.2; }
-        .aviso-tempo { font-weight: bold; color: #333; display: block; font-size: 11px;}
+        .mapa-leaflet {
+            width: 100%;
+            height: 100%;
+            background: #e3e6e8;
+        }
 
-        .aviso-yellow { background-color: #FFFDE7; border-color: #FBC02D; }
-        .aviso-orange { background-color: #FFF3E0; border-color: #F57C00; }
-        .aviso-red { background-color: #FFEBEE; border-color: #D32F2F; }
-        .aviso-green { background-color: #E8F5E9; border-color: #388E3C; }
-
-        /* Estilo da Sobreposição de Imagem (Traçado) */
-        #global-overlay {
+        .map-loading {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 9999; /* Um valor extremamente alto para ficar por cima de tudo */
-            pointer-events: none; /* Crucial: permite que os cliques passem para os elementos por baixo */
-        }
-        #global-overlay img {
-            width: 100%;
-            height: 100%;
-            object-fit: fill; /* Garante que a imagem é "esticada" para cobrir todo o ecrã */
+            z-index: 1000;
+            inset: 50% auto auto 50%;
+            transform: translate(-50%, -50%);
+            max-width: calc(100% - 24px);
+            padding: 9px 12px;
+            border: 1px solid #b6c0c7;
+            border-radius: 5px;
+            background: rgb(255 255 255 / 94%);
+            color: #46545e;
+            font-size: clamp(12px, 0.8vw, 16px);
+            font-weight: 700;
+            line-height: 1.25;
+            text-align: center;
+            pointer-events: none;
         }
 
+        .map-loading.erro {
+            color: #8f1117;
+            border-color: #c55d62;
+            background: #fff2f2;
+        }
+
+        /*
+         * Metade direita provisória. O conteúdo não é redesenhado nesta fase;
+         * fica separado do IRI para ser definido no passo seguinte.
+         */
+        #right-area {
+            display: grid;
+            grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+            gap: var(--page-gap);
+            min-width: 0;
+            min-height: 0;
+        }
+
+        #avisos-conteudo {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding: 10px;
+            overflow-y: auto;
+            font-size: clamp(12px, 0.75vw, 15px);
+        }
+
+        .aviso-item {
+            display: flex;
+            align-items: center;
+            padding: 6px;
+            border: 1px solid #c6cdd2;
+            border-radius: 5px;
+        }
+
+        .aviso-icone {
+            width: 30px;
+            height: 30px;
+            margin-right: 8px;
+            object-fit: contain;
+        }
+
+        .aviso-texto {
+            flex: 1;
+            line-height: 1.25;
+        }
+
+        .aviso-tempo {
+            display: block;
+            color: #34414a;
+            font-size: 0.9em;
+            font-weight: 700;
+        }
+
+        .aviso-yellow { background: #fffde7; border-color: #fbc02d; }
+        .aviso-orange { background: #fff3e0; border-color: #f57c00; }
+        .aviso-red { background: #ffebee; border-color: #d32f2f; }
+        .aviso-green { background: #e8f5e9; border-color: #388e3c; }
+
+        #controls-area {
+            display: grid;
+            grid-template-rows: auto auto minmax(0, 1fr);
+            gap: 10px;
+            height: 100%;
+            padding: 12px;
+        }
+
+        .dropdown-box {
+            width: 100%;
+            padding: 9px 10px;
+            border: 2px solid #45525c;
+            border-radius: 5px;
+            background: #ffffff;
+            color: #1e2932;
+            font-size: clamp(15px, 1vw, 19px);
+            font-weight: 700;
+        }
+
+        #sidebar-map-placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 0;
+            border: 2px dashed #9ba5ac;
+            background: #e4e7e9;
+            color: #64717a;
+            font-style: italic;
+        }
+
+        @media (max-aspect-ratio: 4 / 3) {
+            :root {
+                --header-height: clamp(82px, 10vh, 104px);
+            }
+
+            #brand-header h1 {
+                font-size: clamp(22px, 2.5vw, 34px);
+            }
+        }
     </style>
 </head>
+
 <body>
+    <div id="main-container">
+        <header id="brand-header">
+            <img src="anepc_logo.png" alt="Logótipo da ANEPC">
+            <h1>Comando Sub-Regional do Alto Minho</h1>
+        </header>
 
-<div id="main-container">
-    
-    <!-- SOBREPOSIÇÃO GLOBAL (TRACADO.PNG) -->
-    <div id="global-overlay">
-        <!-- O ficheiro tracado.png deve estar na raiz do GitHub Pages -->
-        <img src="tracado.png" alt="Sobreposição Global de Traçado">
+        <main id="dashboard-grid">
+            <section id="iri-area" aria-label="Índice de Risco de Incêndio">
+                <article class="palco" id="palco-iri-hoje">
+                    <div class="palco-titulo">IRI — Hoje</div>
+                    <div class="palco-conteudo">
+                        <div id="mapa-iri0" class="mapa-leaflet"></div>
+                        <div class="map-loading" id="load0">A carregar IRI de hoje…</div>
+                    </div>
+                </article>
+
+                <div id="iri-futuro">
+                    <article class="palco" id="palco-iri-amanha">
+                        <div class="palco-titulo">IRI — Amanhã</div>
+                        <div class="palco-conteudo">
+                            <div id="mapa-iri1" class="mapa-leaflet"></div>
+                            <div class="map-loading" id="load1">A carregar IRI de amanhã…</div>
+                        </div>
+                    </article>
+
+                    <article class="palco" id="palco-iri-depois">
+                        <div class="palco-titulo">IRI — Depois de amanhã</div>
+                        <div class="palco-conteudo">
+                            <div id="mapa-iri2" class="mapa-leaflet"></div>
+                            <div class="map-loading" id="load2">A carregar IRI…</div>
+                        </div>
+                    </article>
+                </div>
+            </section>
+
+            <aside id="right-area" aria-label="Área direita provisória">
+                <section class="palco" id="palco-avisos">
+                    <div class="palco-titulo">Avisos meteorológicos</div>
+                    <div class="palco-conteudo" id="avisos-conteudo">A carregar avisos…</div>
+                </section>
+
+                <section class="palco" id="palco-operacional">
+                    <div class="palco-titulo">Nível operacional</div>
+                    <div class="palco-conteudo" id="controls-area">
+                        <strong>Nível Operacional (CDOS):</strong>
+                        <select class="dropdown-box" aria-label="Nível Operacional">
+                            <option>N (Normal)</option>
+                            <option>I (Elevado)</option>
+                            <option>II (Muito Elevado)</option>
+                            <option>III (Máximo)</option>
+                            <option>IV (Catástrofe)</option>
+                        </select>
+                        <div id="sidebar-map-placeholder">Área a definir na próxima fase</div>
+                    </div>
+                </section>
+            </aside>
+        </main>
     </div>
 
-    <!-- Barra Lateral Esquerda -->
-    <div id="sidebar">
-        <div class="logo-container">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/f/f8/Escudo_da_Autoridade_Nacional_de_Emergência_e_Proteção_Civil.svg" alt="ANEPC">
-        </div>
-        <div id="sidebar-title">Comando Sub-Regional<br>do Alto Minho</div>
-        <div id="controls-area">
-            <strong>Nível Operacional (CDOS):</strong>
-            <select class="dropdown-box">
-                <option>N (Normal)</option>
-                <option>I (Elevado)</option>
-                <option>II (Muito Elevado)</option>
-                <option>III (Máximo)</option>
-                <option>IV (Catástrofe)</option>
-            </select>
-            <div id="sidebar-map-placeholder">Mapa Predefinido</div>
-        </div>
-        <div class="logo-container" style="margin-top: auto">
-             <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Flag_of_Portugal.svg/1200px-Flag_of_Portugal.svg.png" alt="Portugal">
-        </div>
-    </div>
+    <script>
+        'use strict';
 
-    <!-- Área Principal do Dashboard (CSS Grid) -->
-    <div id="dashboard-grid">
-        
-        <div class="palco" id="palco-pir">
-            <div class="palco-titulo">PIR (Risco Incêndio) - HOJE</div>
-            <div class="palco-conteudo"><div id="mapa-pir0" class="mapa-leaflet"></div><div class="map-loading" id="load0">A carregar...</div></div>
-        </div>
+        const centroMapa = [41.85, -8.3];
+        const zoomMapa = 10;
 
-        <div class="palco" id="palco-avisos">
-            <div class="palco-titulo">Avisos Meteorológicos</div>
-            <div class="palco-conteudo" id="avisos-conteudo">A carregar avisos...</div>
-        </div>
+        const boundsDistrito = [
+            [41.55, -8.88],
+            [42.22, -8.05]
+        ];
 
-        <div class="palco" id="palco-pir-plus1">
-            <div class="palco-titulo">PIR (Risco Incêndio) - AMANHÃ</div>
-            <div class="palco-conteudo"><div id="mapa-pir1" class="mapa-leaflet"></div><div class="map-loading" id="load1">A carregar...</div></div>
-        </div>
+        const concelhoNomes = {
+            '1601': 'arcos',
+            '1602': 'caminha',
+            '1603': 'melgaco',
+            '1604': 'moncao',
+            '1605': 'coura',
+            '1606': 'pbarca',
+            '1607': 'plima',
+            '1608': 'valenca',
+            '1609': 'viana',
+            '1610': 'cerveira'
+        };
 
-        <div class="palco" id="palco-pir-plus2">
-            <div class="palco-titulo">PIR (Risco Incêndio) - DEPOIS DE AMANHÃ</div>
-            <div class="palco-conteudo"><div id="mapa-pir2" class="mapa-leaflet"></div><div class="map-loading" id="load2">A carregar...</div></div>
-        </div>
+        const nivelPasta = {
+            '1': 'IRI Reduzido',
+            '2': 'IRI Moderado',
+            '3': 'IRI Elevado',
+            '4': 'IRI Muito Elevado',
+            '5': 'IRI Maximo'
+        };
 
-        <div class="palco" id="palco-vazio">Área Reservada</div>
+        const nomesRisco = {
+            '1': 'Reduzido',
+            '2': 'Moderado',
+            '3': 'Elevado',
+            '4': 'Muito elevado',
+            '5': 'Máximo'
+        };
 
-    </div>
-</div>
+        const nomesConcelho = {
+            '1601': 'Arcos de Valdevez',
+            '1602': 'Caminha',
+            '1603': 'Melgaço',
+            '1604': 'Monção',
+            '1605': 'Paredes de Coura',
+            '1606': 'Ponte da Barca',
+            '1607': 'Ponte de Lima',
+            '1608': 'Valença',
+            '1609': 'Viana do Castelo',
+            '1610': 'Vila Nova de Cerveira'
+        };
 
-<script>
-    // Configuração dos Mapas
-    const centroMapa = [41.85, -8.3];
-    const zoomMapa = 10;
-    
-    // Limites geográficos exatos para a sobreposição das imagens PNG.
-    const boundsDistrito = [
-        [41.55, -8.88], // Sudoeste (Vila Praia de Âncora/Viana)
-        [42.22, -8.05]  // Nordeste (Melgaço/fronteira)
-    ];
+        const mapas = [
+            criarMapa('mapa-iri0'),
+            criarMapa('mapa-iri1'),
+            criarMapa('mapa-iri2')
+        ];
 
-    // Inicializa os mapas sem controlos de zoom, attribution e SEM MAPA BASE
-    const mapHoje = L.map('mapa-pir0', { zoomControl: false, attributionControl: false }).setView(centroMapa, zoomMapa);
-    const mapAmanha = L.map('mapa-pir1', { zoomControl: false, attributionControl: false }).setView(centroMapa, zoomMapa);
-    const mapDepois = L.map('mapa-pir2', { zoomControl: false, attributionControl: false }).setView(centroMapa, zoomMapa);
+        function criarMapa(elementId) {
+            return L.map(elementId, {
+                zoomControl: false,
+                attributionControl: false,
+                dragging: false,
+                doubleClickZoom: false,
+                scrollWheelZoom: false,
+                boxZoom: false,
+                keyboard: false,
+                tap: false
+            }).setView(centroMapa, zoomMapa);
+        }
 
-    // Mapeamento dos códigos DICO para os nomes dos ficheiros PNG que nos forneceste
-    const concelhoNomes = {
-        "1601": "arcos", "1602": "caminha", "1603": "melgaco", "1604": "moncao",
-        "1605": "coura", "1606": "pbarca", "1607": "plima", "1608": "valenca",
-        "1609": "viana", "1610": "cerveira"
-    };
+        function definirEstadoLoading(loadingId, mensagem, erro = false) {
+            const elemento = document.getElementById(loadingId);
+            elemento.textContent = mensagem;
+            elemento.classList.toggle('erro', erro);
+            elemento.style.display = 'block';
+        }
 
-    // Mapeamento dos níveis de risco IPMA para os nomes exatos das tuas pastas
-    const levelPasta = {
-        "1": "IRI Reduzido", "2": "IRI Moderado", "3": "IRI Elevado",
-        "4": "IRI Muito Elevado", "5": "IRI Maximo"
-    };
+        function esconderLoading(loadingId) {
+            document.getElementById(loadingId).style.display = 'none';
+        }
 
-    // Função auxiliar para obter o nome amigável do risco
-    const getRiscoNome = (risco) => {
-        const nomes = { "1": "Reduzido", "2": "Moderado", "3": "Elevado", "4": "Muito Elevado", "5": "Máximo" };
-        return nomes[risco] || "N/A";
-    };
+        function extrairRiscoDistrital(json) {
+            const resultado = {};
 
-    // Função auxiliar para obter o nome amigável do concelho
-    const getConcelhoNome = (dico) => {
-        const nomes = { "1601": "Arcos de Valdevez", "1602": "Caminha", "1603": "Melgaço", "1604": "Monção", "1605": "Paredes de Coura", "1606": "Ponte da Barca", "1607": "Ponte de Lima", "1608": "Valença", "1609": "Viana do Castelo", "1610": "Vila Nova de Cerveira" };
-        return nomes[dico] || "Concelho";
-    };
+            if (!json || typeof json.local !== 'object' || json.local === null) {
+                return resultado;
+            }
 
-    // Função para carregar as imagens PNG de cada concelho
-    function carregarConcelhosPNG(mapa, dadosRcmIpma, loadingId) {
-        // Iteramos pelos 10 concelhos definidos no nosso mapeamento
-        Object.keys(concelhoNomes).forEach(dico => {
-            const nomePng = concelhoNomes[dico];
-            
-            // Vamos buscar o risco do IPMA para este concelho. Se não houver, assumimos 1 (Reduzido).
-            const riscoIpma = dadosRcmIpma[dico] || 1;
-            
-            // Construímos o caminho da imagem: Pasta/Concelho.png
-            const pastaIri = levelPasta[riscoIpma] || "IRI Reduzido";
-            const urlImagem = `${pastaIri}/${nomePng}.png`;
+            Object.entries(json.local).forEach(([dico, local]) => {
+                const risco = String(local?.data?.rcm ?? '');
 
-            // Adiciona a imagem overlay ao mapa.
-            // Como as imagens sobrepõem-se perfeitamente, elas usam os mesmos bounds.
-            const imgLayer = L.imageOverlay(urlImagem, boundsDistrito, {
-                opacity: 1.0, // Opacidade 1 para tapar o fundo cinzento
-                interactive: true // Permite clicar na imagem (para popups)
+                if (dico.startsWith('16') && nivelPasta[risco]) {
+                    resultado[dico] = risco;
+                }
             });
 
-            // Adiciona popup à imagem do concelho
-            imgLayer.bindPopup(`<b>${getConcelhoNome(dico)}</b><br>Risco: ${getRiscoNome(riscoIpma)} (Nível ${riscoIpma})`);
-            
-            imgLayer.addTo(mapa);
-        });
+            return resultado;
+        }
 
-        // Ajusta o zoom final para os limites do distrito
-        mapa.fitBounds(boundsDistrito);
+        function adicionarImagemConcelho(mapa, dico, risco) {
+            return new Promise((resolve) => {
+                const pasta = nivelPasta[risco];
+                const ficheiro = concelhoNomes[dico];
+                const urlImagem = `${pasta}/${ficheiro}.png`;
+                const imagem = L.imageOverlay(urlImagem, boundsDistrito, {
+                    opacity: 1,
+                    interactive: true
+                });
 
-        // Esconde o loading
-        document.getElementById(loadingId).style.display = 'none';
-    }
+                imagem.bindPopup(
+                    `<b>${nomesConcelho[dico]}</b><br>` +
+                    `Risco: ${nomesRisco[risco]} (nível ${risco})`
+                );
 
-    // Inicializar dados
-    async function iniciar() {
-        // 1. Carregar Risco de Incêndio (IRI) para Hoje, Amanhã e Depois
-        try {
-            // RCM-D0 (Hoje), D1 (Amanhã), D2 (Depois de Amanhã)
-            const urls = ['rcm-d0.json', 'rcm-d1.json', 'rcm-d2.json'];
-            const respostas = await Promise.all(urls.map(u => fetch('https://api.ipma.pt/open-data/forecast/meteorology/rcm/' + u)));
-            const dados = await Promise.all(respostas.map(r => r.json()));
+                imagem.once('load', () => resolve({ dico, estado: 'carregado' }));
+                imagem.once('error', () => resolve({ dico, estado: 'erro', urlImagem }));
+                imagem.addTo(mapa);
+            });
+        }
 
-            // Função auxiliar para extrair os dados de risco para um dicionário {DICO: RCM}
-            const extrairRiscoDistrital = (json) => {
-                const mapeamento = {};
-                if (json.local) {
-                    Object.keys(json.local).forEach(dico => {
-                        // Filtra pelo distrito de Viana do Castelo (16)
-                        if (dico.startsWith('16')) { 
-                            mapeamento[dico] = json.local[dico].data.rcm;
-                        }
-                    });
-                }
-                return mapeamento;
-            };
+        async function carregarConcelhosPNG(mapa, dadosRcmIpma, loadingId) {
+            const concelhosComDados = Object.keys(concelhoNomes).filter(
+                (dico) => Boolean(dadosRcmIpma[dico])
+            );
 
-            const riscoHoje = extrairRiscoDistrital(dados[0]);
-            const riscoAmanha = extrairRiscoDistrital(dados[1]);
-            const riscoDepois = extrairRiscoDistrital(dados[2]);
+            if (concelhosComDados.length === 0) {
+                throw new Error('A resposta do IPMA não contém dados IRI para o Alto Minho.');
+            }
 
-            // Carregar os 3 mapas com as imagens individuais dos concelhos e popups
-            // O carregamento é sequencial para máxima estabilidade na TV
-            await carregarConcelhosPNG(mapHoje, riscoHoje, 'load0');
-            await carregarConcelhosPNG(mapAmanha, riscoAmanha, 'load1');
-            await carregarConcelhosPNG(mapDepois, riscoDepois, 'load2');
+            mapa.fitBounds(boundsDistrito, { animate: false, padding: [2, 2] });
 
-        } catch(e) { console.error("Erro API IPMA RCM", e); }
+            const resultados = await Promise.all(
+                concelhosComDados.map((dico) =>
+                    adicionarImagemConcelho(mapa, dico, dadosRcmIpma[dico])
+                )
+            );
 
-        // 2. Carregar Avisos Meteorológicos
-        carregarAvisos();
-    }
+            const falhas = resultados.filter((resultado) => resultado.estado === 'erro');
 
-    async function carregarAvisos() {
-        const container = document.getElementById('avisos-conteudo');
-        const tipoAvisoIcons = { "Precipitação": "https://cdn-icons-png.flaticon.com/512/4005/4005771.png", "Vento": "https://cdn-icons-png.flaticon.com/512/5444/5444465.png", "Agitação Marítima": "https://cdn-icons-png.flaticon.com/512/3104/3104564.png", "Trovoada": "https://cdn-icons-png.flaticon.com/512/4150/4150897.png", "Nevoeiro": "https://cdn-icons-png.flaticon.com/512/760/760444.png", "Tempo Frio": "https://cdn-icons-png.flaticon.com/512/5353/5353179.png" };
-        const classes = { 'yellow': 'aviso-yellow', 'orange': 'aviso-orange', 'red': 'aviso-red', 'green': 'aviso-green' };
-
-        try {
-            const res = await fetch('https://api.ipma.pt/open-data/forecast/warnings/warnings_www.json');
-            const data = await res.json();
-            const avisosViana = data.filter(a => a.idAreaAviso === 'VVC' && a.awarenessLevelID !== 'green');
-
-            if (avisosViana.length === 0) {
-                container.innerHTML = '<div class="aviso-item aviso-green" style="text-align:center;">Sem avisos meteorológicos ativos.</div>';
+            if (falhas.length > 0) {
+                console.error('Imagens IRI em falta ou inacessíveis:', falhas);
+                definirEstadoLoading(
+                    loadingId,
+                    `${falhas.length} imagem(ns) IRI não carregaram.`,
+                    true
+                );
                 return;
             }
 
-            container.innerHTML = '';
-            avisosViana.forEach(aviso => {
-                const icone = tipoAvisoIcons[aviso.awarenessTypeName] || "https://cdn-icons-png.flaticon.com/512/1795/1795519.png";
-                const classeFundo = classes[aviso.awarenessLevelID] || '';
-                const inicio = new Date(aviso.startTime).toLocaleString('pt-PT', {day: '2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
-                const fim = new Date(aviso.endTime).toLocaleString('pt-PT', {day: '2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
+            esconderLoading(loadingId);
+        }
 
-                container.innerHTML += `
-                    <div class="aviso-item ${classeFundo}">
-                        <img src="${icone}" class="aviso-icone" alt="${aviso.awarenessTypeName}">
+        async function obterJson(url) {
+            const resposta = await fetch(url, { cache: 'no-store' });
+
+            if (!resposta.ok) {
+                throw new Error(`Pedido falhou com HTTP ${resposta.status}.`);
+            }
+
+            return resposta.json();
+        }
+
+        async function carregarIri() {
+            const baseUrl = 'https://api.ipma.pt/open-data/forecast/meteorology/rcm/';
+            const pedidos = ['rcm-d0.json', 'rcm-d1.json', 'rcm-d2.json'].map(
+                (ficheiro) => obterJson(baseUrl + ficheiro)
+            );
+
+            const respostas = await Promise.allSettled(pedidos);
+
+            await Promise.all(
+                respostas.map(async (resposta, indice) => {
+                    const loadingId = `load${indice}`;
+
+                    if (resposta.status === 'rejected') {
+                        console.error(`Erro ao carregar IRI D${indice}:`, resposta.reason);
+                        definirEstadoLoading(loadingId, 'IRI temporariamente indisponível.', true);
+                        return;
+                    }
+
+                    try {
+                        const risco = extrairRiscoDistrital(resposta.value);
+                        await carregarConcelhosPNG(mapas[indice], risco, loadingId);
+                    } catch (erro) {
+                        console.error(`Erro ao apresentar IRI D${indice}:`, erro);
+                        definirEstadoLoading(loadingId, 'Não foi possível apresentar o IRI.', true);
+                    }
+                })
+            );
+        }
+
+        async function carregarAvisos() {
+            const container = document.getElementById('avisos-conteudo');
+            const tipoAvisoIcons = {
+                'Precipitação': 'https://cdn-icons-png.flaticon.com/512/4005/4005771.png',
+                'Vento': 'https://cdn-icons-png.flaticon.com/512/5444/5444465.png',
+                'Agitação Marítima': 'https://cdn-icons-png.flaticon.com/512/3104/3104564.png',
+                'Trovoada': 'https://cdn-icons-png.flaticon.com/512/4150/4150897.png',
+                'Nevoeiro': 'https://cdn-icons-png.flaticon.com/512/760/760444.png',
+                'Tempo Frio': 'https://cdn-icons-png.flaticon.com/512/5353/5353179.png'
+            };
+            const classes = {
+                yellow: 'aviso-yellow',
+                orange: 'aviso-orange',
+                red: 'aviso-red',
+                green: 'aviso-green'
+            };
+
+            try {
+                const data = await obterJson(
+                    'https://api.ipma.pt/open-data/forecast/warnings/warnings_www.json'
+                );
+                const avisosViana = data.filter(
+                    (aviso) =>
+                        aviso.idAreaAviso === 'VVC' &&
+                        aviso.awarenessLevelID !== 'green'
+                );
+
+                if (avisosViana.length === 0) {
+                    container.innerHTML =
+                        '<div class="aviso-item aviso-green">Sem avisos meteorológicos ativos.</div>';
+                    return;
+                }
+
+                container.replaceChildren();
+
+                avisosViana.forEach((aviso) => {
+                    const item = document.createElement('div');
+                    const icone = tipoAvisoIcons[aviso.awarenessTypeName] ||
+                        'https://cdn-icons-png.flaticon.com/512/1795/1795519.png';
+                    const classeFundo = classes[aviso.awarenessLevelID] || '';
+                    const inicio = new Date(aviso.startTime).toLocaleString('pt-PT', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                    const fim = new Date(aviso.endTime).toLocaleString('pt-PT', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+
+                    item.className = `aviso-item ${classeFundo}`;
+                    item.innerHTML = `
+                        <img src="${icone}" class="aviso-icone" alt="">
                         <div class="aviso-texto">
-                            <strong>${aviso.awarenessTypeName}</strong><br>
-                            <span class="aviso-tempo">Início: ${inicio} - Fim: ${fim}</span>
+                            <strong>${aviso.awarenessTypeName}</strong>
+                            <span class="aviso-tempo">Início: ${inicio} — Fim: ${fim}</span>
                         </div>
-                    </div>
-                `;
-            });
-        } catch (erro) { console.error("Erro Avisos:", erro); }
-    }
+                    `;
+                    container.appendChild(item);
+                });
+            } catch (erro) {
+                console.error('Erro ao carregar avisos:', erro);
+                container.innerHTML =
+                    '<div class="aviso-item aviso-red">Avisos temporariamente indisponíveis.</div>';
+            }
+        }
 
-    iniciar();
-</script>
+        function reajustarMapas() {
+            mapas.forEach((mapa) => {
+                mapa.invalidateSize({ animate: false });
+                mapa.fitBounds(boundsDistrito, { animate: false, padding: [2, 2] });
+            });
+        }
+
+        async function iniciar() {
+            requestAnimationFrame(reajustarMapas);
+            await Promise.allSettled([carregarIri(), carregarAvisos()]);
+            requestAnimationFrame(reajustarMapas);
+        }
+
+        const observadorTamanho = new ResizeObserver(() => {
+            requestAnimationFrame(reajustarMapas);
+        });
+        observadorTamanho.observe(document.getElementById('iri-area'));
+
+        iniciar();
+    </script>
 </body>
 </html>
