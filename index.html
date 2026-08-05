@@ -4,8 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mapa IPMA - Viana do Castelo</title>
+    <!-- Leaflet CSS & JS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Leaflet Omnivore (Plugin para ler KML) -->
+    <script src="https://api.mapbox.com/mapbox.js/plugins/leaflet-omnivore/v0.3.4/leaflet-omnivore.min.js"></script>
+    
     <style>
         body, html { margin: 0; padding: 0; height: 100%; font-family: sans-serif; }
         #map { height: 100vh; width: 100%; }
@@ -38,8 +42,8 @@
 
 <div class="controlo-mapa">
     <strong>Escolher Dados (IPMA):</strong>
-    <button onclick="desenharPoligonos('iri')">🔥 Risco de Incêndio</button>
-    <button onclick="desenharPoligonos('avisos')">⚠️ Avisos Viana do Castelo</button>
+    <button onclick="mudarModo('iri')">🔥 Risco de Incêndio</button>
+    <button onclick="mudarModo('avisos')">⚠️ Avisos Viana do Castelo</button>
 </div>
 
 <div id="map"></div>
@@ -47,26 +51,38 @@
 <script>
     const map = L.map('map').setView([41.85, -8.3], 10);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors | Dados: IPMA'
+        attribution: '© OpenStreetMap contributors | Dados: IPMA & KML'
     }).addTo(map);
 
-    let geoJsonData = null;
-    let camadaMapa = null;
-    
-    const riscoPorConcelho = {};
+    let riscoPorConcelho = {};
     let maiorAvisoNivel = 'green';
     let maiorAvisoTexto = 'Sem avisos ativos';
+    let modoAtual = 'iri';
+    let grupoCamadas = L.featureGroup().addTo(map);
 
     const coresIncendio = { 1: '#84C776', 2: '#FFD700', 3: '#FFA500', 4: '#FF0000', 5: '#800080' };
     const coresAvisos = { 'green': '#84C776', 'yellow': '#FFD700', 'orange': '#FFA500', 'red': '#FF0000' };
     const pesoAvisos = { 'green': 0, 'yellow': 1, 'orange': 2, 'red': 3 };
 
-    async function iniciar() {
+    // Lista oficial dos 10 concelhos com os respetivos ficheiros e códigos DICO do IPMA
+    const concelhosLista = [
+        { arquivo: 'avv.kml', nome: 'Arcos de Valdevez', dico: '1601' },
+        { arquivo: 'CMN.kml', nome: 'Caminha', dico: '1602' },
+        { arquivo: 'mel.kml', nome: 'Melgaço', dico: '1603' },
+        { arquivo: 'mon.kml', nome: 'Monção', dico: '1604' },
+        { arquivo: 'pc.kml', nome: 'Paredes de Coura', dico: '1605' },
+        { arquivo: 'pb.kml', nome: 'Ponte da Barca', dico: '1606' },
+        { arquivo: 'pl.kml', nome: 'Ponte de Lima', dico: '1607' },
+        { arquivo: 'val.kml', nome: 'Valença', dico: '1608' },
+        { arquivo: 'vct.kml', nome: 'Viana do Castelo', dico: '1609' },
+        { arquivo: 'vnc.kml', nome: 'Vila Nova de Cerveira', dico: '1610' }
+    ];
+
+    async function carregarDadosIPMA() {
         try {
-            // 1. Carregar Risco de Incêndio (IRI) do IPMA
+            // 1. Risco de Incêndio (IRI)
             const resRcm = await fetch('https://api.ipma.pt/open-data/forecast/meteorology/rcm/rcm-d0.json');
             const dataRcm = await resRcm.json();
-            
             if (dataRcm.local) {
                 for (const dico in dataRcm.local) {
                     if (dico.startsWith('16')) {
@@ -75,10 +91,9 @@
                 }
             }
 
-            // 2. Carregar Avisos Meteorológicos do IPMA
+            // 2. Avisos Meteorológicos
             const resAviso = await fetch('https://api.ipma.pt/open-data/forecast/warnings/warnings_www.json');
             const dataAviso = await resAviso.json();
-            
             const avisosVVC = dataAviso.filter(a => a.idAreaAviso === 'VVC');
             avisosVVC.forEach(aviso => {
                 if (pesoAvisos[aviso.awarenessLevelID] > pesoAvisos[maiorAvisoNivel]) {
@@ -86,56 +101,59 @@
                     maiorAvisoTexto = aviso.awarenessTypeName;
                 }
             });
-
-            // 3. Carregar o nosso próprio ficheiro GeoJSON local guardado no repositório
-            const resMapa = await fetch('./concelhos.geojson');
-            geoJsonData = await resMapa.json();
-
-            desenharPoligonos('iri');
-
         } catch (erro) {
-            console.error("Erro detalhado:", erro);
-            alert("Erro ao carregar dados. Verifique a consola (F12).");
+            console.error("Erro ao carregar dados do IPMA:", erro);
         }
     }
 
-    function desenharPoligonos(modo) {
-        if (!geoJsonData) return;
-        
-        if (camadaMapa) map.removeLayer(camadaMapa);
-
-        camadaMapa = L.geoJSON(geoJsonData, {
-            style: function (feature) {
-                const p = feature.properties;
-                const dico = p.DI + p.CO; 
-                
-                let cor = '#cccccc';
-
-                if (modo === 'iri') {
-                    const risco = riscoPorConcelho[dico] || 1;
-                    cor = coresIncendio[risco];
-                } else if (modo === 'avisos') {
-                    cor = coresAvisos[maiorAvisoNivel];
-                }
-
-                return { fillColor: cor, weight: 2, color: '#ffffff', dashArray: '3', fillOpacity: 0.7 };
-            },
-            onEachFeature: function (feature, layer) {
-                const p = feature.properties;
-                const nome = p.NAME_2 || "Concelho";
-                const dico = p.DI + p.CO;
-                
-                if (modo === 'iri') {
-                    const risco = riscoPorConcelho[dico] || 'N/A';
-                    layer.bindPopup(`<b>${nome}</b><br>Risco Incêndio: <b>Nível ${risco}</b>`);
-                } else {
-                    layer.bindPopup(`<b>${nome}</b><br>Aviso Distrital: <b>${maiorAvisoTexto}</b>`);
-                }
-            }
-        }).addTo(map);
+    async function inicializarMapa() {
+        await carregarDadosIPMA();
+        desenharConcelhos();
     }
 
-    iniciar();
+    function desenharConcelhos() {
+        // Limpar camadas anteriores
+        grupoCamadas.clearLayers();
+
+        concelhosLista.forEach(item => {
+            const customLayer = L.geoJson(null, {
+                style: function () {
+                    let cor = '#cccccc';
+                    if (modoAtual === 'iri') {
+                        const risco = riscoPorConcelho[item.dico] || 1;
+                        cor = coresIncendio[risco];
+                    } else if (modoAtual === 'avisos') {
+                        cor = coresAvisos[maiorAvisoNivel];
+                    }
+                    return { fillColor: cor, weight: 2, color: '#ffffff', fillOpacity: 0.75 };
+                },
+                onEachFeature: function (feature, layer) {
+                    if (modoAtual === 'iri') {
+                        const risco = riscoPorConcelho[item.dico] || 'N/A';
+                        layer.bindPopup(`<b>${item.nome}</b><br>Risco Incêndio: <b>Nível ${risco}</b>`);
+                    } else {
+                        layer.bindPopup(`<b>${item.nome}</b><br>Aviso Distrital: <b>${maiorAvisoTexto}</b>`);
+                    }
+                }
+            });
+
+            // Ler cada KML individualmente e adicioná-lo ao grupo
+            omnivore.kml(`./${item.arquivo}`, null, customLayer)
+                .on('ready', function(e) {
+                    grupoCamadas.addLayer(e.target);
+                    map.fitBounds(grupoCamadas.getBounds());
+                })
+                .addTo(grupoCamadas);
+        });
+    }
+
+    function mudarModo(modo) {
+        modoAtual = modo;
+        desenharConcelhos();
+    }
+
+    // Arrancar a aplicação
+    inicializarMapa();
 </script>
 </body>
 </html>
