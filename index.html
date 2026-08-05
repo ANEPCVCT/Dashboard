@@ -58,6 +58,10 @@
         .aviso-yellow { background-color: #FFFDE7; border-color: #FBC02D; }
         .aviso-orange { background-color: #FFF3E0; border-color: #F57C00; }
         .aviso-red { background-color: #FFEBEE; border-color: #D32F2F; }
+        .aviso-green { background-color: #E8F5E9; border-color: #388E3C; }
+
+        /* Loading overlay para os mapas */
+        .map-loading { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); display: flex; align-items: center; justify-content: center; z-index: 1000; font-weight: bold; color: #555;}
 
     </style>
 </head>
@@ -87,20 +91,20 @@
 
     <div id="dashboard-grid">
         <div class="palco" id="palco-pir">
-            <div class="palco-titulo">PIR - HOJE</div>
-            <div class="palco-conteudo"><div id="mapa-pir0" class="mapa-leaflet"></div></div>
+            <div class="palco-titulo">PIR (Risco Incêndio) - HOJE</div>
+            <div class="palco-conteudo"><div id="mapa-pir0" class="mapa-leaflet"></div><div class="map-loading" id="load0">A carregar mapas...</div></div>
         </div>
         <div class="palco" id="palco-avisos">
-            <div class="palco-titulo">Avisos Meteorológicos</div>
-            <div class="palco-conteudo" id="avisos-conteudo">A carregar...</div>
+            <div class="palco-titulo">Avisos Meteorológicos - Viana do Castelo</div>
+            <div class="palco-conteudo" id="avisos-conteudo">A carregar avisos...</div>
         </div>
         <div class="palco" id="palco-pir-plus1">
-            <div class="palco-titulo">PIR - AMANHÃ</div>
-            <div class="palco-conteudo"><div id="mapa-pir1" class="mapa-leaflet"></div></div>
+            <div class="palco-titulo">PIR (Risco Incêndio) - AMANHÃ</div>
+            <div class="palco-conteudo"><div id="mapa-pir1" class="mapa-leaflet"></div><div class="map-loading" id="load1">A carregar mapas...</div></div>
         </div>
         <div class="palco" id="palco-pir-plus2">
-            <div class="palco-titulo">PIR - DEPOIS DE AMANHÃ</div>
-            <div class="palco-conteudo"><div id="mapa-pir2" class="mapa-leaflet"></div></div>
+            <div class="palco-titulo">PIR (Risco Incêndio) - DEPOIS DE AMANHÃ</div>
+            <div class="palco-conteudo"><div id="mapa-pir2" class="mapa-leaflet"></div><div class="map-loading" id="load2">A carregar mapas...</div></div>
         </div>
         <div class="palco" id="palco-vazio">Área Reservada</div>
     </div>
@@ -111,21 +115,14 @@
     const centroMapa = [41.85, -8.3];
     const zoomMapa = 10;
 
-    // Inicializa os mapas
     const mapHoje = L.map('mapa-pir0', { zoomControl: false }).setView(centroMapa, zoomMapa);
     const mapAmanha = L.map('mapa-pir1', { zoomControl: false }).setView(centroMapa, zoomMapa);
     const mapDepois = L.map('mapa-pir2', { zoomControl: false }).setView(centroMapa, zoomMapa);
 
     const tileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-    const attribution = '&copy; OpenStreetMap contributors';
-    L.tileLayer(tileUrl, { attribution: attribution }).addTo(mapHoje);
-    L.tileLayer(tileUrl, { attribution: attribution }).addTo(mapAmanha);
-    L.tileLayer(tileUrl, { attribution: attribution }).addTo(mapDepois);
-
-    // Grupos de camadas
-    const grupoHoje = L.featureGroup().addTo(mapHoje);
-    const grupoAmanha = L.featureGroup().addTo(mapAmanha);
-    const grupoDepois = L.featureGroup().addTo(mapDepois);
+    L.tileLayer(tileUrl, { attribution: '© OpenStreetMap' }).addTo(mapHoje);
+    L.tileLayer(tileUrl, { attribution: '© OpenStreetMap' }).addTo(mapAmanha);
+    L.tileLayer(tileUrl, { attribution: '© OpenStreetMap' }).addTo(mapDepois);
 
     const coresIncendio = { 1: '#84C776', 2: '#FFD700', 3: '#FFA500', 4: '#FF0000', 5: '#800080' };
     
@@ -142,94 +139,93 @@
         { arquivo: 'vnc.kml', nome: 'Vila Nova de Cerveira', dico: '1610' }
     ];
 
-    // Função para carregar KMLs para um mapa específico
-    function carregarKMLsNoMapa(mapa, grupo, dadosRisco) {
-        concelhosLista.forEach(item => {
-            // Cria uma camada GeoJSON vazia para receber o KML
-            const geoJsonLayer = L.geoJson(null, {
-                style: function () {
-                    const risco = dadosRisco[item.dico] || 1;
-                    return { fillColor: coresIncendio[risco], weight: 1, color: '#fff', fillOpacity: 0.7 };
-                },
-                onEachFeature: function (feature, layer) {
-                    const risco = dadosRisco[item.dico] || 'N/A';
-                    layer.bindPopup(`<b>${item.nome}</b><br>Risco: Nível ${risco}`);
-                    // Garante que o mapa se centra na região
-                    mapa.fitBounds(grupo.getBounds());
-                }
-            });
+    // Função auxiliar para esperar (atraso)
+    const esperar = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-            // Usa o omnivore para carregar o KML e adicioná-lo à camada GeoJSON
-            omnivore.kml(`./${item.arquivo}`, null, geoJsonLayer)
-                .on('ready', function() {
-                    grupo.addLayer(geoJsonLayer);
+    // Motor de carregamento em fila (Sequencial para evitar falhas)
+    async function carregarKMLSequencial(mapa, grupo, dadosRisco, elementoLoading) {
+        const bounds = [];
+        
+        for (const item of concelhosLista) {
+            try {
+                // Cria camada vazia
+                const layer = L.geoJson(null, {
+                    style: () => ({ fillColor: coresIncendio[dadosRisco[item.dico]] || '#cccccc', weight: 1.5, color: '#fff', fillOpacity: 0.7 }),
+                    onEachFeature: (f, l) => {
+                        l.bindPopup(`<b>${item.nome}</b><br>Risco: ${dadosRisco[item.dico] || 'N/A'}`);
+                    }
                 });
-        });
+
+                // Adiciona ao grupo
+                grupo.addLayer(layer);
+                
+                // Carrega KML (retorna promessa)
+                await new Promise((resolve, reject) => {
+                    const kmlUrl = `./${item.arquivo}?t=${Date.now()}`; // Cache buster
+                    omnivore.kml(kmlUrl, null, layer)
+                        .on('ready', (e) => {
+                            bounds.push(e.target.getBounds());
+                            resolve();
+                        })
+                        .on('error', reject);
+                });
+
+                // Pequena pausa entre carregamentos para estabilizar o navegador
+                await esperar(50); 
+
+            } catch (err) {
+                console.warn(`Falha ao carregar ${item.arquivo}:`, err);
+            }
+        }
+        
+        // Ajusta o zoom final se houver polígonos
+        if (bounds.length > 0) {
+            let overallBounds = bounds[0];
+            for (let i = 1; i < bounds.length; i++) { overallBounds.extend(bounds[i]); }
+            mapa.fitBounds(overallBounds, { padding: [10, 10] });
+        }
+        
+        // Esconde loading
+        document.getElementById(elementoLoading).style.display = 'none';
     }
 
-    // Carregar Risco de Incêndio (3 dias)
-    async function carregarRisco() {
+    // Inicializar dados
+    async function iniciar() {
+        // 1. Carregar Risco de Incêndio
         try {
-            // D0 (Hoje), D1 (Amanhã), D2 (Depois de Amanhã)
-            const urls = [
-                'https://api.ipma.pt/open-data/forecast/meteorology/rcm/rcm-d0.json',
-                'https://api.ipma.pt/open-data/forecast/meteorology/rcm/rcm-d1.json',
-                'https://api.ipma.pt/open-data/forecast/meteorology/rcm/rcm-d2.json'
-            ];
-            
-            const respostas = await Promise.all(urls.map(url => fetch(url)));
-            const dados = await Promise.all(respostas.map(res => res.json()));
+            const urls = ['rcm-d0.json', 'rcm-d1.json', 'rcm-d2.json'];
+            const respostas = await Promise.all(urls.map(u => fetch('https://api.ipma.pt/open-data/forecast/meteorology/rcm/' + u)));
+            const dados = await Promise.all(respostas.map(r => r.json()));
 
-            const processarDados = (dadosJson) => {
-                const mapeamento = {};
-                if (dadosJson.local) {
-                    Object.keys(dadosJson.local).forEach(dico => {
-                        if (dico.startsWith('16')) {
-                            mapeamento[dico] = dadosJson.local[dico].data.rcm;
-                        }
+            const processar = (json) => {
+                const map = {};
+                if (json.local) {
+                    Object.keys(json.local).forEach(d => {
+                        if (d.startsWith('16')) map[d] = json.local[d].data.rcm;
                     });
                 }
-                return mapeamento;
+                return map;
             };
 
-            // Carregar dados nos mapas
-            carregarKMLsNoMapa(mapHoje, grupoHoje, processarDados(dados[0]));
-            carregarKMLsNoMapa(mapAmanha, grupoAmanha, processarDados(dados[1]));
-            carregarKMLsNoMapa(mapDepois, grupoDepois, processarDados(dados[2]));
+            // Iniciar as 3 filas de carregamento
+            carregarKMLSequencial(mapHoje, L.featureGroup().addTo(mapHoje), processar(dados[0]), 'load0');
+            carregarKMLSequencial(mapAmanha, L.featureGroup().addTo(mapAmanha), processar(dados[1]), 'load1');
+            carregarKMLSequencial(mapDepois, L.featureGroup().addTo(mapDepois), processar(dados[2]), 'load2');
 
-        } catch (e) { console.error("Erro PIR:", e); }
+        } catch(e) { console.error("Erro API IPMA", e); }
+
+        // 2. Carregar Avisos
+        carregarAvisos();
     }
 
-    // Carregar Avisos Meteorológicos
     async function carregarAvisos() {
         const container = document.getElementById('avisos-conteudo');
-        const tipoAvisoIcons = {
+        const icones = {
             "Precipitação": "https://cdn-icons-png.flaticon.com/512/4005/4005771.png",
             "Vento": "https://cdn-icons-png.flaticon.com/512/5444/5444465.png",
             "Agitação Marítima": "https://cdn-icons-png.flaticon.com/512/3104/3104564.png",
             "Trovoada": "https://cdn-icons-png.flaticon.com/512/4150/4150897.png",
-            "Neve": "https://cdn-icons-png.flaticon.com/512/642/642000.png",
             "Nevoeiro": "https://cdn-icons-png.flaticon.com/512/760/760444.png",
-            "Tempo Quente": "https://cdn-icons-png.flaticon.com/512/5344/5344755.png",
             "Tempo Frio": "https://cdn-icons-png.flaticon.com/512/5353/5353179.png"
         };
-
-        const classes = { 'yellow': 'aviso-yellow', 'orange': 'aviso-orange', 'red': 'aviso-red' };
-
-        try {
-            const res = await fetch('https://api.ipma.pt/open-data/forecast/warnings/warnings_www.json');
-            const data = await res.json();
-            
-            const avisosViana = data.filter(a => a.idAreaAviso === 'VVC' && a.awarenessLevelID !== 'green');
-
-            if (avisosViana.length === 0) {
-                container.innerHTML = '<div class="aviso-item aviso-green" style="text-align:center;">Sem avisos meteorológicos importantes.</div>';
-                return;
-            }
-
-            container.innerHTML = '';
-            avisosViana.forEach(aviso => {
-                const icone = tipoAvisoIcons[aviso.awarenessTypeName] || "https://cdn-icons-png.flaticon.com/512/1795/1795519.png";
-                const classeFundo = classes[aviso.awarenessLevelID] || '';
-                const inicio = new Date(aviso.startTime).toLocaleString('pt-PT', {day: '2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
-                const fim = new Date(aviso.endTime).toLocaleString('pt-PT', {day: '2-digit', month:'2-digit', hour:'2-
+        const classes = { 'yellow': 'aviso-yellow',
