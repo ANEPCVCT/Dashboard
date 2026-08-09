@@ -2,6 +2,12 @@ name: Deploy Dashboard protegido
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/deploy-epe-worker.yml"
+      - "cloudflare-worker/**"
 
 permissions:
   contents: read
@@ -103,5 +109,7 @@ jobs:
       - name: Validar o Worker publicado
         env:
           DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
+          DASHBOARD_ROOT_EMAIL: ${{ secrets.DASHBOARD_ROOT_EMAIL }}
+          DASHBOARD_ROOT_INITIAL_PASSWORD: ${{ secrets.DASHBOARD_ROOT_INITIAL_PASSWORD }}
         working-directory: cloudflare-worker
         run: node scripts/verify-deployment.mjs
