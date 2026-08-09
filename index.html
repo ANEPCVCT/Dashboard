@@ -1140,184 +1140,6 @@
             color: #ffffff;
         }
 
-        .sessao-dashboard {
-            display: grid;
-            justify-items: end;
-            gap: 7px;
-            min-width: 0;
-        }
-
-        .sessao-acoes {
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            gap: 6px;
-            min-width: 0;
-        }
-
-        .sessao-utilizador {
-            max-width: min(24vw, 330px);
-            overflow: hidden;
-            color: #3c4a54;
-            font-size: clamp(10px, 0.68vw, 13px);
-            font-weight: 800;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .sessao-botao {
-            min-height: 30px;
-            padding: 5px 8px;
-            border: 1px solid #7d8a93;
-            border-radius: 5px;
-            background: #ffffff;
-            color: #25323c;
-            font: 800 clamp(9px, 0.6vw, 12px) Arial, Helvetica, sans-serif;
-            cursor: pointer;
-        }
-
-        .sessao-botao:hover,
-        .sessao-botao:focus-visible {
-            border-color: var(--brand-red);
-            outline: 2px solid rgb(167 25 31 / 16%);
-        }
-
-        body.modo-operador-epe #dashboard-grid {
-            grid-template-columns: minmax(0, 1fr);
-        }
-
-        body.modo-operador-epe #pir-area,
-        body.modo-operador-epe #palco-avisos {
-            display: none;
-        }
-
-        body.modo-operador-epe #right-area {
-            display: block;
-        }
-
-        body.modo-operador-epe #palco-epe {
-            height: 100%;
-        }
-
-        body.modo-gestao-utilizadores #dashboard-grid {
-            visibility: hidden;
-        }
-
-        .utilizadores-modal-painel {
-            width: min(1180px, calc(100vw - 30px));
-            max-height: calc(100vh - 30px);
-        }
-
-        .utilizadores-conteudo {
-            display: grid;
-            gap: 16px;
-            padding: 16px;
-            overflow: auto;
-            background: #f1f4f6;
-        }
-
-        .utilizadores-cartao {
-            padding: 14px;
-            border: 1px solid #c3ccd2;
-            border-radius: 7px;
-            background: #ffffff;
-        }
-
-        .utilizadores-cartao h3 {
-            margin: 0 0 11px;
-            color: #26343e;
-            font-size: 16px;
-        }
-
-        .utilizador-form-novo {
-            display: grid;
-            grid-template-columns: 1.25fr 1.25fr 1fr auto;
-            align-items: end;
-            gap: 10px;
-        }
-
-        .utilizador-campo {
-            display: grid;
-            gap: 5px;
-            min-width: 0;
-            color: #3f4e58;
-            font-size: 12px;
-            font-weight: 800;
-        }
-
-        .utilizador-campo input {
-            min-width: 0;
-            height: 38px;
-            padding: 7px 9px;
-            border: 1px solid #89969f;
-            border-radius: 5px;
-            font: 700 13px Arial, Helvetica, sans-serif;
-        }
-
-        .utilizador-permissoes {
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 8px 13px;
-            margin-top: 10px;
-        }
-
-        .utilizador-pisco {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            color: #34424c;
-            font-size: 12px;
-            font-weight: 800;
-        }
-
-        .utilizador-pisco input {
-            width: 17px;
-            height: 17px;
-            accent-color: var(--brand-red);
-        }
-
-        .utilizadores-lista {
-            display: grid;
-            gap: 9px;
-        }
-
-        .utilizador-linha {
-            display: grid;
-            grid-template-columns: minmax(190px, 1.1fr) minmax(170px, 1fr) minmax(360px, 1.8fr) auto;
-            align-items: center;
-            gap: 10px;
-            padding: 10px;
-            border: 1px solid #d2d9de;
-            border-radius: 6px;
-            background: #ffffff;
-        }
-
-        .utilizador-linha.is-inativo { opacity: 0.62; }
-        .utilizador-email { overflow: hidden; font-size: 12px; font-weight: 800; text-overflow: ellipsis; }
-        .utilizador-nome-editar { width: 100%; min-width: 0; height: 34px; padding: 6px 8px; }
-        .utilizador-linha-acoes { display: flex; gap: 6px; }
-
-        .utilizadores-mensagem {
-            min-height: 19px;
-            margin: 8px 0 0;
-            color: #21642a;
-            font-size: 12px;
-            font-weight: 800;
-        }
-
-        .utilizadores-mensagem.erro { color: #94131a; }
-
-        .reset-password-area {
-            display: grid;
-            grid-template-columns: minmax(240px, 1fr) minmax(220px, 1fr) auto auto;
-            align-items: end;
-            gap: 10px;
-            margin-top: 12px;
-            padding-top: 12px;
-            border-top: 1px solid #d2d9de;
-        }
-
         @media (max-width: 980px) {
             .epe-form-autorizacao {
                 grid-template-columns: 1fr;
@@ -1329,12 +1151,6 @@
 
             .epe-form-acoes {
                 grid-column: 1 / -1;
-            }
-
-            .utilizador-form-novo,
-            .utilizador-linha,
-            .reset-password-area {
-                grid-template-columns: 1fr;
             }
         }
 
@@ -1362,14 +1178,7 @@
                 <h1>Comando Sub-Regional do Alto Minho</h1>
                 <p class="brand-subtitle">Autoridade Nacional de Emergência e Proteção Civil</p>
             </div>
-            <div class="sessao-dashboard">
-                <time id="current-datetime"></time>
-                <div class="sessao-acoes">
-                    <span class="sessao-utilizador" id="sessao-utilizador"></span>
-                    <button class="sessao-botao" id="abrir-utilizadores" type="button" hidden>Utilizadores</button>
-                    <button class="sessao-botao" id="terminar-sessao" type="button">Sair</button>
-                </div>
-            </div>
+            <time id="current-datetime"></time>
         </header>
 
         <main id="dashboard-grid">
@@ -1482,6 +1291,23 @@
                     decorre automaticamente.
                 </p>
 
+                <div class="epe-form-autorizacao">
+                    <label class="epe-form-campo" for="epe-chave-operador">
+                        Chave de operador
+                        <input
+                            id="epe-chave-operador"
+                            type="password"
+                            autocomplete="off"
+                            spellcheck="false"
+                            aria-describedby="epe-chave-operador-nota"
+                        >
+                    </label>
+                    <p class="epe-form-autorizacao-nota" id="epe-chave-operador-nota">
+                        Necessária apenas na primeira alteração desta sessão. A chave fica
+                        guardada em memória de sessão neste posto e não é gravada no Dashboard.
+                    </p>
+                </div>
+
                 <div class="epe-form-grelha" id="epe-form-grelha"></div>
                 <button
                     class="epe-botao epe-form-adicionar"
@@ -1500,81 +1326,6 @@
                 >Submeter</button>
                 <button class="epe-botao" id="cancelar-epe" type="button">Fechar</button>
             </footer>
-        </section>
-    </div>
-
-    <div
-        class="epe-modal"
-        id="gestor-utilizadores"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="gestor-utilizadores-titulo"
-        hidden
-    >
-        <section class="epe-modal-painel utilizadores-modal-painel">
-            <header class="epe-modal-cabecalho">
-                <h2 id="gestor-utilizadores-titulo">Contas e permissões</h2>
-                <button
-                    class="epe-modal-fechar"
-                    id="fechar-utilizadores"
-                    type="button"
-                    aria-label="Fechar gestor de utilizadores"
-                >×</button>
-            </header>
-
-            <div class="utilizadores-conteudo">
-                <section class="utilizadores-cartao">
-                    <h3>Criar conta institucional</h3>
-                    <form id="form-novo-utilizador">
-                        <div class="utilizador-form-novo">
-                            <label class="utilizador-campo">
-                                Nome
-                                <input id="novo-utilizador-nome" type="text" maxlength="100" required>
-                            </label>
-                            <label class="utilizador-campo">
-                                Email institucional
-                                <input id="novo-utilizador-email" type="email" placeholder="nome@prociv.pt" required>
-                            </label>
-                            <label class="utilizador-campo">
-                                Palavra-passe provisória
-                                <input id="novo-utilizador-password" type="password" minlength="12" autocomplete="new-password" required>
-                            </label>
-                            <button class="epe-botao epe-botao-primario" type="submit">Criar conta</button>
-                        </div>
-                        <div class="utilizador-permissoes">
-                            <label class="utilizador-pisco">
-                                <input id="novo-permissao-dashboard" type="checkbox"> Ver Dashboard
-                            </label>
-                            <label class="utilizador-pisco">
-                                <input id="novo-permissao-epe" type="checkbox"> Gerir EPE
-                            </label>
-                            <label class="utilizador-pisco">
-                                <input id="novo-permissao-utilizadores" type="checkbox"> Gerir utilizadores
-                            </label>
-                        </div>
-                        <p class="utilizadores-mensagem" id="novo-utilizador-mensagem" aria-live="polite"></p>
-                    </form>
-                </section>
-
-                <section class="utilizadores-cartao">
-                    <h3>Contas existentes</h3>
-                    <div class="utilizadores-lista" id="utilizadores-lista"></div>
-                    <p class="utilizadores-mensagem" id="utilizadores-mensagem" aria-live="polite"></p>
-
-                    <form class="reset-password-area" id="form-reset-password" hidden>
-                        <p class="utilizador-campo">
-                            Conta a redefinir
-                            <strong id="reset-password-email"></strong>
-                        </p>
-                        <label class="utilizador-campo">
-                            Nova palavra-passe provisória
-                            <input id="reset-password-valor" type="password" minlength="12" autocomplete="new-password" required>
-                        </label>
-                        <button class="epe-botao epe-botao-primario" type="submit">Redefinir</button>
-                        <button class="epe-botao" id="cancelar-reset-password" type="button">Cancelar</button>
-                    </form>
-                </section>
-            </div>
         </section>
     </div>
 
@@ -1743,7 +1494,9 @@
         const intervaloAtualizacaoEpeMs = 5 * 1000;
         const intervaloRefreshPaginaMs = 1 * 60 * 1000;
         const atrasoRefreshAposPedidoEpeMs = 1_000;
-        const urlServicoEpe = '/api/epe';
+        const urlServicoEpe =
+            'https://dashboard-anepc-epe.anepcvct.workers.dev/epe';
+        const chaveOperadorEpeSessao = 'dashboard-anepc-epe-operador-v1';
         const chaveAgendaPendenteEpe = 'dashboard-anepc-epe-pendente-v1';
         const validadeAgendaPendenteEpeMs = 30 * 60 * 1000;
         const maximoAgendamentosEpe = 4;
@@ -1758,9 +1511,6 @@
         let temporizadorMudancaEpe = null;
         let assinaturaRemotaEpe = null;
         let refreshPaginaAgendado = false;
-        let utilizadorSessao = null;
-        let csrfTokenSessao = '';
-        let emailResetPassword = '';
 
         function definirEstadoLoading(loadingId, mensagem, erro = false) {
             const elemento = document.getElementById(loadingId);
@@ -3228,18 +2978,55 @@
             };
         }
 
+        function lerChaveOperadorEpe() {
+            const campo = document.getElementById('epe-chave-operador');
+            const chaveIntroduzida = campo.value.trim();
+            let chaveGuardada = '';
+
+            try {
+                chaveGuardada = window.sessionStorage.getItem(chaveOperadorEpeSessao) || '';
+            } catch (erro) {
+                console.warn('Não foi possível ler a chave de operador da sessão:', erro);
+            }
+
+            const chave = chaveIntroduzida || chaveGuardada;
+
+            if (!chave) {
+                campo.focus();
+                throw new Error('Introduza a chave de operador para submeter a alteração.');
+            }
+
+            return chave;
+        }
+
+        function guardarChaveOperadorEpe(chave) {
+            try {
+                window.sessionStorage.setItem(chaveOperadorEpeSessao, chave);
+            } catch (erro) {
+                console.warn('Não foi possível guardar a chave de operador na sessão:', erro);
+            }
+        }
+
+        function apagarChaveOperadorEpe() {
+            try {
+                window.sessionStorage.removeItem(chaveOperadorEpeSessao);
+            } catch (erro) {
+                console.warn('Não foi possível remover a chave de operador da sessão:', erro);
+            }
+        }
+
         async function submeterPedidoEpe(agendamentos) {
+            const campoChave = document.getElementById('epe-chave-operador');
+            const chave = lerChaveOperadorEpe();
             let resposta;
 
             try {
                 resposta = await fetch(urlServicoEpe, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'X-Dashboard-Request': '1',
-                        'X-CSRF-Token': csrfTokenSessao
+                        Authorization: `Bearer ${chave}`,
+                        'Content-Type': 'application/json'
                     },
-                    credentials: 'same-origin',
                     body: JSON.stringify(criarPayloadPedidoEpe(agendamentos))
                 });
             } catch (erro) {
@@ -3257,8 +3044,10 @@
             }
 
             if (resposta.status !== 202 || resultado?.ok !== true) {
-                if (resposta.status === 401 || resposta.status === 428) {
-                    window.location.replace('/login.html');
+                if (resposta.status === 401) {
+                    apagarChaveOperadorEpe();
+                    campoChave.value = '';
+                    campoChave.focus();
                 }
 
                 throw new Error(
@@ -3266,6 +3055,9 @@
                     `O serviço EPE recusou o pedido (HTTP ${resposta.status}).`
                 );
             }
+
+            guardarChaveOperadorEpe(chave);
+            campoChave.value = '';
             return resultado;
         }
 
@@ -3560,7 +3352,7 @@
         }
 
         async function carregarEpe() {
-            const conteudo = await obterTexto(`/api/epe-data?_=${Date.now()}`);
+            const conteudo = await obterTexto(`epe.csv?_=${Date.now()}`);
             const agendaRemota = lerConteudoCsvEpe(conteudo);
             const novaAssinaturaRemotaEpe = assinaturaAgendaEpe(agendaRemota);
             const agendaPendente = obterAgendaPendenteEpe();
@@ -3620,380 +3412,21 @@
             }
         }
 
-        async function pedidoProtegido(url, options = {}) {
-            const headers = new Headers(options.headers || {});
-            headers.set('X-Dashboard-Request', '1');
-            if (csrfTokenSessao) {
-                headers.set('X-CSRF-Token', csrfTokenSessao);
-            }
-            if (options.body !== undefined) {
-                headers.set('Content-Type', 'application/json');
-            }
-            const resposta = await fetch(url, {
-                ...options,
-                headers,
-                credentials: 'same-origin',
-                cache: 'no-store'
-            });
-            let resultado = null;
-            try {
-                resultado = await resposta.json();
-            } catch (erro) {
-                console.warn('Resposta protegida inválida:', erro);
-            }
-            if (resposta.status === 401 || resposta.status === 428) {
-                window.location.replace('/login.html');
-                throw new Error('A sessão terminou.');
-            }
-            return { resposta, resultado };
-        }
-
-        async function carregarSessaoDashboard() {
-            const resposta = await fetch('/api/session', {
-                credentials: 'same-origin',
-                cache: 'no-store'
-            });
-            if (!resposta.ok) {
-                window.location.replace('/login.html');
-                throw new Error('Sessão não autenticada.');
-            }
-            const resultado = await resposta.json();
-            if (resultado.user?.must_change_password) {
-                window.location.replace('/login.html?change=1');
-                throw new Error('Alteração de palavra-passe obrigatória.');
-            }
-            utilizadorSessao = resultado.user;
-            csrfTokenSessao = resultado.csrf_token;
-            return utilizadorSessao;
-        }
-
-        function aplicarPermissoesSessao() {
-            const permissoes = utilizadorSessao.permissions;
-            document.getElementById('sessao-utilizador').textContent =
-                `${utilizadorSessao.display_name} · ${utilizadorSessao.email}`;
-            document.getElementById('abrir-gestor-epe').hidden = !permissoes.manage_epe;
-            document.getElementById('abrir-utilizadores').hidden = !permissoes.manage_users;
-
-            if (!permissoes.view_dashboard && permissoes.manage_epe) {
-                document.body.classList.add('modo-operador-epe');
-            }
-            if (
-                !permissoes.view_dashboard &&
-                !permissoes.manage_epe &&
-                permissoes.manage_users
-            ) {
-                document.body.classList.add('modo-gestao-utilizadores');
-            }
-        }
-
-        function escaparHtml(valor) {
-            return String(valor ?? '')
-                .replaceAll('&', '&amp;')
-                .replaceAll('<', '&lt;')
-                .replaceAll('>', '&gt;')
-                .replaceAll('"', '&quot;')
-                .replaceAll("'", '&#039;');
-        }
-
-        function definirMensagemUtilizadores(id, mensagem, erro = false) {
-            const elemento = document.getElementById(id);
-            elemento.textContent = mensagem;
-            elemento.classList.toggle('erro', erro);
-        }
-
-        function htmlPiscoUtilizador(email, nome, texto, ativo, bloqueado) {
-            return `
-                <label class="utilizador-pisco">
-                    <input
-                        type="checkbox"
-                        data-email="${escaparHtml(email)}"
-                        data-permissao="${nome}"
-                        ${ativo ? 'checked' : ''}
-                        ${bloqueado ? 'disabled' : ''}
-                    > ${texto}
-                </label>
-            `;
-        }
-
-        function renderizarUtilizadores(utilizadores) {
-            const lista = document.getElementById('utilizadores-lista');
-            lista.replaceChildren();
-
-            utilizadores.forEach((utilizador) => {
-                const linha = document.createElement('article');
-                linha.className = `utilizador-linha${utilizador.active ? '' : ' is-inativo'}`;
-                linha.dataset.email = utilizador.email;
-                const bloqueado = utilizador.is_root_admin;
-                linha.innerHTML = `
-                    <div class="utilizador-email">
-                        ${escaparHtml(utilizador.email)}
-                        ${bloqueado ? '<br><small>ADMIN principal protegido</small>' : ''}
-                    </div>
-                    <input
-                        class="utilizador-nome-editar"
-                        data-campo="nome"
-                        type="text"
-                        maxlength="100"
-                        value="${escaparHtml(utilizador.display_name)}"
-                        ${bloqueado ? 'disabled' : ''}
-                    >
-                    <div class="utilizador-permissoes">
-                        ${htmlPiscoUtilizador(
-                            utilizador.email,
-                            'view_dashboard',
-                            'Ver Dashboard',
-                            utilizador.permissions.view_dashboard,
-                            bloqueado
-                        )}
-                        ${htmlPiscoUtilizador(
-                            utilizador.email,
-                            'manage_epe',
-                            'Gerir EPE',
-                            utilizador.permissions.manage_epe,
-                            bloqueado
-                        )}
-                        ${htmlPiscoUtilizador(
-                            utilizador.email,
-                            'manage_users',
-                            'Gerir utilizadores',
-                            utilizador.permissions.manage_users,
-                            bloqueado
-                        )}
-                        <label class="utilizador-pisco">
-                            <input data-campo="ativo" type="checkbox" ${utilizador.active ? 'checked' : ''} ${bloqueado ? 'disabled' : ''}>
-                            Conta ativa
-                        </label>
-                    </div>
-                    <div class="utilizador-linha-acoes">
-                        <button class="epe-botao" data-acao="guardar" type="button" ${bloqueado ? 'disabled' : ''}>Guardar</button>
-                        <button class="epe-botao" data-acao="password" type="button" ${bloqueado ? 'disabled' : ''}>Nova password</button>
-                    </div>
-                `;
-
-                linha.querySelector('[data-acao="guardar"]').addEventListener(
-                    'click',
-                    () => guardarUtilizador(linha)
-                );
-                linha.querySelector('[data-acao="password"]').addEventListener(
-                    'click',
-                    () => abrirResetPassword(utilizador.email)
-                );
-                lista.appendChild(linha);
-            });
-        }
-
-        async function carregarUtilizadores() {
-            definirMensagemUtilizadores('utilizadores-mensagem', 'A carregar contas…');
-            try {
-                const { resposta, resultado } = await pedidoProtegido('/api/admin/users');
-                if (!resposta.ok || resultado?.ok !== true) {
-                    throw new Error(resultado?.error || 'Não foi possível carregar as contas.');
-                }
-                renderizarUtilizadores(resultado.users);
-                definirMensagemUtilizadores(
-                    'utilizadores-mensagem',
-                    `${resultado.users.length} conta(s) configurada(s).`
-                );
-            } catch (erro) {
-                definirMensagemUtilizadores('utilizadores-mensagem', erro.message, true);
-            }
-        }
-
-        async function guardarUtilizador(linha) {
-            const email = linha.dataset.email;
-            const botao = linha.querySelector('[data-acao="guardar"]');
-            const obterPermissao = (nome) =>
-                linha.querySelector(`[data-permissao="${nome}"]`).checked;
-            botao.disabled = true;
-            try {
-                const { resposta, resultado } = await pedidoProtegido(
-                    `/api/admin/users/${encodeURIComponent(email)}`,
-                    {
-                        method: 'PUT',
-                        body: JSON.stringify({
-                            display_name: linha.querySelector('[data-campo="nome"]').value,
-                            active: linha.querySelector('[data-campo="ativo"]').checked,
-                            permissions: {
-                                view_dashboard: obterPermissao('view_dashboard'),
-                                manage_epe: obterPermissao('manage_epe'),
-                                manage_users: obterPermissao('manage_users')
-                            }
-                        })
-                    }
-                );
-                if (!resposta.ok || resultado?.ok !== true) {
-                    throw new Error(resultado?.error || 'Não foi possível guardar a conta.');
-                }
-                definirMensagemUtilizadores('utilizadores-mensagem', `Conta ${email} atualizada.`);
-                await carregarUtilizadores();
-            } catch (erro) {
-                definirMensagemUtilizadores('utilizadores-mensagem', erro.message, true);
-            } finally {
-                botao.disabled = false;
-            }
-        }
-
-        function abrirResetPassword(email) {
-            emailResetPassword = email;
-            document.getElementById('reset-password-email').textContent = email;
-            document.getElementById('reset-password-valor').value = '';
-            document.getElementById('form-reset-password').hidden = false;
-            document.getElementById('reset-password-valor').focus();
-        }
-
-        function fecharResetPassword() {
-            emailResetPassword = '';
-            document.getElementById('form-reset-password').hidden = true;
-            document.getElementById('reset-password-valor').value = '';
-        }
-
-        async function criarUtilizador(evento) {
-            evento.preventDefault();
-            definirMensagemUtilizadores('novo-utilizador-mensagem', '');
-            try {
-                const { resposta, resultado } = await pedidoProtegido('/api/admin/users', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        display_name: document.getElementById('novo-utilizador-nome').value,
-                        email: document.getElementById('novo-utilizador-email').value,
-                        temporary_password: document.getElementById('novo-utilizador-password').value,
-                        permissions: {
-                            view_dashboard: document.getElementById('novo-permissao-dashboard').checked,
-                            manage_epe: document.getElementById('novo-permissao-epe').checked,
-                            manage_users: document.getElementById('novo-permissao-utilizadores').checked
-                        }
-                    })
-                });
-                if (!resposta.ok || resultado?.ok !== true) {
-                    throw new Error(resultado?.error || 'Não foi possível criar a conta.');
-                }
-                evento.currentTarget.reset();
-                definirMensagemUtilizadores(
-                    'novo-utilizador-mensagem',
-                    `Conta ${resultado.user.email} criada. A password terá de ser alterada na primeira entrada.`
-                );
-                await carregarUtilizadores();
-            } catch (erro) {
-                definirMensagemUtilizadores('novo-utilizador-mensagem', erro.message, true);
-            }
-        }
-
-        async function redefinirPassword(evento) {
-            evento.preventDefault();
-            if (!emailResetPassword) {
-                return;
-            }
-            try {
-                const { resposta, resultado } = await pedidoProtegido(
-                    `/api/admin/users/${encodeURIComponent(emailResetPassword)}/reset-password`,
-                    {
-                        method: 'POST',
-                        body: JSON.stringify({
-                            temporary_password: document.getElementById('reset-password-valor').value
-                        })
-                    }
-                );
-                if (!resposta.ok || resultado?.ok !== true) {
-                    throw new Error(resultado?.error || 'Não foi possível redefinir a palavra-passe.');
-                }
-                definirMensagemUtilizadores(
-                    'utilizadores-mensagem',
-                    `Palavra-passe de ${emailResetPassword} redefinida; todas as sessões anteriores foram terminadas.`
-                );
-                fecharResetPassword();
-                await carregarUtilizadores();
-            } catch (erro) {
-                definirMensagemUtilizadores('utilizadores-mensagem', erro.message, true);
-            }
-        }
-
-        async function abrirGestorUtilizadores() {
-            document.getElementById('gestor-utilizadores').hidden = false;
-            await carregarUtilizadores();
-            document.getElementById('fechar-utilizadores').focus();
-        }
-
-        function fecharGestorUtilizadores() {
-            document.getElementById('gestor-utilizadores').hidden = true;
-            fecharResetPassword();
-            document.getElementById('abrir-utilizadores').focus();
-        }
-
-        function inicializarGestorUtilizadores() {
-            document.getElementById('abrir-utilizadores').addEventListener(
-                'click',
-                abrirGestorUtilizadores
-            );
-            document.getElementById('fechar-utilizadores').addEventListener(
-                'click',
-                fecharGestorUtilizadores
-            );
-            document.getElementById('form-novo-utilizador').addEventListener(
-                'submit',
-                criarUtilizador
-            );
-            document.getElementById('form-reset-password').addEventListener(
-                'submit',
-                redefinirPassword
-            );
-            document.getElementById('cancelar-reset-password').addEventListener(
-                'click',
-                fecharResetPassword
-            );
-            document.getElementById('gestor-utilizadores').addEventListener('click', (evento) => {
-                if (evento.target.id === 'gestor-utilizadores') {
-                    fecharGestorUtilizadores();
-                }
-            });
-        }
-
-        async function terminarSessao() {
-            try {
-                await pedidoProtegido('/api/logout', { method: 'POST', body: '{}' });
-            } finally {
-                window.location.replace('/login.html');
-            }
-        }
-
         async function iniciar() {
-            await carregarSessaoDashboard();
-            aplicarPermissoesSessao();
             inicializarGestorEpe();
-            inicializarGestorUtilizadores();
-            document.getElementById('terminar-sessao').addEventListener('click', terminarSessao);
             atualizarDataHora();
             window.setInterval(atualizarDataHora, 1000);
 
-            const tarefasIniciais = [];
-            if (utilizadorSessao.permissions.view_dashboard) {
-                tarefasIniciais.push(atualizarPir(), atualizarAvisos());
-            }
-            if (
-                utilizadorSessao.permissions.view_dashboard ||
-                utilizadorSessao.permissions.manage_epe
-            ) {
-                tarefasIniciais.push(atualizarEpe());
-            }
-            await Promise.allSettled(tarefasIniciais);
+            await Promise.allSettled([
+                atualizarPir(),
+                atualizarAvisos(),
+                atualizarEpe()
+            ]);
 
             /* O EPE é verificado frequentemente para sincronizar todos os postos. */
-            if (utilizadorSessao.permissions.view_dashboard) {
-                window.setInterval(atualizarPir, intervaloAtualizacaoPirMs);
-                window.setInterval(atualizarAvisos, intervaloAtualizacaoAvisosMs);
-            }
-            if (
-                utilizadorSessao.permissions.view_dashboard ||
-                utilizadorSessao.permissions.manage_epe
-            ) {
-                window.setInterval(atualizarEpe, intervaloAtualizacaoEpeMs);
-            }
-            if (
-                !utilizadorSessao.permissions.view_dashboard &&
-                !utilizadorSessao.permissions.manage_epe &&
-                utilizadorSessao.permissions.manage_users
-            ) {
-                abrirGestorUtilizadores();
-            }
+            window.setInterval(atualizarPir, intervaloAtualizacaoPirMs);
+            window.setInterval(atualizarAvisos, intervaloAtualizacaoAvisosMs);
+            window.setInterval(atualizarEpe, intervaloAtualizacaoEpeMs);
             window.setTimeout(() => {
                 window.location.reload();
             }, intervaloRefreshPaginaMs);
