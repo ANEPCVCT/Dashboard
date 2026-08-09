@@ -28,6 +28,7 @@ PAYLOAD_PATTERN = re.compile(
     r"<!--\s*EPE_REQUEST_V1\s*(\{.*?\})\s*-->",
     flags=re.DOTALL,
 )
+ERROR_OUTPUT_PATH = Path(".epe-validation-error.txt")
 
 
 class RequestError(ValueError):
@@ -223,7 +224,12 @@ def main() -> int:
         event = json.loads(Path(event_path).read_text(encoding="utf-8"))
         count = process_event(event, Path("epe.csv"))
     except (OSError, json.JSONDecodeError, RequestError) as exc:
-        print(f"Pedido EPE recusado: {exc}", file=sys.stderr)
+        message = str(exc)
+        print(f"Pedido EPE recusado: {message}", file=sys.stderr)
+        try:
+            ERROR_OUTPUT_PATH.write_text(message, encoding="utf-8")
+        except OSError:
+            pass
         return 1
 
     print(f"Agenda EPE validada: {count} determinação(ões).")
