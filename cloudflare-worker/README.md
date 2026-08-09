@@ -23,7 +23,10 @@ npx wrangler secret put GITHUB_TOKEN
 npx wrangler deploy
 ```
 
-O endpoint público para o Dashboard é `POST /epe`. O diagnóstico sem credenciais é `GET /health`, acessível apenas a partir da origem autorizada.
+O serviço fica publicado em `https://dashboard-anepc-epe.anepcvct.workers.dev`.
+O endpoint do Dashboard é `POST /epe`; o diagnóstico sem credenciais é `GET /health`.
+Ambos aceitam exclusivamente a origem autorizada. O gestor EPE pede a chave de operador
+na primeira alteração de cada sessão e conserva-a apenas no `sessionStorage` desse posto.
 
 ## Segurança
 
