@@ -1010,6 +1010,26 @@
             line-height: 1.35;
         }
 
+        .epe-form-autorizacao {
+            display: grid;
+            grid-template-columns: minmax(220px, 420px) minmax(0, 1fr);
+            align-items: end;
+            gap: 12px;
+            margin: 0 0 12px;
+            padding: 10px 11px;
+            border: 1px solid #c3cbd1;
+            border-radius: 7px;
+            background: #f7f8f9;
+        }
+
+        .epe-form-autorizacao-nota {
+            margin: 0;
+            color: #5c6973;
+            font-size: 12px;
+            font-weight: 700;
+            line-height: 1.3;
+        }
+
         .epe-form-grelha {
             display: grid;
             gap: 10px;
@@ -1121,6 +1141,10 @@
         }
 
         @media (max-width: 980px) {
+            .epe-form-autorizacao {
+                grid-template-columns: 1fr;
+            }
+
             .epe-form-slot {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
             }
@@ -1262,9 +1286,27 @@
                     respetiva determinação. A quarta linha é opcional e destina-se a
                     situações excecionais. As datas disponíveis começam no dia atual. O
                     palco é atualizado imediatamente. A hora de fim sugerida é 23:59, mas
-                    pode ser alterada ao minuto. Na página do GitHub que abrir, confirme o
-                    pedido para concluir a gravação partilhada em <strong>epe.csv</strong>.
+                    pode ser alterada ao minuto. O pedido é enviado diretamente para o
+                    serviço protegido e a gravação partilhada em <strong>epe.csv</strong>
+                    decorre automaticamente.
                 </p>
+
+                <div class="epe-form-autorizacao">
+                    <label class="epe-form-campo" for="epe-chave-operador">
+                        Chave de operador
+                        <input
+                            id="epe-chave-operador"
+                            type="password"
+                            autocomplete="off"
+                            spellcheck="false"
+                            aria-describedby="epe-chave-operador-nota"
+                        >
+                    </label>
+                    <p class="epe-form-autorizacao-nota" id="epe-chave-operador-nota">
+                        Necessária apenas na primeira alteração desta sessão. A chave fica
+                        guardada em memória de sessão neste posto e não é gravada no Dashboard.
+                    </p>
+                </div>
 
                 <div class="epe-form-grelha" id="epe-form-grelha"></div>
                 <button
@@ -1452,8 +1494,9 @@
         const intervaloAtualizacaoEpeMs = 5 * 1000;
         const intervaloRefreshPaginaMs = 1 * 60 * 1000;
         const atrasoRefreshAposPedidoEpeMs = 1_000;
-        const repositorioGithubEpe = 'ANEPCVCT/Dashboard';
-        const urlNovoPedidoEpe = `https://github.com/${repositorioGithubEpe}/issues/new`;
+        const urlServicoEpe =
+            'https://dashboard-anepc-epe.anepcvct.workers.dev/epe';
+        const chaveOperadorEpeSessao = 'dashboard-anepc-epe-operador-v1';
         const chaveAgendaPendenteEpe = 'dashboard-anepc-epe-pendente-v1';
         const validadeAgendaPendenteEpeMs = 30 * 60 * 1000;
         const maximoAgendamentosEpe = 4;
@@ -2935,51 +2978,87 @@
             };
         }
 
-        function criarResumoPedidoEpe(agendamentos) {
-            if (agendamentos.length === 0) {
-                return '- Limpar toda a agenda e manter o Estado de Prontidão Normal.';
+        function lerChaveOperadorEpe() {
+            const campo = document.getElementById('epe-chave-operador');
+            const chaveIntroduzida = campo.value.trim();
+            let chaveGuardada = '';
+
+            try {
+                chaveGuardada = window.sessionStorage.getItem(chaveOperadorEpeSessao) || '';
+            } catch (erro) {
+                console.warn('Não foi possível ler a chave de operador da sessão:', erro);
             }
 
-            return agendamentos.map((agendamento, indice) => {
-                const nivel = niveisEpe[agendamento.nivel];
-                return (
-                    `${indice + 1}. **${nivel.nome}** · ` +
-                    `${tiposAlteracaoEpe[agendamento.tipo]} · ` +
-                    `${formatarDataHoraEpe(agendamento.inicio)} — ` +
-                    `${formatarDataHoraEpe(agendamento.fim)}`
-                );
-            }).join('\n');
+            const chave = chaveIntroduzida || chaveGuardada;
+
+            if (!chave) {
+                campo.focus();
+                throw new Error('Introduza a chave de operador para submeter a alteração.');
+            }
+
+            return chave;
         }
 
-        function abrirPedidoGithubEpe(agendamentos) {
-            const payload = criarPayloadPedidoEpe(agendamentos);
-            const titulo = '[EPE] Atualizar agenda operacional';
-            const corpo = [
-                '## Pedido gerado pelo Dashboard ANEPC',
-                '',
-                'Confirme este pedido através do botão **Submit new issue**.',
-                'A agenda só será alterada depois da validação automática do GitHub.',
-                '',
-                '### Agenda pretendida',
-                criarResumoPedidoEpe(agendamentos),
-                '',
-                '<!-- EPE_REQUEST_V1',
-                JSON.stringify(payload),
-                '-->'
-            ].join('\n');
-            const parametros = new URLSearchParams({ title: titulo, body: corpo });
-            const janela = window.open(
-                `${urlNovoPedidoEpe}?${parametros.toString()}`,
-                '_blank'
-            );
+        function guardarChaveOperadorEpe(chave) {
+            try {
+                window.sessionStorage.setItem(chaveOperadorEpeSessao, chave);
+            } catch (erro) {
+                console.warn('Não foi possível guardar a chave de operador na sessão:', erro);
+            }
+        }
 
-            if (!janela) {
+        function apagarChaveOperadorEpe() {
+            try {
+                window.sessionStorage.removeItem(chaveOperadorEpeSessao);
+            } catch (erro) {
+                console.warn('Não foi possível remover a chave de operador da sessão:', erro);
+            }
+        }
+
+        async function submeterPedidoEpe(agendamentos) {
+            const campoChave = document.getElementById('epe-chave-operador');
+            const chave = lerChaveOperadorEpe();
+            let resposta;
+
+            try {
+                resposta = await fetch(urlServicoEpe, {
+                    method: 'POST',
+                    headers: {
+                        Authorization: `Bearer ${chave}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(criarPayloadPedidoEpe(agendamentos))
+                });
+            } catch (erro) {
                 throw new Error(
-                    'O navegador bloqueou a janela do GitHub. Permita pop-ups e tente novamente.'
+                    'Não foi possível contactar o serviço EPE. Verifique a ligação e tente novamente.'
                 );
             }
 
-            janela.opener = null;
+            let resultado = null;
+
+            try {
+                resultado = await resposta.json();
+            } catch (erro) {
+                console.warn('O serviço EPE devolveu uma resposta inválida:', erro);
+            }
+
+            if (resposta.status !== 202 || resultado?.ok !== true) {
+                if (resposta.status === 401) {
+                    apagarChaveOperadorEpe();
+                    campoChave.value = '';
+                    campoChave.focus();
+                }
+
+                throw new Error(
+                    resultado?.error ||
+                    `O serviço EPE recusou o pedido (HTTP ${resposta.status}).`
+                );
+            }
+
+            guardarChaveOperadorEpe(chave);
+            campoChave.value = '';
+            return resultado;
         }
 
         function assinaturaAgendaEpe(agendamentos) {
@@ -3074,8 +3153,7 @@
             agendamentosEpe = agendamentos;
             ultimaLeituraEpe = new Date();
             avisoAtualizacaoEpe = (
-                'Alteração apresentada. Confirme o pedido aberto no GitHub para ' +
-                'concluir a gravação em epe.csv.'
+                'Pedido aceite pelo serviço protegido. A aguardar a sincronização de epe.csv.'
             );
             epeJaCarregado = true;
             renderizarEpe();
@@ -3084,13 +3162,13 @@
             agendarRefreshPaginaEpe();
         }
 
-        function submeterFormularioEpe() {
+        async function submeterFormularioEpe() {
             const botao = document.getElementById('submeter-epe');
 
             try {
                 botao.disabled = true;
                 const agendamentos = criarAgendaFormularioEpe();
-                abrirPedidoGithubEpe(agendamentos);
+                await submeterPedidoEpe(agendamentos);
                 apresentarAgendaPendenteEpe(agendamentos);
             } catch (erro) {
                 mostrarMensagemFormularioEpe(erro.message, true);
@@ -3099,7 +3177,7 @@
             }
         }
 
-        function apagarSlotFormularioEpe(slot) {
+        async function apagarSlotFormularioEpe(slot) {
             const botao = slot.querySelector('.epe-form-apagar');
 
             try {
@@ -3119,7 +3197,7 @@
                 }
 
                 const agendamentos = criarAgendaSemSlotEpe(slot);
-                abrirPedidoGithubEpe(agendamentos);
+                await submeterPedidoEpe(agendamentos);
                 apresentarAgendaPendenteEpe(agendamentos);
             } catch (erro) {
                 mostrarMensagemFormularioEpe(erro.message, true);
@@ -3294,8 +3372,7 @@
             ) {
                 agendamentosEpe = agendaPendente.agendamentos;
                 avisoAtualizacaoEpe = (
-                    'Alteração apresentada. Confirme o pedido aberto no GitHub para ' +
-                    'concluir a gravação em epe.csv.'
+                    'Pedido aceite pelo serviço protegido. A aguardar a sincronização de epe.csv.'
                 );
             } else {
                 agendamentosEpe = agendaRemota;
