@@ -116,7 +116,11 @@ test('Dashboard autenticado', async (suite) => {
     assert.deepEqual(rootSession.data.user.permissions, {
       view_dashboard: true,
       manage_epe: true,
-      manage_users: true
+      manage_users: true,
+      view_contacts: true,
+      manage_contacts: true,
+      view_knowledge: true,
+      manage_knowledge: true
     });
 
     const protectedPage = await worker.fetch(new Request('https://worker.test/', {
@@ -138,7 +142,13 @@ test('Dashboard autenticado', async (suite) => {
       headers: { Cookie: rootSession.cookie }
     }), env);
     assert.equal(protectedPage.status, 200);
-    assert.match(await protectedPage.text(), /<p>\/<\/p>/);
+    assert.match(await protectedPage.text(), /<p>\/index\.html<\/p>/);
+
+    const dashboardPage = await worker.fetch(new Request('https://worker.test/dashboard.html', {
+      headers: { Cookie: rootSession.cookie }
+    }), env);
+    assert.equal(dashboardPage.status, 200);
+    assert.match(await dashboardPage.text(), /<p>\/dashboard\.html<\/p>/);
   });
 
   await suite.test('recusa contas fora de @prociv.pt', async () => {
@@ -169,7 +179,11 @@ test('Dashboard autenticado', async (suite) => {
         permissions: {
           view_dashboard: true,
           manage_epe: true,
-          manage_users: true
+          manage_users: true,
+          view_contacts: true,
+          manage_contacts: true,
+          view_knowledge: true,
+          manage_knowledge: true
         }
       }
     }), env);
@@ -178,6 +192,8 @@ test('Dashboard autenticado', async (suite) => {
     assert.equal(data.user.email, 'joao.silverio@prociv.pt');
     assert.equal(data.user.must_change_password, true);
     assert.equal(data.user.permissions.manage_users, true);
+    assert.equal(data.user.permissions.manage_contacts, true);
+    assert.equal(data.user.permissions.manage_knowledge, true);
   });
 
   await suite.test('a conta institucional também é bloqueada até mudar a password', async () => {
@@ -227,6 +243,34 @@ test('Dashboard autenticado', async (suite) => {
       body: { versao: 1, timezone: 'Europe/Lisbon', agendamentos: [] }
     }), env);
     assert.equal(response.status, 403);
+  });
+
+  await suite.test('uma conta da Lista Telefónica entra no Portal sem abrir o Dashboard', async () => {
+    const create = await worker.fetch(apiRequest('/api/admin/users', {
+      method: 'POST',
+      cookie: rootSession.cookie,
+      csrf: rootSession.data.csrf_token,
+      body: {
+        email: 'contactos@prociv.pt',
+        display_name: 'Consulta de Contactos',
+        temporary_password: 'ContactosTemp!2026',
+        permissions: { view_contacts: true }
+      }
+    }), env);
+    assert.equal(create.status, 201);
+
+    let session = await login(env, 'contactos@prociv.pt', 'ContactosTemp!2026');
+    session = await changePassword(env, session, 'ContactosTemp!2026', 'ContactosFinal!2026');
+
+    const portal = await worker.fetch(new Request('https://worker.test/', {
+      headers: { Cookie: session.cookie }
+    }), env);
+    assert.equal(portal.status, 200);
+
+    const dashboard = await worker.fetch(new Request('https://worker.test/dashboard.html', {
+      headers: { Cookie: session.cookie }
+    }), env);
+    assert.equal(dashboard.status, 403);
   });
 
   await suite.test('uma conta Operador gere EPE sem chave adicional', async () => {

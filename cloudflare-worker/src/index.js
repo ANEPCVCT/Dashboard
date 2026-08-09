@@ -101,7 +101,11 @@ function securityHeaders(headers, contentType = '') {
 }
 
 async function serveAsset(request, env) {
-  const response = await env.ASSETS.fetch(request);
+  const url = new URL(request.url);
+  const assetRequest = url.pathname === '/'
+    ? new Request(new URL('/index.html', url), request)
+    : request;
+  const response = await env.ASSETS.fetch(assetRequest);
   const headers = securityHeaders(new Headers(response.headers), response.headers.get('Content-Type') || '');
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 }
@@ -133,6 +137,25 @@ function validatePayload(payload) {
       }
     }
   });
+}
+
+function assetPermission(pathname) {
+  let decodedPath = pathname;
+  try {
+    decodedPath = decodeURIComponent(pathname);
+  } catch {
+    // Mantém o caminho original; o serviço de assets tratará o pedido inválido.
+  }
+  if (
+    decodedPath === '/dashboard.html' ||
+    decodedPath === '/tracadovct.png' ||
+    /^\/IRI (Reduzido|Moderado|Elevado|Muito Elevado|Maximo)\//.test(decodedPath)
+  ) {
+    return 'access_dashboard';
+  }
+  if (decodedPath.startsWith('/lista-telefonica/')) return 'access_contacts';
+  if (decodedPath.startsWith('/base-conhecimento/')) return 'access_knowledge';
+  return 'access';
 }
 
 async function handleEpeSubmission(request, env, user) {
@@ -252,7 +275,7 @@ export default {
       return serveAsset(request, env);
     }
 
-    const auth = await authorize(request, env, 'access');
+    const auth = await authorize(request, env, assetPermission(url.pathname));
     if (auth.status === 401) {
       const next = encodeURIComponent(`${url.pathname}${url.search}`);
       return redirectTo(`/login.html?next=${next}`);
