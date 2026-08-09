@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acesso reservado — Dashboard ANEPC</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --brand: #a7191f;
+            --ink: #18232d;
+            --muted: #63717c;
+            --line: #cbd3d9;
+            --page: #e8ecef;
+        }
+
+        * { box-sizing: border-box; }
+
+        html, body { min-height: 100%; margin: 0; }
+
+        body {
+            display: grid;
+            place-items: center;
+            min-height: 100vh;
+            padding: 24px;
+            background:
+                linear-gradient(135deg, rgb(167 25 31 / 8%), transparent 42%),
+                var(--page);
+            color: var(--ink);
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        .login-shell {
+            width: min(100%, 460px);
+            overflow: hidden;
+            border: 1px solid #b7c0c7;
+            border-radius: 12px;
+            background: #ffffff;
+            box-shadow: 0 18px 44px rgb(34 48 58 / 18%);
+        }
+
+        .login-header {
+            display: grid;
+            grid-template-columns: 82px 1fr;
+            align-items: center;
+            gap: 16px;
+            padding: 22px 24px 18px;
+            border-bottom: 4px solid var(--brand);
+        }
+
+        .login-header img { width: 82px; height: 82px; object-fit: contain; }
+        .login-header h1 { margin: 0; font-size: 24px; line-height: 1.1; }
+        .login-header p { margin: 7px 0 0; color: var(--muted); font-size: 14px; font-weight: 700; }
+
+        .login-body { padding: 24px; }
+        .login-body h2 { margin: 0 0 8px; font-size: 20px; }
+        .login-intro { margin: 0 0 20px; color: var(--muted); font-size: 14px; line-height: 1.45; }
+
+        form { display: grid; gap: 15px; }
+        label { display: grid; gap: 6px; font-size: 13px; font-weight: 800; }
+        input {
+            width: 100%;
+            min-height: 44px;
+            padding: 9px 11px;
+            border: 1px solid #89969f;
+            border-radius: 6px;
+            color: var(--ink);
+            font: 700 15px Arial, Helvetica, sans-serif;
+        }
+        input:focus { border-color: var(--brand); outline: 3px solid rgb(167 25 31 / 14%); }
+
+        button {
+            min-height: 44px;
+            border: 1px solid #8f1117;
+            border-radius: 6px;
+            background: var(--brand);
+            color: #ffffff;
+            font: 800 14px Arial, Helvetica, sans-serif;
+            cursor: pointer;
+        }
+        button:disabled { cursor: wait; opacity: 0.65; }
+
+        .mensagem {
+            min-height: 20px;
+            margin: 2px 0 0;
+            color: #94131a;
+            font-size: 13px;
+            font-weight: 800;
+            line-height: 1.35;
+        }
+        .mensagem.sucesso { color: #21642a; }
+
+        .seguranca {
+            margin: 20px 0 0;
+            padding-top: 16px;
+            border-top: 1px solid var(--line);
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.45;
+        }
+
+        [hidden] { display: none !important; }
+
+        @media (max-width: 520px) {
+            body { padding: 12px; }
+            .login-header { grid-template-columns: 64px 1fr; padding: 18px; }
+            .login-header img { width: 64px; height: 64px; }
+            .login-header h1 { font-size: 20px; }
+            .login-body { padding: 20px 18px; }
+        }
+    </style>
+</head>
+<body>
+    <main class="login-shell">
+        <header class="login-header">
+            <img src="anepc_logo.png" alt="Logótipo da ANEPC">
+            <div>
+                <h1>Dashboard Operacional</h1>
+                <p>Comando Sub-Regional do Alto Minho</p>
+            </div>
+        </header>
+
+        <section class="login-body">
+            <div id="painel-login">
+                <h2>Acesso reservado</h2>
+                <p class="login-intro">
+                    Introduza o email associado à sua conta e a respetiva palavra-passe.
+                </p>
+                <form id="form-login">
+                    <label>
+                        Email
+                        <input id="login-email" type="email" autocomplete="username" required>
+                    </label>
+                    <label>
+                        Palavra-passe
+                        <input id="login-password" type="password" autocomplete="current-password" required>
+                    </label>
+                    <p class="mensagem" id="login-mensagem" aria-live="polite"></p>
+                    <button id="login-botao" type="submit">Entrar</button>
+                </form>
+            </div>
+
+            <div id="painel-alterar" hidden>
+                <h2>Alterar palavra-passe provisória</h2>
+                <p class="login-intro">
+                    Por segurança, a conta permanece bloqueada até substituir a palavra-passe
+                    atribuída pelo administrador.
+                </p>
+                <form id="form-alterar">
+                    <label>
+                        Palavra-passe provisória atual
+                        <input id="password-atual" type="password" autocomplete="current-password" required>
+                    </label>
+                    <label>
+                        Nova palavra-passe
+                        <input id="password-nova" type="password" autocomplete="new-password" minlength="12" required>
+                    </label>
+                    <label>
+                        Confirmar nova palavra-passe
+                        <input id="password-confirmar" type="password" autocomplete="new-password" minlength="12" required>
+                    </label>
+                    <p class="mensagem" id="alterar-mensagem" aria-live="polite"></p>
+                    <button id="alterar-botao" type="submit">Guardar nova palavra-passe</button>
+                </form>
+            </div>
+
+            <p class="seguranca">
+                As palavras-passe nunca são guardadas em texto legível. Após várias tentativas
+                incorretas, o acesso fica temporariamente bloqueado.
+            </p>
+        </section>
+    </main>
+
+    <script>
+        'use strict';
+
+        let csrfToken = '';
+
+        function destinoSeguro() {
+            const next = new URLSearchParams(window.location.search).get('next') || '/';
+            return next.startsWith('/') && !next.startsWith('//') ? next : '/';
+        }
+
+        function mostrarAlteracao(mensagem = '') {
+            document.getElementById('painel-login').hidden = true;
+            document.getElementById('painel-alterar').hidden = false;
+            document.getElementById('alterar-mensagem').textContent = mensagem;
+            document.getElementById('password-atual').focus();
+        }
+
+        async function pedido(url, options = {}) {
+            const headers = new Headers(options.headers || {});
+            headers.set('Content-Type', 'application/json');
+            headers.set('X-Dashboard-Request', '1');
+            if (csrfToken) headers.set('X-CSRF-Token', csrfToken);
+            const response = await fetch(url, { ...options, headers, credentials: 'same-origin' });
+            let data = null;
+            try { data = await response.json(); } catch { data = {}; }
+            return { response, data };
+        }
+
+        document.getElementById('form-login').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const button = document.getElementById('login-botao');
+            const message = document.getElementById('login-mensagem');
+            button.disabled = true;
+            message.textContent = '';
+            try {
+                const { response, data } = await pedido('/api/login', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        email: document.getElementById('login-email').value.trim(),
+                        password: document.getElementById('login-password').value
+                    })
+                });
+                if (!response.ok || data.ok !== true) throw new Error(data.error || 'Não foi possível iniciar sessão.');
+                csrfToken = data.csrf_token;
+                if (data.user.must_change_password) {
+                    mostrarAlteracao();
+                } else {
+                    window.location.replace(destinoSeguro());
+                }
+            } catch (error) {
+                message.textContent = error.message;
+            } finally {
+                button.disabled = false;
+            }
+        });
+
+        document.getElementById('form-alterar').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const button = document.getElementById('alterar-botao');
+            const message = document.getElementById('alterar-mensagem');
+            const currentPassword = document.getElementById('password-atual').value;
+            const newPassword = document.getElementById('password-nova').value;
+            const confirmation = document.getElementById('password-confirmar').value;
+            message.classList.remove('sucesso');
+            message.textContent = '';
+            if (newPassword !== confirmation) {
+                message.textContent = 'A confirmação não coincide com a nova palavra-passe.';
+                return;
+            }
+            button.disabled = true;
+            try {
+                const { response, data } = await pedido('/api/change-password', {
+                    method: 'POST',
+                    body: JSON.stringify({ current_password: currentPassword, new_password: newPassword })
+                });
+                if (!response.ok || data.ok !== true) throw new Error(data.error || 'Não foi possível alterar a palavra-passe.');
+                message.classList.add('sucesso');
+                message.textContent = 'Palavra-passe alterada. A entrar…';
+                window.setTimeout(() => window.location.replace(destinoSeguro()), 500);
+            } catch (error) {
+                message.textContent = error.message;
+            } finally {
+                button.disabled = false;
+            }
+        });
+
+        (async () => {
+            try {
+                const response = await fetch('/api/session', { cache: 'no-store', credentials: 'same-origin' });
+                if (!response.ok) return;
+                const data = await response.json();
+                csrfToken = data.csrf_token;
+                if (data.user.must_change_password) mostrarAlteracao();
+                else window.location.replace(destinoSeguro());
+            } catch {
+                document.getElementById('login-mensagem').textContent = 'Não foi possível contactar o serviço de acesso.';
+            }
+        })();
+    </script>
+</body>
+</html>
