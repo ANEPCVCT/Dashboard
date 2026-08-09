@@ -1,0 +1,8 @@
+{
+  "status": "failure",
+  "deployment_url": null,
+  "health_url": null,
+  "workflow_run": "https://github.com/ANEPCVCT/Dashboard/actions/runs/31314949225",
+  "source_commit": "344edff8f6ed1c750aa807cb7d61143025d57152",
+  "checked_at": "2026-08-09T13:06:35.643642Z"
+}
