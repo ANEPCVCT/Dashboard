@@ -2,8 +2,14 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
-const dashboard = await readFile(new URL('../../index.html', import.meta.url), 'utf8');
+const dashboard = await readFile(new URL('../assets/dashboard.html', import.meta.url), 'utf8');
+const publicDashboard = await readFile(new URL('../../index.html', import.meta.url), 'utf8');
 const login = await readFile(new URL('../../login.html', import.meta.url), 'utf8');
+
+test('Dashboard público antigo', () => {
+  assert.doesNotMatch(publicDashboard, /\/api\/session|window\.location\.replace\('\/login\.html/);
+  assert.match(publicDashboard, /Dashboard Operacional — Alto Minho/);
+});
 
 test('Cliente protegido', async (suite) => {
   await suite.test('remove completamente a chave de operador', () => {
