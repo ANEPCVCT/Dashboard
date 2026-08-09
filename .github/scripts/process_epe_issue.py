@@ -103,8 +103,8 @@ def validate_payload(payload: dict, now: datetime | None = None) -> list[Schedul
     if not isinstance(entries, list):
         raise RequestError("A lista de agendamentos está em falta.")
 
-    if len(entries) > 3:
-        raise RequestError("Só podem existir até três determinações EPE.")
+    if len(entries) > 4:
+        raise RequestError("Só podem existir até quatro determinações EPE.")
 
     current_time = now or datetime.now(TIMEZONE)
     schedules: list[Schedule] = []
