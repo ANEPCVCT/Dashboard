@@ -1,4 +1,4 @@
-name: Deploy EPE Worker
+name: Deploy Dashboard protegido
 
 on:
   workflow_dispatch:
@@ -7,14 +7,14 @@ permissions:
   contents: read
 
 concurrency:
-  group: deploy-epe-worker
+  group: deploy-dashboard-worker
   cancel-in-progress: false
 
 jobs:
   deploy:
-    name: Testar e publicar Worker
+    name: Testar e publicar Dashboard
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - name: Obter o repositório
@@ -24,23 +24,60 @@ jobs:
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          EPE_OPERATOR_KEY: ${{ secrets.EPE_OPERATOR_KEY }}
+          DASHBOARD_ROOT_EMAIL: ${{ secrets.DASHBOARD_ROOT_EMAIL }}
+          DASHBOARD_ROOT_INITIAL_PASSWORD: ${{ secrets.DASHBOARD_ROOT_INITIAL_PASSWORD }}
+          DASHBOARD_PASSWORD_PEPPER: ${{ secrets.DASHBOARD_PASSWORD_PEPPER }}
           EPE_GITHUB_TOKEN: ${{ secrets.EPE_GITHUB_TOKEN }}
         run: |
           test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "Falta o segredo CLOUDFLARE_ACCOUNT_ID."; exit 1; }
           test -n "$CLOUDFLARE_API_TOKEN" || { echo "Falta o segredo CLOUDFLARE_API_TOKEN."; exit 1; }
-          test -n "$EPE_OPERATOR_KEY" || { echo "Falta o segredo EPE_OPERATOR_KEY."; exit 1; }
+          test -n "$DASHBOARD_ROOT_EMAIL" || { echo "Falta o segredo DASHBOARD_ROOT_EMAIL."; exit 1; }
+          test -n "$DASHBOARD_ROOT_INITIAL_PASSWORD" || { echo "Falta o segredo DASHBOARD_ROOT_INITIAL_PASSWORD."; exit 1; }
+          test -n "$DASHBOARD_PASSWORD_PEPPER" || { echo "Falta o segredo DASHBOARD_PASSWORD_PEPPER."; exit 1; }
           test -n "$EPE_GITHUB_TOKEN" || { echo "Falta o segredo EPE_GITHUB_TOKEN."; exit 1; }
           [[ "$CLOUDFLARE_ACCOUNT_ID" =~ ^[A-Za-z0-9_-]+$ ]] || {
-            echo "CLOUDFLARE_ACCOUNT_ID contém caracteres inválidos. Copie apenas o Account ID, sem rótulos, espaços ou aspas."
+            echo "CLOUDFLARE_ACCOUNT_ID contém caracteres inválidos."
+            exit 1
+          }
+          [[ "${DASHBOARD_ROOT_EMAIL,,}" == *@gmail.com ]] || {
+            echo "DASHBOARD_ROOT_EMAIL deve ser a conta Gmail do ADMIN principal."
+            exit 1
+          }
+          [ "${#DASHBOARD_ROOT_INITIAL_PASSWORD}" -ge 12 ] || {
+            echo "DASHBOARD_ROOT_INITIAL_PASSWORD deve ter pelo menos 12 caracteres."
+            exit 1
+          }
+          [ "${#DASHBOARD_PASSWORD_PEPPER}" -ge 32 ] || {
+            echo "DASHBOARD_PASSWORD_PEPPER deve ter pelo menos 32 caracteres."
             exit 1
           }
 
-      - name: Testar o Worker
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: cloudflare-worker/package-lock.json
+
+      - name: Instalar dependências
+        working-directory: cloudflare-worker
+        run: npm ci
+
+      - name: Testar autenticação e EPE
         working-directory: cloudflare-worker
         run: npm test
 
-      - name: Publicar o Worker
+      - name: Preparar ficheiros privados do Dashboard
+        run: |
+          rm -rf cloudflare-worker/public
+          mkdir -p cloudflare-worker/public
+          cp index.html login.html anepc_logo.png tracadovct.png cloudflare-worker/public/
+          for directory in "IRI Reduzido" "IRI Moderado" "IRI Elevado" "IRI Muito Elevado" "IRI Maximo"; do
+            test -d "$directory" || { echo "Pasta em falta: $directory"; exit 1; }
+            cp -R "$directory" cloudflare-worker/public/
+          done
+
+      - name: Publicar o Dashboard protegido
         id: deploy
         uses: cloudflare/wrangler-action@v4
         with:
@@ -49,19 +86,23 @@ jobs:
           workingDirectory: cloudflare-worker
           command: deploy
           secrets: |
-            EPE_OPERATOR_KEY
+            DASHBOARD_ROOT_EMAIL
+            DASHBOARD_ROOT_INITIAL_PASSWORD
+            DASHBOARD_PASSWORD_PEPPER
             GITHUB_TOKEN
         env:
-          EPE_OPERATOR_KEY: ${{ secrets.EPE_OPERATOR_KEY }}
+          DASHBOARD_ROOT_EMAIL: ${{ secrets.DASHBOARD_ROOT_EMAIL }}
+          DASHBOARD_ROOT_INITIAL_PASSWORD: ${{ secrets.DASHBOARD_ROOT_INITIAL_PASSWORD }}
+          DASHBOARD_PASSWORD_PEPPER: ${{ secrets.DASHBOARD_PASSWORD_PEPPER }}
           GITHUB_TOKEN: ${{ secrets.EPE_GITHUB_TOKEN }}
 
-      - name: Validar o endpoint publicado
+      - name: Validar o Worker publicado
         env:
           DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
         run: |
           test -n "$DEPLOYMENT_URL" || { echo "A Cloudflare não devolveu o URL da implantação."; exit 1; }
           HEALTH_URL="${DEPLOYMENT_URL%/}/health"
-          RESPONSE="$(curl --fail --silent --show-error --retry 5 --retry-all-errors --retry-delay 3 \
-            -H 'Origin: https://anepcvct.github.io' "$HEALTH_URL")"
+          RESPONSE="$(curl --fail --silent --show-error --retry 8 --retry-all-errors --retry-delay 4 "$HEALTH_URL")"
           printf '%s' "$RESPONSE" | python -c \
-            'import json, sys; data = json.load(sys.stdin); assert data == {"ok": True, "service": "dashboard-anepc-epe"}'
+            'import json, sys; data = json.load(sys.stdin); assert data == {"ok": True, "service": "dashboard-anepc"}'
+
