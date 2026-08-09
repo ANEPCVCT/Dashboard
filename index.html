@@ -2623,6 +2623,19 @@
             seletor.appendChild(criarOpcaoEpe(valor, valor));
         }
 
+        function atualizarOpcoesDiaSlotFormularioEpe(slot) {
+            const indice = Number(slot.dataset.indice);
+            const seletores = [
+                slot.querySelector(`#epe-inicio-dia-${indice}`),
+                slot.querySelector(`#epe-fim-dia-${indice}`)
+            ];
+
+            seletores.forEach((seletor) => {
+                seletor.replaceChildren();
+                preencherOpcoesDiaEpe(seletor);
+            });
+        }
+
         function envolverCampoEpe(rotulo, controlo) {
             const campo = document.createElement('label');
             const texto = document.createElement('span');
@@ -2752,7 +2765,10 @@
 
             const slots = [...document.querySelectorAll('.epe-form-slot')];
 
-            slots.forEach(limparSlotFormularioEpe);
+            slots.forEach((slot) => {
+                atualizarOpcoesDiaSlotFormularioEpe(slot);
+                limparSlotFormularioEpe(slot);
+            });
             agendamentosEpe.slice(0, maximoAgendamentosEpe).forEach((agendamento, indice) => {
                 const slot = slots[indice];
                 const inicio = formatarParaCamposEpe(agendamento.inicio);
