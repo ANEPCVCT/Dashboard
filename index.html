@@ -1221,6 +1221,8 @@
                 <p class="epe-form-nota">
                     Configure até três determinações. Os períodos terminados deixam
                     automaticamente de aparecer e o estado regressa a Prontidão Normal.
+                    As horas são introduzidas manualmente ao minuto; a hora de fim
+                    sugerida é 23:59, mas pode ser alterada livremente.
                     Ao enviar, o GitHub abre um pedido já preenchido. Depois de o operador
                     confirmar o pedido, a agenda partilhada é validada e gravada em
                     <strong>epe.csv</strong> pelo próprio GitHub.
@@ -2585,17 +2587,6 @@
             }
         }
 
-        function preencherOpcoesHoraEpe(seletor) {
-            seletor.appendChild(criarOpcaoEpe('', 'Selecionar hora'));
-
-            for (let minutos = 0; minutos < 24 * 60; minutos += 5) {
-                const hora = preencherDoisAlgarismos(Math.floor(minutos / 60));
-                const minuto = preencherDoisAlgarismos(minutos % 60);
-                const valor = `${hora}:${minuto}`;
-                seletor.appendChild(criarOpcaoEpe(valor, valor));
-            }
-        }
-
         function garantirOpcaoEpe(seletor, valor) {
             if (!valor || [...seletor.options].some((opcao) => opcao.value === valor)) {
                 return;
@@ -2617,8 +2608,18 @@
         function limparSlotFormularioEpe(slot) {
             slot.dataset.agendamentoId = '';
             slot.querySelectorAll('select, input').forEach((campo) => {
-                campo.value = '';
+                campo.value = campo.dataset.valorPredefinido || '';
             });
+        }
+
+        function configurarCampoHoraEpe(campo, valorPredefinido = '') {
+            campo.type = 'time';
+            campo.step = '60';
+            campo.min = '00:00';
+            campo.max = '23:59';
+            campo.autocomplete = 'off';
+            campo.dataset.valorPredefinido = valorPredefinido;
+            campo.value = valorPredefinido;
         }
 
         function criarSlotFormularioEpe(indice) {
@@ -2627,9 +2628,9 @@
             const nivel = document.createElement('select');
             const tipo = document.createElement('select');
             const inicioDia = document.createElement('select');
-            const inicioHora = document.createElement('select');
+            const inicioHora = document.createElement('input');
             const fimDia = document.createElement('select');
-            const fimHora = document.createElement('select');
+            const fimHora = document.createElement('input');
             const limpar = document.createElement('button');
 
             slot.className = 'epe-form-slot';
@@ -2658,9 +2659,9 @@
             fimDia.id = `epe-fim-dia-${indice}`;
             fimHora.id = `epe-fim-hora-${indice}`;
             preencherOpcoesDiaEpe(inicioDia);
-            preencherOpcoesHoraEpe(inicioHora);
             preencherOpcoesDiaEpe(fimDia);
-            preencherOpcoesHoraEpe(fimHora);
+            configurarCampoHoraEpe(inicioHora);
+            configurarCampoHoraEpe(fimHora, '23:59');
 
             limpar.className = 'epe-botao epe-form-limpar';
             limpar.type = 'button';
@@ -2672,9 +2673,9 @@
                 envolverCampoEpe('Estado / nível', nivel),
                 envolverCampoEpe('Alteração', tipo),
                 envolverCampoEpe('Dia de início', inicioDia),
-                envolverCampoEpe('Hora de início', inicioHora),
+                envolverCampoEpe('Hora de início (HH:MM)', inicioHora),
                 envolverCampoEpe('Dia de fim', fimDia),
-                envolverCampoEpe('Hora de fim', fimHora),
+                envolverCampoEpe('Hora de fim (sugerida: 23:59)', fimHora),
                 limpar
             );
 
@@ -2706,9 +2707,7 @@
                 slot.querySelector(`#epe-nivel-${indice}`).value = agendamento.nivel;
                 slot.querySelector(`#epe-tipo-${indice}`).value = agendamento.tipo;
                 garantirOpcaoEpe(inicioDia, inicio.dia);
-                garantirOpcaoEpe(inicioHora, inicio.hora);
                 garantirOpcaoEpe(fimDia, fim.dia);
-                garantirOpcaoEpe(fimHora, fim.hora);
                 inicioDia.value = inicio.dia;
                 inicioHora.value = inicio.hora;
                 fimDia.value = fim.dia;
@@ -2730,14 +2729,21 @@
                 const fimDia = slot.querySelector(`#epe-fim-dia-${indice}`).value;
                 const fimHora = slot.querySelector(`#epe-fim-hora-${indice}`).value;
                 const valores = [nivel, tipo, inicioDia, inicioHora, fimDia, fimHora];
+                const valoresSemFimPredefinido = [
+                    nivel,
+                    tipo,
+                    inicioDia,
+                    inicioHora,
+                    fimDia
+                ];
 
-                if (valores.every((valor) => !valor)) {
+                if (valoresSemFimPredefinido.every((valor) => !valor)) {
                     return;
                 }
 
                 if (valores.some((valor) => !valor)) {
                     throw new Error(
-                        `Determinação ${indice + 1}: preencha os seis seletores ou limpe a linha.`
+                        `Determinação ${indice + 1}: preencha os seis campos ou limpe a linha.`
                     );
                 }
 
