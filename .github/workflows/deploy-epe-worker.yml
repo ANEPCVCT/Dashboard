@@ -1,0 +1,52 @@
+name: Deploy EPE Worker
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-epe-worker
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Testar e publicar Worker
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Obter o repositório
+        uses: actions/checkout@v6
+
+      - name: Confirmar configuração protegida
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          EPE_OPERATOR_KEY: ${{ secrets.EPE_OPERATOR_KEY }}
+          EPE_GITHUB_TOKEN: ${{ secrets.EPE_GITHUB_TOKEN }}
+        run: |
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "Falta o segredo CLOUDFLARE_ACCOUNT_ID."; exit 1; }
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo "Falta o segredo CLOUDFLARE_API_TOKEN."; exit 1; }
+          test -n "$EPE_OPERATOR_KEY" || { echo "Falta o segredo EPE_OPERATOR_KEY."; exit 1; }
+          test -n "$EPE_GITHUB_TOKEN" || { echo "Falta o segredo EPE_GITHUB_TOKEN."; exit 1; }
+
+      - name: Testar o Worker
+        working-directory: cloudflare-worker
+        run: npm test
+
+      - name: Publicar o Worker
+        id: deploy
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: cloudflare-worker
+          command: deploy
+          secrets: |
+            EPE_OPERATOR_KEY
+            GITHUB_TOKEN
+        env:
+          EPE_OPERATOR_KEY: ${{ secrets.EPE_OPERATOR_KEY }}
+          GITHUB_TOKEN: ${{ secrets.EPE_GITHUB_TOKEN }}
