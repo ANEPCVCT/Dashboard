@@ -2,11 +2,6 @@ name: Deploy EPE Worker
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - .github/workflows/deploy-epe-worker.yml
 
 permissions:
   contents: read
@@ -44,20 +39,6 @@ jobs:
       - name: Testar o Worker
         working-directory: cloudflare-worker
         run: npm test
-
-      - name: Registar o subdomínio workers.dev
-        env:
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: |
-          RESPONSE="$(curl --fail-with-body --silent --show-error \
-            --request PUT \
-            --header "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-            --header 'Content-Type: application/json' \
-            --data '{"subdomain":"anepcvct"}' \
-            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/subdomain")"
-          printf '%s' "$RESPONSE" | python -c \
-            'import json, sys; data = json.load(sys.stdin); assert data.get("success") is True; assert data.get("result", {}).get("subdomain") == "anepcvct"'
 
       - name: Publicar o Worker
         id: deploy
