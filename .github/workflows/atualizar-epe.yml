@@ -1,0 +1,72 @@
+name: Atualizar agenda EPE
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: atualizar-agenda-epe
+  cancel-in-progress: false
+
+jobs:
+  atualizar:
+    if: github.event.issue.title == '[EPE] Atualizar agenda operacional'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Obter a versão atual do dashboard
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Validar o pedido e gerar epe.csv
+        id: validar
+        run: python3 .github/scripts/process_epe_issue.py
+
+      - name: Guardar a agenda no GitHub
+        id: guardar
+        if: success()
+        env:
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- epe.csv
+          if git diff --cached --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git commit -m "Atualizar agenda EPE (#${ISSUE_NUMBER})"
+          git pull --rebase origin main
+          git push origin HEAD:main
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Confirmar o pedido
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          CHANGED: ${{ steps.guardar.outputs.changed }}
+        run: |
+          if [ "$CHANGED" = "true" ]; then
+            MESSAGE="Agenda EPE validada e gravada em epe.csv. O dashboard irá reler os dados automaticamente."
+          else
+            MESSAGE="Pedido validado. A agenda pretendida já estava gravada em epe.csv."
+          fi
+          gh issue comment "$ISSUE_NUMBER" --body "$MESSAGE"
+          gh issue close "$ISSUE_NUMBER"
+
+      - name: Recusar um pedido inválido
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh issue comment "$ISSUE_NUMBER" --body "O pedido não foi aplicado: o autor não está autorizado ou os dados falharam a validação. Consulte o registo da validação: ${RUN_URL}"
+          gh issue close "$ISSUE_NUMBER"
