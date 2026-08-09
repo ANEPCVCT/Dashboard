@@ -13,8 +13,9 @@ versão protegida estar validada.
 - Toda a conta criada ou cuja password seja redefinida fica obrigada a trocar a password
   provisória antes de usar qualquer funcionalidade.
 
-As passwords são derivadas com PBKDF2-HMAC-SHA-256, 600 000 iterações, sal aleatório por
-conta e um pepper guardado apenas como segredo do Worker. As sessões usam cookies
+As passwords são derivadas com PBKDF2-HMAC-SHA-256, 100 000 iterações (máximo suportado
+pelo `workerd`), sal aleatório por conta e um pepper guardado apenas como segredo do
+Worker. As sessões usam cookies
 `HttpOnly`, `Secure` e `SameSite=Strict`, com proteção CSRF e bloqueio temporário após
 tentativas repetidas.
 
@@ -44,3 +45,10 @@ testes, copia apenas os ficheiros públicos necessários para o pacote privado e
 Worker paralelo `dashboard-anepc`, sem substituir o Worker EPE antigo durante a fase de
 validação. O endpoint público `/health` não contém dados operacionais;
 todo o restante conteúdo requer uma sessão autorizada.
+
+## Validação
+
+O workflow `.github/workflows/test-dashboard-worker.yml` corre em pull requests sem
+segredos e sem publicar. Além dos testes de regras e permissões, arranca o `workerd` com
+um Durable Object SQLite temporário e valida a página de login, PBKDF2, criação do ADMIN,
+cookie de sessão e bloqueio até à alteração da password provisória.
