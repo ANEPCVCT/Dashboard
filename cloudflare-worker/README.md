@@ -2,14 +2,20 @@
 
 Este Cloudflare Worker recebe os pedidos do Dashboard ANEPC, valida a origem e a chave de operador e aciona o workflow `atualizar-epe.yml` através de `workflow_dispatch`.
 
-## Configuração
+## Implantação protegida pelo GitHub Actions
 
-As variáveis públicas estão em `wrangler.toml`. Os seguintes valores são segredos e nunca devem ser gravados no repositório:
+O workflow `.github/workflows/deploy-epe-worker.yml` testa e publica o Worker sem gravar credenciais no repositório. Antes da primeira execução, devem existir estes **Repository secrets**:
 
-- `EPE_OPERATOR_KEY`: chave longa usada pelos postos autorizados;
-- `GITHUB_TOKEN`: fine-grained personal access token limitado ao repositório `ANEPCVCT/Dashboard`, com permissão **Actions: Read and write**.
+- `CLOUDFLARE_ACCOUNT_ID`: identificador da conta Cloudflare onde o Worker será criado;
+- `CLOUDFLARE_API_TOKEN`: token Cloudflare limitado à edição de Workers nessa conta;
+- `EPE_OPERATOR_KEY`: chave longa e exclusiva usada pelos postos autorizados;
+- `EPE_GITHUB_TOKEN`: fine-grained personal access token limitado ao repositório `ANEPCVCT/Dashboard`, com permissão **Actions: Read and write**.
 
-Configuração manual equivalente:
+Depois de configurados, executar manualmente o workflow **Deploy EPE Worker**. A Action valida a presença dos quatro segredos, corre os testes e publica `dashboard-anepc-epe` com `EPE_OPERATOR_KEY` e `GITHUB_TOKEN` guardados como segredos do Worker.
+
+## Configuração manual equivalente
+
+As variáveis públicas estão em `wrangler.toml`. Para uma implantação manual, os dois valores consumidos pelo Worker devem ser configurados como segredos e nunca gravados no repositório:
 
 ```bash
 npx wrangler secret put EPE_OPERATOR_KEY
