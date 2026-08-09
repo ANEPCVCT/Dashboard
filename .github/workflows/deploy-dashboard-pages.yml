@@ -1,0 +1,81 @@
+name: Deploy Portal em Pages
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-portal-pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Publicar acesso alternativo protegido
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Obter o repositório
+        uses: actions/checkout@v6
+
+      - name: Confirmar configuração Cloudflare
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "Falta o segredo CLOUDFLARE_ACCOUNT_ID."; exit 1; }
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo "Falta o segredo CLOUDFLARE_API_TOKEN."; exit 1; }
+          [[ "$CLOUDFLARE_ACCOUNT_ID" =~ ^[A-Za-z0-9_-]+$ ]] || {
+            echo "CLOUDFLARE_ACCOUNT_ID contém caracteres inválidos."
+            exit 1
+          }
+
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: cloudflare-worker/package-lock.json
+
+      - name: Instalar Wrangler fixado
+        working-directory: cloudflare-worker
+        run: npm ci
+
+      - name: Testar encaminhamento e cookies
+        working-directory: cloudflare-pages-gateway
+        run: npm test
+
+      - name: Criar ou localizar o projeto Pages
+        id: pages
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          WRANGLER="cloudflare-worker/node_modules/wrangler/bin/wrangler.js"
+          PROJECT="portal-anepc-alto-minho"
+          LIST="$RUNNER_TEMP/pages-projects.json"
+
+          node "$WRANGLER" pages project list --json > "$LIST"
+          if ! node cloudflare-pages-gateway/scripts/find-project-url.mjs "$PROJECT" "$LIST" >/dev/null 2>&1; then
+            node "$WRANGLER" pages project create "$PROJECT" --production-branch main
+            node "$WRANGLER" pages project list --json > "$LIST"
+          fi
+
+          URL="$(node cloudflare-pages-gateway/scripts/find-project-url.mjs "$PROJECT" "$LIST")"
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+
+      - name: Publicar o gateway Pages
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: cloudflare-pages-gateway
+          command: pages deploy public --project-name=portal-anepc-alto-minho --branch=main
+
+      - name: Validar página, login e armazenamento
+        env:
+          DEPLOYMENT_URL: ${{ steps.pages.outputs.url }}
+        working-directory: cloudflare-pages-gateway
+        run: node scripts/verify-deployment.mjs

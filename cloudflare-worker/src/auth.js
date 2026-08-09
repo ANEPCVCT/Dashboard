@@ -152,14 +152,16 @@ export function permissionsFrom(value = {}) {
   return {
     view_dashboard: value.view_dashboard === true,
     manage_epe: value.manage_epe === true,
-    manage_users: value.manage_users === true
+    manage_users: value.manage_users === true,
+    view_contacts: value.view_contacts === true,
+    manage_contacts: value.manage_contacts === true,
+    view_knowledge: value.view_knowledge === true,
+    manage_knowledge: value.manage_knowledge === true
   };
 }
 
 export function hasAnyPermission(permissions) {
-  return Boolean(
-    permissions.view_dashboard || permissions.manage_epe || permissions.manage_users
-  );
+  return Object.values(permissionsFrom(permissions)).some(Boolean);
 }
 
 export function publicUser(user, rootEmail = '') {

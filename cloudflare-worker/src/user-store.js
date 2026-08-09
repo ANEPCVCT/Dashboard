@@ -63,10 +63,35 @@ function permissionAllowed(user, permission) {
   const permissions = permissionsFrom(user.permissions);
   if (permission === 'access') return hasAnyPermission(permissions);
   if (permission === 'view_epe') return permissions.view_dashboard || permissions.manage_epe;
+  if (permission === 'access_dashboard') {
+    return permissions.view_dashboard || permissions.manage_epe || permissions.manage_users;
+  }
+  if (permission === 'access_contacts') {
+    return permissions.view_contacts || permissions.manage_contacts;
+  }
+  if (permission === 'access_knowledge') {
+    return permissions.view_knowledge || permissions.manage_knowledge;
+  }
   if (permission === 'view_dashboard') return permissions.view_dashboard;
   if (permission === 'manage_epe') return permissions.manage_epe;
   if (permission === 'manage_users') return permissions.manage_users;
+  if (permission === 'view_contacts') return permissions.view_contacts;
+  if (permission === 'manage_contacts') return permissions.manage_contacts;
+  if (permission === 'view_knowledge') return permissions.view_knowledge;
+  if (permission === 'manage_knowledge') return permissions.manage_knowledge;
   return false;
+}
+
+function rootPermissions() {
+  return {
+    view_dashboard: true,
+    manage_epe: true,
+    manage_users: true,
+    view_contacts: true,
+    manage_contacts: true,
+    view_knowledge: true,
+    manage_knowledge: true
+  };
 }
 
 export class UserStore {
@@ -101,11 +126,7 @@ export class UserStore {
         display_name: 'ADMIN principal',
         ...passwordRecord,
         must_change_password: true,
-        permissions: {
-          view_dashboard: true,
-          manage_epe: true,
-          manage_users: true
-        },
+        permissions: rootPermissions(),
         is_root_admin: true,
         active: true,
         failed_attempts: 0,
@@ -126,11 +147,7 @@ export class UserStore {
       email,
       is_root_admin: true,
       active: true,
-      permissions: {
-        view_dashboard: true,
-        manage_epe: true,
-        manage_users: true
-      }
+      permissions: rootPermissions()
     };
     if (JSON.stringify(protectedUser) !== JSON.stringify(user)) {
       protectedUser.updated_at = nowIso();

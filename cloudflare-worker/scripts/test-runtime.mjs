@@ -102,7 +102,32 @@ try {
   assert.equal(blockedDashboard.status, 302);
   assert.equal(blockedDashboard.headers.get('location'), '/login.html?change=1');
 
-  console.log('Runtime workerd: página, Durable Object, PBKDF2, sessão e primeiro login validados.');
+  const changePassword = await fetch(`${origin}/api/change-password`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Cookie': cookie,
+      'Origin': origin,
+      'X-Dashboard-Request': '1',
+      'X-CSRF-Token': identity.csrf_token
+    },
+    body: JSON.stringify({
+      current_password: initialPassword,
+      new_password: 'NovaRuntimeSegura!2026'
+    })
+  });
+  assert.equal(changePassword.status, 200);
+  assert.equal((await changePassword.json()).user.must_change_password, false);
+
+  const portal = await fetch(`${origin}/`, { headers: { Cookie: cookie } });
+  assert.equal(portal.status, 200);
+  assert.match(await portal.text(), /id="titulo-modulos"/);
+
+  const dashboard = await fetch(`${origin}/dashboard.html`, { headers: { Cookie: cookie } });
+  assert.equal(dashboard.status, 200);
+  assert.match(await dashboard.text(), /id="dashboard-grid"/);
+
+  console.log('Runtime workerd: login, Portal, Dashboard, Durable Object e sessão validados.');
 } finally {
   if (child.exitCode === null) child.kill('SIGTERM');
   await Promise.race([

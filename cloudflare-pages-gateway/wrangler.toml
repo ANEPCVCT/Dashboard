@@ -1,0 +1,7 @@
+name = "portal-anepc-alto-minho"
+pages_build_output_dir = "./public"
+compatibility_date = "2026-08-08"
+
+[[services]]
+binding = "PORTAL_WORKER"
+service = "dashboard-anepc"

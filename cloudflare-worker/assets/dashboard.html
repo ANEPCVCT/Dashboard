@@ -1166,6 +1166,9 @@
         }
 
         .sessao-botao {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
             min-height: 30px;
             padding: 5px 8px;
             border: 1px solid #7d8a93;
@@ -1173,6 +1176,7 @@
             background: #ffffff;
             color: #25323c;
             font: 800 clamp(9px, 0.6vw, 12px) Arial, Helvetica, sans-serif;
+            text-decoration: none;
             cursor: pointer;
         }
 
@@ -1366,6 +1370,7 @@
                 <time id="current-datetime"></time>
                 <div class="sessao-acoes">
                     <span class="sessao-utilizador" id="sessao-utilizador"></span>
+                    <a class="sessao-botao" href="/">Portal</a>
                     <button class="sessao-botao" id="abrir-utilizadores" type="button" hidden>Utilizadores</button>
                     <button class="sessao-botao" id="terminar-sessao" type="button">Sair</button>
                 </div>
@@ -1550,6 +1555,18 @@
                             </label>
                             <label class="utilizador-pisco">
                                 <input id="novo-permissao-utilizadores" type="checkbox"> Gerir utilizadores
+                            </label>
+                            <label class="utilizador-pisco">
+                                <input id="novo-permissao-contactos" type="checkbox"> Ver Lista Telefónica
+                            </label>
+                            <label class="utilizador-pisco">
+                                <input id="novo-permissao-gerir-contactos" type="checkbox"> Gerir Lista Telefónica
+                            </label>
+                            <label class="utilizador-pisco">
+                                <input id="novo-permissao-conhecimento" type="checkbox"> Ver Base de Conhecimento
+                            </label>
+                            <label class="utilizador-pisco">
+                                <input id="novo-permissao-gerir-conhecimento" type="checkbox"> Gerir Base de Conhecimento
                             </label>
                         </div>
                         <p class="utilizadores-mensagem" id="novo-utilizador-mensagem" aria-live="polite"></p>
@@ -3759,6 +3776,34 @@
                             utilizador.permissions.manage_users,
                             bloqueado
                         )}
+                        ${htmlPiscoUtilizador(
+                            utilizador.email,
+                            'view_contacts',
+                            'Ver Lista Telefónica',
+                            utilizador.permissions.view_contacts,
+                            bloqueado
+                        )}
+                        ${htmlPiscoUtilizador(
+                            utilizador.email,
+                            'manage_contacts',
+                            'Gerir Lista Telefónica',
+                            utilizador.permissions.manage_contacts,
+                            bloqueado
+                        )}
+                        ${htmlPiscoUtilizador(
+                            utilizador.email,
+                            'view_knowledge',
+                            'Ver Base de Conhecimento',
+                            utilizador.permissions.view_knowledge,
+                            bloqueado
+                        )}
+                        ${htmlPiscoUtilizador(
+                            utilizador.email,
+                            'manage_knowledge',
+                            'Gerir Base de Conhecimento',
+                            utilizador.permissions.manage_knowledge,
+                            bloqueado
+                        )}
                         <label class="utilizador-pisco">
                             <input data-campo="ativo" type="checkbox" ${utilizador.active ? 'checked' : ''} ${bloqueado ? 'disabled' : ''}>
                             Conta ativa
@@ -3816,7 +3861,11 @@
                             permissions: {
                                 view_dashboard: obterPermissao('view_dashboard'),
                                 manage_epe: obterPermissao('manage_epe'),
-                                manage_users: obterPermissao('manage_users')
+                                manage_users: obterPermissao('manage_users'),
+                                view_contacts: obterPermissao('view_contacts'),
+                                manage_contacts: obterPermissao('manage_contacts'),
+                                view_knowledge: obterPermissao('view_knowledge'),
+                                manage_knowledge: obterPermissao('manage_knowledge')
                             }
                         })
                     }
@@ -3860,7 +3909,11 @@
                         permissions: {
                             view_dashboard: document.getElementById('novo-permissao-dashboard').checked,
                             manage_epe: document.getElementById('novo-permissao-epe').checked,
-                            manage_users: document.getElementById('novo-permissao-utilizadores').checked
+                            manage_users: document.getElementById('novo-permissao-utilizadores').checked,
+                            view_contacts: document.getElementById('novo-permissao-contactos').checked,
+                            manage_contacts: document.getElementById('novo-permissao-gerir-contactos').checked,
+                            view_knowledge: document.getElementById('novo-permissao-conhecimento').checked,
+                            manage_knowledge: document.getElementById('novo-permissao-gerir-conhecimento').checked
                         }
                     })
                 });

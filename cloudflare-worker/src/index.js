@@ -135,6 +135,25 @@ function validatePayload(payload) {
   });
 }
 
+function assetPermission(pathname) {
+  let decodedPath = pathname;
+  try {
+    decodedPath = decodeURIComponent(pathname);
+  } catch {
+    // Mantém o caminho original; o serviço de assets tratará o pedido inválido.
+  }
+  if (
+    decodedPath === '/dashboard.html' ||
+    decodedPath === '/tracadovct.png' ||
+    /^\/IRI (Reduzido|Moderado|Elevado|Muito Elevado|Maximo)\//.test(decodedPath)
+  ) {
+    return 'access_dashboard';
+  }
+  if (decodedPath.startsWith('/lista-telefonica/')) return 'access_contacts';
+  if (decodedPath.startsWith('/base-conhecimento/')) return 'access_knowledge';
+  return 'access';
+}
+
 async function handleEpeSubmission(request, env, user) {
   if (!env.GITHUB_TOKEN) {
     return jsonResponse(503, { ok: false, error: 'O serviço EPE ainda não está configurado.' });
@@ -252,7 +271,7 @@ export default {
       return serveAsset(request, env);
     }
 
-    const auth = await authorize(request, env, 'access');
+    const auth = await authorize(request, env, assetPermission(url.pathname));
     if (auth.status === 401) {
       const next = encodeURIComponent(`${url.pathname}${url.search}`);
       return redirectTo(`/login.html?next=${next}`);

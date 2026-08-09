@@ -6,7 +6,9 @@ on:
       - main
     paths:
       - "cloudflare-worker/**"
+      - "cloudflare-pages-gateway/**"
       - ".github/workflows/test-dashboard-worker.yml"
+      - ".github/workflows/deploy-dashboard-pages.yml"
 
 permissions:
   contents: read
@@ -40,11 +42,16 @@ jobs:
         working-directory: cloudflare-worker
         run: npm test
 
+      - name: Testar gateway do Portal
+        working-directory: cloudflare-pages-gateway
+        run: npm test
+
       - name: Preparar ficheiros privados do Dashboard
         run: |
           rm -rf cloudflare-worker/public
           mkdir -p cloudflare-worker/public
-          cp cloudflare-worker/assets/dashboard.html cloudflare-worker/public/index.html
+          cp cloudflare-worker/assets/portal.html cloudflare-worker/public/index.html
+          cp cloudflare-worker/assets/dashboard.html cloudflare-worker/public/dashboard.html
           cp login.html anepc_logo.png tracadovct.png cloudflare-worker/public/
           for directory in "IRI Reduzido" "IRI Moderado" "IRI Elevado" "IRI Muito Elevado" "IRI Maximo"; do
             test -d "$directory" || { echo "Pasta em falta: $directory"; exit 1; }
