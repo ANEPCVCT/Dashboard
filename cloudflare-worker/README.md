@@ -41,6 +41,6 @@ Além dos segredos Cloudflare e GitHub já existentes, o workflow necessita de:
 
 O workflow `.github/workflows/deploy-epe-worker.yml` instala as dependências, executa os
 testes, copia apenas os ficheiros públicos necessários para o pacote privado e publica o
-Worker `dashboard-anepc-epe`. O endpoint público `/health` não contém dados operacionais;
+Worker paralelo `dashboard-anepc`, sem substituir o Worker EPE antigo durante a fase de
+validação. O endpoint público `/health` não contém dados operacionais;
 todo o restante conteúdo requer uma sessão autorizada.
-
