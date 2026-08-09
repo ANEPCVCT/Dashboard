@@ -1,4 +1,4 @@
-name = "dashboard-anepc-epe"
+name = "dashboard-anepc"
 main = "src/index.js"
 compatibility_date = "2026-08-09"
 workers_dev = true
@@ -21,4 +21,3 @@ GITHUB_OWNER = "ANEPCVCT"
 GITHUB_REPO = "Dashboard"
 GITHUB_WORKFLOW = "atualizar-epe.yml"
 GITHUB_REF = "main"
-
