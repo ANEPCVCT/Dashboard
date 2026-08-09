@@ -620,6 +620,39 @@
             color: #8a6400;
         }
 
+        .palco-titulo-epe {
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .epe-gerir-botao,
+        .epe-botao {
+            border: 1px solid #687680;
+            border-radius: 5px;
+            background: #ffffff;
+            color: #25323c;
+            font: inherit;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        .epe-gerir-botao {
+            flex: 0 0 auto;
+            padding: 4px 9px;
+            font-size: clamp(9px, 0.62vw, 12px);
+            line-height: 1;
+            text-transform: uppercase;
+        }
+
+        .epe-gerir-botao:hover,
+        .epe-gerir-botao:focus-visible,
+        .epe-botao:hover,
+        .epe-botao:focus-visible {
+            border-color: #a7191f;
+            outline: 2px solid rgb(167 25 31 / 18%);
+            outline-offset: 1px;
+        }
+
         #epe-conteudo {
             display: grid;
             grid-template-rows: minmax(108px, 0.9fr) minmax(0, 1.25fr) auto;
@@ -632,18 +665,20 @@
         }
 
         .epe-atual {
-            --epe-cor: #2e7d32;
-            --epe-fundo: #edf7ee;
-            --epe-texto: #ffffff;
+            --epe-cor: #ffffff;
+            --epe-fundo: #ffffff;
+            --epe-texto: #111111;
+            --epe-contorno: #8b959c;
             display: grid;
             grid-template-columns: clamp(82px, 6.2vw, 118px) minmax(0, 1fr);
             min-width: 0;
             min-height: 0;
             overflow: hidden;
-            border: 2px solid var(--epe-cor);
+            border: 2px solid var(--epe-contorno, var(--epe-cor));
             border-radius: 8px;
             background: var(--epe-fundo);
-            box-shadow: 0 2px 5px rgb(29 43 54 / 10%);
+            color: var(--epe-texto);
+            box-shadow: 0 2px 5px rgb(29 43 54 / 12%);
         }
 
         .epe-atual-sigla {
@@ -651,9 +686,10 @@
             align-items: center;
             justify-content: center;
             padding: 8px;
+            border-right: 1px solid rgb(127 127 127 / 45%);
             background: var(--epe-cor);
             color: var(--epe-texto);
-            font-size: clamp(27px, 2.4vw, 46px);
+            font-size: clamp(25px, 2.25vw, 43px);
             font-weight: 900;
             line-height: 1;
             letter-spacing: -0.04em;
@@ -669,7 +705,7 @@
 
         .epe-atual-rotulo {
             margin-bottom: 3px;
-            color: var(--epe-cor);
+            color: var(--epe-texto);
             font-size: clamp(9px, 0.62vw, 12px);
             font-weight: 900;
             line-height: 1;
@@ -679,7 +715,7 @@
 
         .epe-atual-titulo {
             margin: 0;
-            color: #17222b;
+            color: var(--epe-texto);
             font-size: clamp(17px, 1.25vw, 24px);
             font-weight: 900;
             line-height: 1.05;
@@ -687,7 +723,7 @@
 
         .epe-atual-periodo {
             margin: 5px 0 0;
-            color: #394954;
+            color: var(--epe-texto);
             font-size: clamp(10px, 0.68vw, 14px);
             font-weight: 700;
             line-height: 1.15;
@@ -732,19 +768,26 @@
         }
 
         .epe-agenda-item {
-            --epe-cor: #52616c;
-            --epe-fundo: #f2f4f5;
-            --epe-texto: #ffffff;
+            --epe-cor: #ffffff;
+            --epe-fundo: #ffffff;
+            --epe-texto: #111111;
+            --epe-contorno: #8b959c;
             display: grid;
-            grid-template-columns: clamp(62px, 5vw, 94px) minmax(0, 1fr) minmax(0, 1fr) auto;
+            grid-template-columns:
+                clamp(52px, 4vw, 76px)
+                clamp(66px, 5vw, 92px)
+                minmax(0, 1fr)
+                minmax(0, 1fr)
+                auto;
             align-items: center;
-            gap: clamp(5px, 0.45vw, 9px);
+            gap: clamp(4px, 0.35vw, 7px);
             min-width: 0;
             min-height: 0;
             padding: 4px 8px 4px 0;
             overflow: hidden;
-            border-left: 6px solid var(--epe-cor);
+            border-left: 6px solid var(--epe-contorno, var(--epe-cor));
             background: var(--epe-fundo);
+            color: var(--epe-texto);
             font-variant-numeric: tabular-nums;
         }
 
@@ -752,19 +795,28 @@
             border-top: 1px solid #d3d9dd;
         }
 
-        .epe-agenda-nivel {
-            color: var(--epe-cor);
-            font-size: clamp(11px, 0.78vw, 15px);
+        .epe-agenda-nivel,
+        .epe-agenda-tipo {
+            color: var(--epe-texto);
+            font-size: clamp(9px, 0.65vw, 13px);
             font-weight: 900;
-            line-height: 1;
+            line-height: 1.05;
             text-align: center;
+        }
+
+        .epe-agenda-nivel {
             white-space: nowrap;
+        }
+
+        .epe-agenda-tipo {
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .epe-agenda-data {
             min-width: 0;
-            color: #22313b;
-            font-size: clamp(9px, 0.61vw, 12px);
+            color: var(--epe-texto);
+            font-size: clamp(8px, 0.56vw, 11px);
             font-weight: 800;
             line-height: 1.1;
         }
@@ -772,7 +824,7 @@
         .epe-agenda-data span {
             display: block;
             margin-bottom: 2px;
-            color: #697680;
+            color: var(--epe-texto);
             font-size: 0.82em;
             letter-spacing: 0.035em;
             text-transform: uppercase;
@@ -787,8 +839,9 @@
 
         .epe-agenda-estado {
             padding: 3px 6px;
+            border: 1px solid currentColor;
             border-radius: 999px;
-            background: var(--epe-cor);
+            background: transparent;
             color: var(--epe-texto);
             font-size: clamp(7px, 0.48vw, 10px);
             font-weight: 900;
@@ -834,34 +887,217 @@
             color: #9a5a00;
         }
 
+        .epe-nivel-normal,
         .epe-nivel-epn {
-            --epe-cor: #2e7d32;
-            --epe-fundo: #edf7ee;
-            --epe-texto: #ffffff;
+            --epe-cor: #ffffff;
+            --epe-fundo: #ffffff;
+            --epe-texto: #111111;
+            --epe-contorno: #8b959c;
         }
 
         .epe-nivel-i {
-            --epe-cor: #1976d2;
-            --epe-fundo: #e8f3fd;
-            --epe-texto: #ffffff;
+            --epe-cor: #bfbfbf;
+            --epe-fundo: #bfbfbf;
+            --epe-texto: #111111;
+            --epe-contorno: #858585;
         }
 
         .epe-nivel-ii {
-            --epe-cor: #d5a000;
-            --epe-fundo: #fff9d7;
-            --epe-texto: #171717;
+            --epe-cor: #7f7f7f;
+            --epe-fundo: #7f7f7f;
+            --epe-texto: #ffffff;
+            --epe-contorno: #606060;
         }
 
         .epe-nivel-iii {
-            --epe-cor: #ef6c00;
-            --epe-fundo: #fff0df;
+            --epe-cor: #4d4d4d;
+            --epe-fundo: #4d4d4d;
             --epe-texto: #ffffff;
+            --epe-contorno: #353535;
         }
 
         .epe-nivel-iv {
-            --epe-cor: #c62828;
-            --epe-fundo: #ffebee;
+            --epe-cor: #000000;
+            --epe-fundo: #000000;
             --epe-texto: #ffffff;
+            --epe-contorno: #000000;
+        }
+
+        .epe-modal[hidden] {
+            display: none;
+        }
+
+        .epe-modal {
+            position: fixed;
+            z-index: 5000;
+            inset: 0;
+            display: grid;
+            place-items: center;
+            padding: clamp(12px, 2vw, 32px);
+            background: rgb(19 27 33 / 72%);
+        }
+
+        .epe-modal-painel {
+            display: grid;
+            grid-template-rows: auto minmax(0, 1fr) auto;
+            width: min(1180px, 96vw);
+            max-height: min(850px, 94vh);
+            overflow: hidden;
+            border: 2px solid #25313b;
+            border-radius: 10px;
+            background: #f5f7f8;
+            box-shadow: 0 18px 60px rgb(0 0 0 / 35%);
+        }
+
+        .epe-modal-cabecalho {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 12px 16px;
+            border-bottom: 1px solid #c7d0d6;
+            background: #ffffff;
+        }
+
+        .epe-modal-cabecalho h2 {
+            margin: 0;
+            color: #202b34;
+            font-size: clamp(18px, 1.5vw, 26px);
+        }
+
+        .epe-modal-fechar {
+            width: 36px;
+            height: 36px;
+            padding: 0;
+            border: 1px solid #75828b;
+            border-radius: 50%;
+            background: #ffffff;
+            color: #26333d;
+            font-size: 23px;
+            font-weight: 900;
+            line-height: 1;
+            cursor: pointer;
+        }
+
+        .epe-formulario {
+            min-height: 0;
+            padding: 14px;
+            overflow: auto;
+        }
+
+        .epe-form-nota {
+            margin: 0 0 12px;
+            color: #46545e;
+            font-size: 13px;
+            font-weight: 700;
+            line-height: 1.35;
+        }
+
+        .epe-form-grelha {
+            display: grid;
+            gap: 10px;
+        }
+
+        .epe-form-slot {
+            display: grid;
+            grid-template-columns:
+                minmax(160px, 1.25fr)
+                minmax(130px, 0.9fr)
+                minmax(135px, 1fr)
+                minmax(105px, 0.72fr)
+                minmax(135px, 1fr)
+                minmax(105px, 0.72fr)
+                auto;
+            align-items: end;
+            gap: 9px;
+            margin: 0;
+            padding: 11px;
+            border: 1px solid #b8c1c7;
+            border-radius: 7px;
+            background: #ffffff;
+        }
+
+        .epe-form-slot legend {
+            padding: 0 7px;
+            color: #34434e;
+            font-weight: 900;
+        }
+
+        .epe-form-campo {
+            display: grid;
+            gap: 4px;
+            min-width: 0;
+            color: #46545e;
+            font-size: 11px;
+            font-weight: 900;
+            text-transform: uppercase;
+        }
+
+        .epe-form-campo select,
+        .epe-form-campo input {
+            width: 100%;
+            min-width: 0;
+            height: 38px;
+            padding: 6px 8px;
+            border: 1px solid #89969f;
+            border-radius: 5px;
+            background: #ffffff;
+            color: #17222b;
+            font: 700 13px Arial, Helvetica, sans-serif;
+        }
+
+        .epe-form-limpar {
+            height: 38px;
+            padding: 6px 10px;
+            border-color: #9d686b;
+            color: #8f1117;
+            font-size: 12px;
+        }
+
+        .epe-form-mensagem {
+            min-height: 20px;
+            margin: 10px 0 0;
+            color: #2e6434;
+            font-size: 13px;
+            font-weight: 800;
+            text-align: right;
+        }
+
+        .epe-form-mensagem.erro {
+            color: #9a1118;
+        }
+
+        .epe-modal-acoes {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 11px 14px;
+            border-top: 1px solid #c7d0d6;
+            background: #ffffff;
+        }
+
+        .epe-botao {
+            min-height: 38px;
+            padding: 8px 13px;
+            font-size: 13px;
+        }
+
+        .epe-botao-primario {
+            border-color: #8f1117;
+            background: #a7191f;
+            color: #ffffff;
+        }
+
+        @media (max-width: 980px) {
+            .epe-form-slot {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .epe-form-limpar {
+                grid-column: 1 / -1;
+            }
         }
 
         @media (max-aspect-ratio: 4 / 3) {
@@ -946,13 +1182,65 @@
                 </section>
 
                 <section class="palco" id="palco-epe">
-                    <div class="palco-titulo">Estado Prontidão Especial (EPE)</div>
+                    <div class="palco-titulo palco-titulo-epe">
+                        <span>Estado de Prontidão Especial (EPE)</span>
+                        <button
+                            class="epe-gerir-botao"
+                            id="abrir-gestor-epe"
+                            type="button"
+                        >Gerir EPE</button>
+                    </div>
                     <div class="palco-conteudo" id="epe-conteudo" aria-live="polite">
                         <div class="epe-estado-carregamento">A carregar o estado de prontidão…</div>
                     </div>
                 </section>
             </aside>
         </main>
+    </div>
+
+    <div
+        class="epe-modal"
+        id="gestor-epe"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="gestor-epe-titulo"
+        hidden
+    >
+        <section class="epe-modal-painel">
+            <header class="epe-modal-cabecalho">
+                <h2 id="gestor-epe-titulo">Gerir Estado de Prontidão</h2>
+                <button
+                    class="epe-modal-fechar"
+                    id="fechar-gestor-epe"
+                    type="button"
+                    aria-label="Fechar gestor"
+                >×</button>
+            </header>
+
+            <form class="epe-formulario" id="formulario-epe">
+                <p class="epe-form-nota">
+                    Configure até três determinações. Os períodos terminados deixam
+                    automaticamente de aparecer e o estado regressa a Prontidão Normal.
+                    Ao enviar, o GitHub abre um pedido já preenchido. Depois de o operador
+                    confirmar o pedido, a agenda partilhada é validada e gravada em
+                    <strong>epe.csv</strong> pelo próprio GitHub.
+                </p>
+
+                <div class="epe-form-grelha" id="epe-form-grelha"></div>
+                <p class="epe-form-mensagem" id="epe-form-mensagem" aria-live="polite"></p>
+            </form>
+
+            <footer class="epe-modal-acoes">
+                <button class="epe-botao" id="recarregar-epe" type="button">Recarregar agenda</button>
+                <button class="epe-botao" id="cancelar-epe" type="button">Cancelar</button>
+                <button
+                    class="epe-botao epe-botao-primario"
+                    id="guardar-epe"
+                    type="submit"
+                    form="formulario-epe"
+                >Guardar EPE no GitHub</button>
+            </footer>
+        </section>
     </div>
 
     <script>
@@ -1061,10 +1349,51 @@
         };
 
         const niveisEpe = {
-            I: { nome: 'Nível I', classe: 'epe-nivel-i', ordem: 1 },
-            II: { nome: 'Nível II', classe: 'epe-nivel-ii', ordem: 2 },
-            III: { nome: 'Nível III', classe: 'epe-nivel-iii', ordem: 3 },
-            IV: { nome: 'Nível IV', classe: 'epe-nivel-iv', ordem: 4 }
+            NORMAL: {
+                nome: 'Estado de Prontidão Normal',
+                nomeCurto: 'Normal',
+                sigla: 'EPN',
+                classe: 'epe-nivel-normal',
+                cor: '#FFFFFF',
+                ordem: 0
+            },
+            I: {
+                nome: 'Estado de Prontidão Nível I',
+                nomeCurto: 'Nível I',
+                sigla: 'EPE I',
+                classe: 'epe-nivel-i',
+                cor: '#BFBFBF',
+                ordem: 1
+            },
+            II: {
+                nome: 'Estado de Prontidão Nível II',
+                nomeCurto: 'Nível II',
+                sigla: 'EPE II',
+                classe: 'epe-nivel-ii',
+                cor: '#7F7F7F',
+                ordem: 2
+            },
+            III: {
+                nome: 'Estado de Prontidão Nível III',
+                nomeCurto: 'Nível III',
+                sigla: 'EPE III',
+                classe: 'epe-nivel-iii',
+                cor: '#4D4D4D',
+                ordem: 3
+            },
+            IV: {
+                nome: 'Estado de Prontidão Nível IV',
+                nomeCurto: 'Nível IV',
+                sigla: 'EPE IV',
+                classe: 'epe-nivel-iv',
+                cor: '#000000',
+                ordem: 4
+            }
+        };
+        const tiposAlteracaoEpe = {
+            ELEVACAO: 'Elevação',
+            MANUTENCAO: 'Manutenção',
+            DESAGRAVAMENTO: 'Desagravamento'
         };
 
         /*
@@ -1077,6 +1406,8 @@
         const intervaloAtualizacaoPirMs = 60 * 60 * 1000;
         const intervaloAtualizacaoAvisosMs = 60 * 60 * 1000;
         const intervaloAtualizacaoEpeMs = 60 * 1000;
+        const repositorioGithubEpe = 'ANEPCVCT/Dashboard';
+        const urlNovoPedidoEpe = `https://github.com/${repositorioGithubEpe}/issues/new`;
         let atualizacaoPirEmCurso = false;
         let atualizacaoAvisosEmCurso = false;
         let atualizacaoEpeEmCurso = false;
@@ -1441,6 +1772,16 @@
             }
 
             return resposta.json();
+        }
+
+        async function obterTexto(url) {
+            const resposta = await fetch(url, { cache: 'no-store' });
+
+            if (!resposta.ok) {
+                throw new Error(`Pedido falhou com HTTP ${resposta.status}.`);
+            }
+
+            return resposta.text();
         }
 
         async function carregarMeteorologiaMunicipal() {
@@ -1884,11 +2225,13 @@
         }
 
         function obterDataEpe(valor) {
-            const texto = String(valor ?? '').trim();
-            const formatoIsoComFuso =
-                /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})$/i;
+            if (valor instanceof Date) {
+                return Number.isNaN(valor.getTime()) ? null : new Date(valor.getTime());
+            }
 
-            if (!formatoIsoComFuso.test(texto)) {
+            const texto = String(valor ?? '').trim();
+
+            if (!texto) {
                 return null;
             }
 
@@ -1898,39 +2241,53 @@
 
         function normalizarAgendamentosEpe(configuracao) {
             if (!configuracao || !Array.isArray(configuracao.agendamentos)) {
-                throw new Error('O ficheiro epe.json não contém a lista "agendamentos".');
+                throw new Error('A configuração não contém a lista "agendamentos".');
             }
 
-            if (configuracao.agendamentos.length > 3) {
-                throw new Error('O ficheiro epe.json só pode conter até três agendamentos.');
+            const preenchidos = configuracao.agendamentos.filter((agendamento) => (
+                agendamento &&
+                agendamento.ativo !== false &&
+                (agendamento.nivel || agendamento.inicio || agendamento.fim)
+            ));
+
+            if (preenchidos.length > 3) {
+                throw new Error('Só podem existir três determinações ativas ou futuras.');
             }
 
-            const ativos = configuracao.agendamentos.filter(
-                (agendamento) => agendamento?.ativo === true
-            );
-            const normalizados = ativos.map((agendamento, indice) => {
-                const id = String(agendamento.id || `epe-${indice + 1}`).trim();
-                const nivel = String(agendamento.nivel || '').trim().toUpperCase();
+            const normalizados = preenchidos.map((agendamento, indice) => {
+                const id = String(
+                    agendamento.id || `epe-${Date.now()}-${indice + 1}`
+                ).trim();
+                const nivelOriginal = String(agendamento.nivel || '').trim().toUpperCase();
+                const nivel = nivelOriginal === 'EPN' ? 'NORMAL' : nivelOriginal;
+                const tipoOriginal = String(agendamento.tipo || '').trim().toUpperCase();
+                const tipo = tipoOriginal || (
+                    nivel === 'NORMAL' ? 'DESAGRAVAMENTO' : 'ELEVACAO'
+                );
                 const inicio = obterDataEpe(agendamento.inicio);
                 const fim = obterDataEpe(agendamento.fim);
 
                 if (!niveisEpe[nivel]) {
                     throw new Error(
-                        `${id}: o nível deve ser I, II, III ou IV.`
+                        `${id}: escolha Normal, Nível I, II, III ou IV.`
+                    );
+                }
+
+                if (!tiposAlteracaoEpe[tipo]) {
+                    throw new Error(
+                        `${id}: escolha Elevação, Manutenção ou Desagravamento.`
                     );
                 }
 
                 if (!inicio || !fim) {
-                    throw new Error(
-                        `${id}: início e fim devem usar data ISO com fuso horário.`
-                    );
+                    throw new Error(`${id}: indique o início e o fim completos.`);
                 }
 
                 if (fim.getTime() <= inicio.getTime()) {
-                    throw new Error(`${id}: a hora de fim tem de ser posterior ao início.`);
+                    throw new Error(`${id}: o fim tem de ser posterior ao início.`);
                 }
 
-                return { id, nivel, inicio, fim };
+                return { id, nivel, tipo, inicio, fim };
             }).sort((a, b) => a.inicio.getTime() - b.inicio.getTime());
 
             for (let indice = 1; indice < normalizados.length; indice += 1) {
@@ -1939,7 +2296,8 @@
 
                 if (atual.inicio.getTime() < anterior.fim.getTime()) {
                     throw new Error(
-                        `${anterior.id} e ${atual.id}: os períodos não podem sobrepor-se.`
+                        'Os períodos não podem sobrepor-se. O seguinte só pode começar ' +
+                        'quando o anterior terminar.'
                     );
                 }
             }
@@ -1954,15 +2312,80 @@
                 month: '2-digit',
                 hour: '2-digit',
                 minute: '2-digit',
-                hour12: false,
-                timeZone: 'Europe/Lisbon'
+                hour12: false
             }).format(data).replace(',', ' ·');
+        }
+
+        function preencherDoisAlgarismos(valor) {
+            return String(valor).padStart(2, '0');
+        }
+
+        function formatarParaCamposEpe(data) {
+            return {
+                dia: [
+                    data.getFullYear(),
+                    preencherDoisAlgarismos(data.getMonth() + 1),
+                    preencherDoisAlgarismos(data.getDate())
+                ].join('-'),
+                hora: [
+                    preencherDoisAlgarismos(data.getHours()),
+                    preencherDoisAlgarismos(data.getMinutes())
+                ].join(':')
+            };
+        }
+
+        function criarDataSistemaEpe(dia, hora) {
+            const partesDia = String(dia).split('-').map(Number);
+            const partesHora = String(hora).split(':').map(Number);
+
+            if (
+                partesDia.length !== 3 ||
+                partesHora.length < 2 ||
+                [...partesDia, ...partesHora].some(Number.isNaN)
+            ) {
+                return null;
+            }
+
+            const data = new Date(
+                partesDia[0],
+                partesDia[1] - 1,
+                partesDia[2],
+                partesHora[0],
+                partesHora[1],
+                0,
+                0
+            );
+
+            if (
+                data.getFullYear() !== partesDia[0] ||
+                data.getMonth() !== partesDia[1] - 1 ||
+                data.getDate() !== partesDia[2] ||
+                data.getHours() !== partesHora[0] ||
+                data.getMinutes() !== partesHora[1]
+            ) {
+                return null;
+            }
+
+            return data;
+        }
+
+        function removerAgendamentosEpeTerminados(agora = new Date()) {
+            const restantes = agendamentosEpe.filter(
+                (agendamento) => agendamento.fim.getTime() > agora.getTime()
+            );
+
+            if (restantes.length === agendamentosEpe.length) {
+                return false;
+            }
+
+            agendamentosEpe = restantes;
+            return true;
         }
 
         function criarCartaoEstadoEpe(agendamentoAtivo) {
             const nivel = agendamentoAtivo
                 ? niveisEpe[agendamentoAtivo.nivel]
-                : null;
+                : niveisEpe.NORMAL;
             const cartao = document.createElement('article');
             const sigla = document.createElement('div');
             const detalhe = document.createElement('div');
@@ -1970,21 +2393,21 @@
             const titulo = document.createElement('h3');
             const periodo = document.createElement('p');
 
-            cartao.className = `epe-atual ${nivel ? nivel.classe : 'epe-nivel-epn'}`;
+            cartao.className = `epe-atual ${nivel.classe}`;
             sigla.className = 'epe-atual-sigla';
-            sigla.textContent = agendamentoAtivo ? 'EPE' : 'EPN';
+            sigla.textContent = nivel.sigla;
             detalhe.className = 'epe-atual-detalhe';
             rotulo.className = 'epe-atual-rotulo';
-            rotulo.textContent = 'Estado atual';
+            rotulo.textContent = agendamentoAtivo
+                ? `Estado atual · ${tiposAlteracaoEpe[agendamentoAtivo.tipo]}`
+                : 'Estado atual';
             titulo.className = 'epe-atual-titulo';
-            titulo.textContent = agendamentoAtivo
-                ? `Estado de Prontidão Especial — ${nivel.nome}`
-                : 'Estado de Prontidão Normal';
+            titulo.textContent = nivel.nome;
             periodo.className = 'epe-atual-periodo';
             periodo.textContent = agendamentoAtivo
                 ? (
-                    `Em vigor: ${formatarDataHoraEpe(agendamentoAtivo.inicio)} ` +
-                    `— ${formatarDataHoraEpe(agendamentoAtivo.fim)}`
+                    `${formatarDataHoraEpe(agendamentoAtivo.inicio)} — ` +
+                    `${formatarDataHoraEpe(agendamentoAtivo.fim)}`
                 )
                 : 'Sem EPE ativa neste momento.';
 
@@ -1993,8 +2416,8 @@
             cartao.setAttribute(
                 'aria-label',
                 agendamentoAtivo
-                    ? `EPE ${nivel.nome} em vigor.`
-                    : 'EPN, Estado de Prontidão Normal.'
+                    ? `${nivel.nome} em vigor. ${tiposAlteracaoEpe[agendamentoAtivo.tipo]}.`
+                    : 'Estado de Prontidão Normal.'
             );
 
             return cartao;
@@ -2019,15 +2442,19 @@
             const emVigor = agora >= agendamento.inicio && agora < agendamento.fim;
             const item = document.createElement('article');
             const nomeNivel = document.createElement('div');
+            const tipo = document.createElement('div');
             const estado = document.createElement('span');
 
             item.className = `epe-agenda-item ${nivel.classe}`;
             nomeNivel.className = 'epe-agenda-nivel';
-            nomeNivel.textContent = `EPE ${agendamento.nivel}`;
+            nomeNivel.textContent = nivel.sigla;
+            tipo.className = 'epe-agenda-tipo';
+            tipo.textContent = tiposAlteracaoEpe[agendamento.tipo];
             estado.className = 'epe-agenda-estado';
             estado.textContent = emVigor ? 'Em vigor' : 'Agendada';
             item.append(
                 nomeNivel,
+                tipo,
                 criarCampoDataAgendaEpe('Início', agendamento.inicio),
                 criarCampoDataAgendaEpe('Fim', agendamento.fim),
                 estado
@@ -2067,12 +2494,11 @@
             }
 
             const agora = new Date();
+            removerAgendamentosEpeTerminados(agora);
             const agendamentoAtivo = agendamentosEpe.find(
                 (agendamento) => agora >= agendamento.inicio && agora < agendamento.fim
             ) || null;
-            const visiveis = agendamentosEpe.filter(
-                (agendamento) => agendamento.fim.getTime() > agora.getTime()
-            ).slice(0, 3);
+            const visiveis = agendamentosEpe.slice(0, 3);
             const agenda = document.createElement('section');
             const cabecalho = document.createElement('div');
             const titulo = document.createElement('span');
@@ -2082,7 +2508,7 @@
 
             agenda.className = 'epe-agenda';
             cabecalho.className = 'epe-agenda-cabecalho';
-            titulo.textContent = 'Determinações configuradas';
+            titulo.textContent = 'Em vigor e seguintes';
             contagem.className = 'epe-agenda-contagem';
             contagem.textContent = `${visiveis.length}/3`;
             lista.className = 'epe-agenda-lista';
@@ -2102,8 +2528,8 @@
             agenda.append(cabecalho, lista);
             rodape.className = `epe-rodape${avisoAtualizacaoEpe ? ' aviso' : ''}`;
             rodape.textContent = avisoAtualizacaoEpe || (
-                `epe.json · leitura ${formatarDataHoraEpe(ultimaLeituraEpe)} · ` +
-                'atualização automática a cada minuto · hora de Lisboa'
+                `epe.csv · leitura ${formatarDataHoraEpe(ultimaLeituraEpe)} · ` +
+                'atualização automática a cada minuto · hora do sistema'
             );
             container.replaceChildren(
                 criarCartaoEstadoEpe(agendamentoAtivo),
@@ -2123,11 +2549,450 @@
             container.replaceChildren(estado);
         }
 
-        async function carregarEpe() {
-            const configuracao = await obterJson(`epe.json?_=${Date.now()}`);
-            const normalizados = normalizarAgendamentosEpe(configuracao);
+        function criarOpcaoEpe(valor, texto) {
+            const opcao = document.createElement('option');
+            opcao.value = valor;
+            opcao.textContent = texto;
+            return opcao;
+        }
 
-            agendamentosEpe = normalizados;
+        function formatarDiaSistemaEpe(data) {
+            return [
+                data.getFullYear(),
+                preencherDoisAlgarismos(data.getMonth() + 1),
+                preencherDoisAlgarismos(data.getDate())
+            ].join('-');
+        }
+
+        function preencherOpcoesDiaEpe(seletor) {
+            const hoje = new Date();
+            const formatador = new Intl.DateTimeFormat('pt-PT', {
+                weekday: 'short',
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            });
+            hoje.setHours(12, 0, 0, 0);
+            seletor.appendChild(criarOpcaoEpe('', 'Selecionar dia'));
+
+            for (let deslocamento = -31; deslocamento <= 366; deslocamento += 1) {
+                const data = new Date(hoje);
+                data.setDate(hoje.getDate() + deslocamento);
+                const valor = formatarDiaSistemaEpe(data);
+                const texto = formatador.format(data);
+
+                seletor.appendChild(criarOpcaoEpe(valor, texto));
+            }
+        }
+
+        function preencherOpcoesHoraEpe(seletor) {
+            seletor.appendChild(criarOpcaoEpe('', 'Selecionar hora'));
+
+            for (let minutos = 0; minutos < 24 * 60; minutos += 5) {
+                const hora = preencherDoisAlgarismos(Math.floor(minutos / 60));
+                const minuto = preencherDoisAlgarismos(minutos % 60);
+                const valor = `${hora}:${minuto}`;
+                seletor.appendChild(criarOpcaoEpe(valor, valor));
+            }
+        }
+
+        function garantirOpcaoEpe(seletor, valor) {
+            if (!valor || [...seletor.options].some((opcao) => opcao.value === valor)) {
+                return;
+            }
+
+            seletor.appendChild(criarOpcaoEpe(valor, valor));
+        }
+
+        function envolverCampoEpe(rotulo, controlo) {
+            const campo = document.createElement('label');
+            const texto = document.createElement('span');
+
+            campo.className = 'epe-form-campo';
+            texto.textContent = rotulo;
+            campo.append(texto, controlo);
+            return campo;
+        }
+
+        function limparSlotFormularioEpe(slot) {
+            slot.dataset.agendamentoId = '';
+            slot.querySelectorAll('select, input').forEach((campo) => {
+                campo.value = '';
+            });
+        }
+
+        function criarSlotFormularioEpe(indice) {
+            const slot = document.createElement('fieldset');
+            const legenda = document.createElement('legend');
+            const nivel = document.createElement('select');
+            const tipo = document.createElement('select');
+            const inicioDia = document.createElement('select');
+            const inicioHora = document.createElement('select');
+            const fimDia = document.createElement('select');
+            const fimHora = document.createElement('select');
+            const limpar = document.createElement('button');
+
+            slot.className = 'epe-form-slot';
+            slot.dataset.indice = String(indice);
+            slot.dataset.agendamentoId = '';
+            legenda.textContent = `Determinação ${indice + 1}`;
+
+            nivel.id = `epe-nivel-${indice}`;
+            nivel.append(
+                criarOpcaoEpe('', 'Sem agendamento'),
+                ...Object.entries(niveisEpe).map(([valor, dados]) => (
+                    criarOpcaoEpe(valor, dados.nome)
+                ))
+            );
+
+            tipo.id = `epe-tipo-${indice}`;
+            tipo.append(
+                criarOpcaoEpe('', 'Selecionar'),
+                ...Object.entries(tiposAlteracaoEpe).map(([valor, nome]) => (
+                    criarOpcaoEpe(valor, nome)
+                ))
+            );
+
+            inicioDia.id = `epe-inicio-dia-${indice}`;
+            inicioHora.id = `epe-inicio-hora-${indice}`;
+            fimDia.id = `epe-fim-dia-${indice}`;
+            fimHora.id = `epe-fim-hora-${indice}`;
+            preencherOpcoesDiaEpe(inicioDia);
+            preencherOpcoesHoraEpe(inicioHora);
+            preencherOpcoesDiaEpe(fimDia);
+            preencherOpcoesHoraEpe(fimHora);
+
+            limpar.className = 'epe-botao epe-form-limpar';
+            limpar.type = 'button';
+            limpar.textContent = 'Limpar';
+            limpar.addEventListener('click', () => limparSlotFormularioEpe(slot));
+
+            slot.append(
+                legenda,
+                envolverCampoEpe('Estado / nível', nivel),
+                envolverCampoEpe('Alteração', tipo),
+                envolverCampoEpe('Dia de início', inicioDia),
+                envolverCampoEpe('Hora de início', inicioHora),
+                envolverCampoEpe('Dia de fim', fimDia),
+                envolverCampoEpe('Hora de fim', fimHora),
+                limpar
+            );
+
+            return slot;
+        }
+
+        function mostrarMensagemFormularioEpe(mensagem, erro = false) {
+            const elemento = document.getElementById('epe-form-mensagem');
+            elemento.textContent = mensagem;
+            elemento.classList.toggle('erro', erro);
+        }
+
+        function preencherFormularioEpe() {
+            const agora = new Date();
+            removerAgendamentosEpeTerminados(agora);
+            const slots = [...document.querySelectorAll('.epe-form-slot')];
+
+            slots.forEach(limparSlotFormularioEpe);
+            agendamentosEpe.slice(0, 3).forEach((agendamento, indice) => {
+                const slot = slots[indice];
+                const inicio = formatarParaCamposEpe(agendamento.inicio);
+                const fim = formatarParaCamposEpe(agendamento.fim);
+                const inicioDia = slot.querySelector(`#epe-inicio-dia-${indice}`);
+                const inicioHora = slot.querySelector(`#epe-inicio-hora-${indice}`);
+                const fimDia = slot.querySelector(`#epe-fim-dia-${indice}`);
+                const fimHora = slot.querySelector(`#epe-fim-hora-${indice}`);
+
+                slot.dataset.agendamentoId = agendamento.id;
+                slot.querySelector(`#epe-nivel-${indice}`).value = agendamento.nivel;
+                slot.querySelector(`#epe-tipo-${indice}`).value = agendamento.tipo;
+                garantirOpcaoEpe(inicioDia, inicio.dia);
+                garantirOpcaoEpe(inicioHora, inicio.hora);
+                garantirOpcaoEpe(fimDia, fim.dia);
+                garantirOpcaoEpe(fimHora, fim.hora);
+                inicioDia.value = inicio.dia;
+                inicioHora.value = inicio.hora;
+                fimDia.value = fim.dia;
+                fimHora.value = fim.hora;
+            });
+
+            mostrarMensagemFormularioEpe('');
+        }
+
+        function lerFormularioEpe() {
+            const slots = [...document.querySelectorAll('.epe-form-slot')];
+            const registos = [];
+
+            slots.forEach((slot, indice) => {
+                const nivel = slot.querySelector(`#epe-nivel-${indice}`).value;
+                const tipo = slot.querySelector(`#epe-tipo-${indice}`).value;
+                const inicioDia = slot.querySelector(`#epe-inicio-dia-${indice}`).value;
+                const inicioHora = slot.querySelector(`#epe-inicio-hora-${indice}`).value;
+                const fimDia = slot.querySelector(`#epe-fim-dia-${indice}`).value;
+                const fimHora = slot.querySelector(`#epe-fim-hora-${indice}`).value;
+                const valores = [nivel, tipo, inicioDia, inicioHora, fimDia, fimHora];
+
+                if (valores.every((valor) => !valor)) {
+                    return;
+                }
+
+                if (valores.some((valor) => !valor)) {
+                    throw new Error(
+                        `Determinação ${indice + 1}: preencha os seis seletores ou limpe a linha.`
+                    );
+                }
+
+                const inicio = criarDataSistemaEpe(inicioDia, inicioHora);
+                const fim = criarDataSistemaEpe(fimDia, fimHora);
+
+                if (!inicio || !fim) {
+                    throw new Error(
+                        `Determinação ${indice + 1}: a data ou a hora não é válida.`
+                    );
+                }
+
+                registos.push({
+                    id: slot.dataset.agendamentoId || `epe-${Date.now()}-${indice + 1}`,
+                    ativo: true,
+                    nivel,
+                    tipo,
+                    inicio: inicio.toISOString(),
+                    fim: fim.toISOString()
+                });
+            });
+
+            return normalizarAgendamentosEpe({ agendamentos: registos });
+        }
+
+        function criarPayloadPedidoEpe(agendamentos) {
+            return {
+                versao: 1,
+                timezone: 'Europe/Lisbon',
+                agendamentos: agendamentos.map((agendamento, indice) => {
+                    const inicio = formatarParaCamposEpe(agendamento.inicio);
+                    const fim = formatarParaCamposEpe(agendamento.fim);
+
+                    return {
+                        id: `epe-${indice + 1}`,
+                        nivel: agendamento.nivel,
+                        tipo: agendamento.tipo,
+                        inicio: `${inicio.dia}T${inicio.hora}`,
+                        fim: `${fim.dia}T${fim.hora}`
+                    };
+                })
+            };
+        }
+
+        function criarResumoPedidoEpe(agendamentos) {
+            if (agendamentos.length === 0) {
+                return '- Limpar toda a agenda e manter o Estado de Prontidão Normal.';
+            }
+
+            return agendamentos.map((agendamento, indice) => {
+                const nivel = niveisEpe[agendamento.nivel];
+                return (
+                    `${indice + 1}. **${nivel.nome}** · ` +
+                    `${tiposAlteracaoEpe[agendamento.tipo]} · ` +
+                    `${formatarDataHoraEpe(agendamento.inicio)} — ` +
+                    `${formatarDataHoraEpe(agendamento.fim)}`
+                );
+            }).join('\n');
+        }
+
+        function abrirPedidoGithubEpe(agendamentos) {
+            const payload = criarPayloadPedidoEpe(agendamentos);
+            const titulo = '[EPE] Atualizar agenda operacional';
+            const corpo = [
+                '## Pedido gerado pelo Dashboard ANEPC',
+                '',
+                'Confirme este pedido através do botão **Submit new issue**.',
+                'A agenda só será alterada depois da validação automática do GitHub.',
+                '',
+                '### Agenda pretendida',
+                criarResumoPedidoEpe(agendamentos),
+                '',
+                '<!-- EPE_REQUEST_V1',
+                JSON.stringify(payload),
+                '-->'
+            ].join('\n');
+            const parametros = new URLSearchParams({ title: titulo, body: corpo });
+            const janela = window.open(
+                `${urlNovoPedidoEpe}?${parametros.toString()}`,
+                '_blank'
+            );
+
+            if (!janela) {
+                throw new Error(
+                    'O navegador bloqueou a janela do GitHub. Permita pop-ups e tente novamente.'
+                );
+            }
+
+            janela.opener = null;
+        }
+
+        function separarLinhaCsvEpe(linha) {
+            const campos = [];
+            let atual = '';
+            let entreAspas = false;
+
+            for (let indice = 0; indice < linha.length; indice += 1) {
+                const caractere = linha[indice];
+
+                if (caractere === '"') {
+                    if (entreAspas && linha[indice + 1] === '"') {
+                        atual += '"';
+                        indice += 1;
+                    } else {
+                        entreAspas = !entreAspas;
+                    }
+                } else if (caractere === ';' && !entreAspas) {
+                    campos.push(atual);
+                    atual = '';
+                } else {
+                    atual += caractere;
+                }
+            }
+
+            campos.push(atual);
+            return campos;
+        }
+
+        function converterTipoCsvEpe(valor) {
+            const normalizado = String(valor || '')
+                .trim()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .toUpperCase();
+
+            if (normalizado === 'ELEVACAO') {
+                return 'ELEVACAO';
+            }
+            if (normalizado === 'MANUTENCAO') {
+                return 'MANUTENCAO';
+            }
+            if (normalizado === 'DESAGRAVAMENTO') {
+                return 'DESAGRAVAMENTO';
+            }
+
+            return normalizado;
+        }
+
+        function lerConteudoCsvEpe(conteudo) {
+            const linhas = String(conteudo)
+                .replace(/^\uFEFF/, '')
+                .split(/\r?\n/)
+                .filter((linha) => linha.trim());
+
+            if (linhas[0]?.toLowerCase() === 'sep=;') {
+                linhas.shift();
+            }
+
+            if (linhas.length < 1) {
+                throw new Error('O CSV está vazio.');
+            }
+
+            const cabecalhos = separarLinhaCsvEpe(linhas.shift()).map(
+                (campo) => campo.trim().toLowerCase()
+            );
+            const indice = Object.fromEntries(
+                cabecalhos.map((nome, posicao) => [nome, posicao])
+            );
+            const obrigatorios = ['tipo', 'nivel', 'inicio_iso', 'fim_iso'];
+
+            if (obrigatorios.some((nome) => indice[nome] === undefined)) {
+                throw new Error('O CSV não foi gerado por este gestor de EPE.');
+            }
+
+            const agendamentos = linhas.map((linha, posicao) => {
+                const campos = separarLinhaCsvEpe(linha);
+                return {
+                    id: campos[indice.id] || `epe-importado-${posicao + 1}`,
+                    ativo: true,
+                    tipo: converterTipoCsvEpe(campos[indice.tipo]),
+                    nivel: String(campos[indice.nivel] || '').trim().toUpperCase(),
+                    inicio: campos[indice.inicio_iso],
+                    fim: campos[indice.fim_iso]
+                };
+            });
+
+            return normalizarAgendamentosEpe({ agendamentos });
+        }
+
+        function abrirGestorEpe() {
+            preencherFormularioEpe();
+            const modal = document.getElementById('gestor-epe');
+            modal.hidden = false;
+            document.getElementById('fechar-gestor-epe').focus();
+        }
+
+        function fecharGestorEpe() {
+            document.getElementById('gestor-epe').hidden = true;
+            document.getElementById('abrir-gestor-epe').focus();
+        }
+
+        function inicializarGestorEpe() {
+            const grelha = document.getElementById('epe-form-grelha');
+            const formulario = document.getElementById('formulario-epe');
+
+            for (let indice = 0; indice < 3; indice += 1) {
+                grelha.appendChild(criarSlotFormularioEpe(indice));
+            }
+
+            document.getElementById('abrir-gestor-epe').addEventListener(
+                'click',
+                abrirGestorEpe
+            );
+            document.getElementById('fechar-gestor-epe').addEventListener(
+                'click',
+                fecharGestorEpe
+            );
+            document.getElementById('cancelar-epe').addEventListener(
+                'click',
+                fecharGestorEpe
+            );
+            document.getElementById('gestor-epe').addEventListener('click', (evento) => {
+                if (evento.target.id === 'gestor-epe') {
+                    fecharGestorEpe();
+                }
+            });
+            document.addEventListener('keydown', (evento) => {
+                if (evento.key === 'Escape' && !document.getElementById('gestor-epe').hidden) {
+                    fecharGestorEpe();
+                }
+            });
+
+            formulario.addEventListener('submit', async (evento) => {
+                evento.preventDefault();
+                const botaoGuardar = document.getElementById('guardar-epe');
+
+                try {
+                    botaoGuardar.disabled = true;
+                    const agendamentos = lerFormularioEpe();
+                    abrirPedidoGithubEpe(agendamentos);
+                    mostrarMensagemFormularioEpe(
+                        'Pedido aberto no GitHub. Confirme através de “Submit new issue”.'
+                    );
+                } catch (erro) {
+                    mostrarMensagemFormularioEpe(erro.message, true);
+                } finally {
+                    botaoGuardar.disabled = false;
+                }
+            });
+
+            document.getElementById('recarregar-epe').addEventListener('click', async () => {
+                try {
+                    await carregarEpe();
+                    preencherFormularioEpe();
+                    mostrarMensagemFormularioEpe('Agenda recarregada a partir de epe.csv.');
+                } catch (erro) {
+                    mostrarMensagemFormularioEpe(erro.message, true);
+                }
+            });
+        }
+
+        async function carregarEpe() {
+            const conteudo = await obterTexto(`epe.csv?_=${Date.now()}`);
+            agendamentosEpe = lerConteudoCsvEpe(conteudo);
+            removerAgendamentosEpeTerminados(new Date());
             ultimaLeituraEpe = new Date();
             avisoAtualizacaoEpe = '';
             epeJaCarregado = true;
@@ -2145,15 +3010,12 @@
                 await carregarEpe();
             } catch (erro) {
                 console.error('Erro ao carregar EPE:', erro);
+                avisoAtualizacaoEpe = `Não foi possível atualizar epe.csv: ${erro.message}`;
 
                 if (epeJaCarregado) {
-                    avisoAtualizacaoEpe =
-                        `Não foi possível atualizar epe.json: ${erro.message}`;
                     renderizarEpe();
                 } else {
-                    mostrarErroEpe(
-                        `Estado de prontidão indisponível: ${erro.message}`
-                    );
+                    mostrarErroEpe(avisoAtualizacaoEpe);
                 }
             } finally {
                 atualizacaoEpeEmCurso = false;
@@ -2161,6 +3023,7 @@
         }
 
         async function iniciar() {
+            inicializarGestorEpe();
             atualizarDataHora();
             window.setInterval(atualizarDataHora, 1000);
 
