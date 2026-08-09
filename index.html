@@ -999,6 +999,10 @@
             gap: 10px;
         }
 
+        .epe-form-adicionar {
+            margin-top: 10px;
+        }
+
         .epe-form-slot {
             display: grid;
             grid-template-columns:
@@ -1229,16 +1233,22 @@
 
             <form class="epe-formulario" id="formulario-epe">
                 <p class="epe-form-nota">
-                    Cada linha corresponde a uma determinação. Preencha até três
+                    Cada linha corresponde a uma determinação. Preencha até quatro
                     agendamentos e use o único botão <strong>Submeter</strong> para os enviar
                     em conjunto. O botão <strong>Apagar</strong> continua a remover apenas a
-                    respetiva determinação. O palco é atualizado imediatamente. A hora de
-                    fim sugerida é 23:59, mas pode ser alterada ao minuto. Na página do
-                    GitHub que abrir, confirme o pedido para concluir a gravação partilhada
-                    em <strong>epe.csv</strong>.
+                    respetiva determinação. A quarta linha é opcional e destina-se a
+                    situações excecionais. As datas disponíveis começam no dia atual. O
+                    palco é atualizado imediatamente. A hora de fim sugerida é 23:59, mas
+                    pode ser alterada ao minuto. Na página do GitHub que abrir, confirme o
+                    pedido para concluir a gravação partilhada em <strong>epe.csv</strong>.
                 </p>
 
                 <div class="epe-form-grelha" id="epe-form-grelha"></div>
+                <button
+                    class="epe-botao epe-form-adicionar"
+                    id="adicionar-quarto-epe"
+                    type="button"
+                >Adicionar 4.º agendamento EPE</button>
                 <p class="epe-form-mensagem" id="epe-form-mensagem" aria-live="polite"></p>
             </form>
 
@@ -1421,6 +1431,8 @@
         const urlNovoPedidoEpe = `https://github.com/${repositorioGithubEpe}/issues/new`;
         const chaveAgendaPendenteEpe = 'dashboard-anepc-epe-pendente-v1';
         const validadeAgendaPendenteEpeMs = 30 * 60 * 1000;
+        const maximoAgendamentosEpe = 4;
+        const maximoAgendamentosFuturosVisiveisEpe = 3;
         let atualizacaoPirEmCurso = false;
         let atualizacaoAvisosEmCurso = false;
         let atualizacaoEpeEmCurso = false;
@@ -2263,8 +2275,8 @@
                 (agendamento.nivel || agendamento.inicio || agendamento.fim)
             ));
 
-            if (preenchidos.length > 3) {
-                throw new Error('Só podem existir três determinações ativas ou futuras.');
+            if (preenchidos.length > maximoAgendamentosEpe) {
+                throw new Error('Só podem existir quatro determinações ativas ou futuras.');
             }
 
             const normalizados = preenchidos.map((agendamento, indice) => {
@@ -2511,7 +2523,10 @@
             const agendamentoAtivo = agendamentosEpe.find(
                 (agendamento) => agora >= agendamento.inicio && agora < agendamento.fim
             ) || null;
-            const visiveis = agendamentosEpe.slice(0, 3);
+            const futuras = agendamentosEpe.filter(
+                (agendamento) => agendamento !== agendamentoAtivo
+            );
+            const visiveis = futuras.slice(0, maximoAgendamentosFuturosVisiveisEpe);
             const agenda = document.createElement('section');
             const cabecalho = document.createElement('div');
             const titulo = document.createElement('span');
@@ -2521,15 +2536,17 @@
 
             agenda.className = 'epe-agenda';
             cabecalho.className = 'epe-agenda-cabecalho';
-            titulo.textContent = 'Em vigor e seguintes';
+            titulo.textContent = 'Próximas determinações';
             contagem.className = 'epe-agenda-contagem';
-            contagem.textContent = `${visiveis.length}/3`;
+            contagem.textContent = (
+                `${visiveis.length}/${maximoAgendamentosFuturosVisiveisEpe}`
+            );
             lista.className = 'epe-agenda-lista';
 
             if (visiveis.length === 0) {
                 const vazio = document.createElement('div');
                 vazio.className = 'epe-agenda-vazia';
-                vazio.textContent = 'Sem determinações EPE ativas ou futuras.';
+                vazio.textContent = 'Sem determinações EPE futuras.';
                 lista.appendChild(vazio);
             } else {
                 visiveis.forEach((agendamento) => {
@@ -2588,7 +2605,7 @@
             hoje.setHours(12, 0, 0, 0);
             seletor.appendChild(criarOpcaoEpe('', 'Selecionar dia'));
 
-            for (let deslocamento = -31; deslocamento <= 366; deslocamento += 1) {
+            for (let deslocamento = 0; deslocamento <= 366; deslocamento += 1) {
                 const data = new Date(hoje);
                 data.setDate(hoje.getDate() + deslocamento);
                 const valor = formatarDiaSistemaEpe(data);
@@ -2646,6 +2663,7 @@
             const apagar = document.createElement('button');
 
             slot.className = 'epe-form-slot';
+            slot.id = `epe-form-slot-${indice}`;
             slot.dataset.indice = String(indice);
             slot.dataset.agendamentoId = '';
             legenda.textContent = `Determinação ${indice + 1}`;
@@ -2697,6 +2715,25 @@
             return slot;
         }
 
+        function adicionarQuartoSlotFormularioEpe() {
+            const grelha = document.getElementById('epe-form-grelha');
+            const botaoAdicionar = document.getElementById('adicionar-quarto-epe');
+            let slot = document.getElementById('epe-form-slot-3');
+
+            if (!slot) {
+                slot = criarSlotFormularioEpe(3);
+                grelha.appendChild(slot);
+            }
+
+            botaoAdicionar.hidden = true;
+            return slot;
+        }
+
+        function removerQuartoSlotFormularioEpe() {
+            document.getElementById('epe-form-slot-3')?.remove();
+            document.getElementById('adicionar-quarto-epe').hidden = false;
+        }
+
         function mostrarMensagemFormularioEpe(mensagem, erro = false) {
             const elemento = document.getElementById('epe-form-mensagem');
             elemento.textContent = mensagem;
@@ -2706,10 +2743,17 @@
         function preencherFormularioEpe() {
             const agora = new Date();
             removerAgendamentosEpeTerminados(agora);
+
+            if (agendamentosEpe.length >= maximoAgendamentosEpe) {
+                adicionarQuartoSlotFormularioEpe();
+            } else {
+                removerQuartoSlotFormularioEpe();
+            }
+
             const slots = [...document.querySelectorAll('.epe-form-slot')];
 
             slots.forEach(limparSlotFormularioEpe);
-            agendamentosEpe.slice(0, 3).forEach((agendamento, indice) => {
+            agendamentosEpe.slice(0, maximoAgendamentosEpe).forEach((agendamento, indice) => {
                 const slot = slots[indice];
                 const inicio = formatarParaCamposEpe(agendamento.inicio);
                 const fim = formatarParaCamposEpe(agendamento.fim);
@@ -3011,6 +3055,13 @@
 
                 if (!slot.dataset.agendamentoId) {
                     limparSlotFormularioEpe(slot);
+
+                    if (Number(slot.dataset.indice) === 3) {
+                        removerQuartoSlotFormularioEpe();
+                        mostrarMensagemFormularioEpe('4.º agendamento removido.');
+                        return;
+                    }
+
                     fecharGestorEpe();
                     return;
                 }
@@ -3132,6 +3183,14 @@
             for (let indice = 0; indice < 3; indice += 1) {
                 grelha.appendChild(criarSlotFormularioEpe(indice));
             }
+
+            document.getElementById('adicionar-quarto-epe').addEventListener(
+                'click',
+                () => {
+                    const slot = adicionarQuartoSlotFormularioEpe();
+                    slot.querySelector('select')?.focus();
+                }
+            );
 
             document.getElementById('abrir-gestor-epe').addEventListener(
                 'click',
