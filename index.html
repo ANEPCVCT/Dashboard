@@ -693,6 +693,7 @@
             font-weight: 900;
             line-height: 1;
             letter-spacing: -0.04em;
+            text-align: center;
         }
 
         .epe-atual-detalhe {
@@ -1052,17 +1053,10 @@
             gap: 6px;
         }
 
-        .epe-form-submeter,
         .epe-form-apagar {
             height: 38px;
             padding: 6px 10px;
             font-size: 12px;
-        }
-
-        .epe-form-submeter {
-            border-color: #8f1117;
-            background: #a7191f;
-            color: #ffffff;
         }
 
         .epe-form-apagar {
@@ -1235,12 +1229,13 @@
 
             <form class="epe-formulario" id="formulario-epe">
                 <p class="epe-form-nota">
-                    Cada linha corresponde a uma determinação. Use <strong>Submeter</strong>
-                    para criar ou alterar esse EPE e <strong>Apagar</strong> para o remover.
-                    O palco é atualizado imediatamente. A hora de fim sugerida é 23:59,
-                    mas pode ser alterada ao minuto. Na página do GitHub que abrir,
-                    confirme o pedido para concluir a gravação partilhada em
-                    <strong>epe.csv</strong>.
+                    Cada linha corresponde a uma determinação. Preencha até três
+                    agendamentos e use o único botão <strong>Submeter</strong> para os enviar
+                    em conjunto. O botão <strong>Apagar</strong> continua a remover apenas a
+                    respetiva determinação. O palco é atualizado imediatamente. A hora de
+                    fim sugerida é 23:59, mas pode ser alterada ao minuto. Na página do
+                    GitHub que abrir, confirme o pedido para concluir a gravação partilhada
+                    em <strong>epe.csv</strong>.
                 </p>
 
                 <div class="epe-form-grelha" id="epe-form-grelha"></div>
@@ -1248,6 +1243,12 @@
             </form>
 
             <footer class="epe-modal-acoes">
+                <button
+                    class="epe-botao epe-botao-primario"
+                    id="submeter-epe"
+                    type="submit"
+                    form="formulario-epe"
+                >Submeter</button>
                 <button class="epe-botao" id="cancelar-epe" type="button">Fechar</button>
             </footer>
         </section>
@@ -2642,7 +2643,6 @@
             const fimDia = document.createElement('select');
             const fimHora = document.createElement('input');
             const acoes = document.createElement('div');
-            const submeter = document.createElement('button');
             const apagar = document.createElement('button');
 
             slot.className = 'epe-form-slot';
@@ -2676,18 +2676,12 @@
             configurarCampoHoraEpe(fimHora, '23:59');
 
             acoes.className = 'epe-form-acoes';
-            submeter.className = 'epe-botao epe-form-submeter';
-            submeter.type = 'button';
-            submeter.textContent = 'Submeter';
-            submeter.setAttribute('aria-label', `Submeter determinação ${indice + 1}`);
-            submeter.addEventListener('click', () => submeterSlotFormularioEpe(slot));
-
             apagar.className = 'epe-botao epe-form-apagar';
             apagar.type = 'button';
             apagar.textContent = 'Apagar';
             apagar.setAttribute('aria-label', `Apagar determinação ${indice + 1}`);
             apagar.addEventListener('click', () => apagarSlotFormularioEpe(slot));
-            acoes.append(submeter, apagar);
+            acoes.append(apagar);
 
             slot.append(
                 legenda,
@@ -2787,15 +2781,37 @@
             };
         }
 
-        function criarAgendaComSlotEpe(slot) {
-            const registo = lerSlotFormularioEpe(slot);
-            const idExistente = slot.dataset.agendamentoId;
-            const restantes = idExistente
-                ? agendamentosEpe.filter((agendamento) => agendamento.id !== idExistente)
-                : [...agendamentosEpe];
+        function slotFormularioEpeEstaVazio(slot) {
+            const indice = Number(slot.dataset.indice);
+            const fimHora = slot.querySelector(`#epe-fim-hora-${indice}`);
+            const valoresObrigatorios = [
+                slot.querySelector(`#epe-nivel-${indice}`).value,
+                slot.querySelector(`#epe-tipo-${indice}`).value,
+                slot.querySelector(`#epe-inicio-dia-${indice}`).value,
+                slot.querySelector(`#epe-inicio-hora-${indice}`).value,
+                slot.querySelector(`#epe-fim-dia-${indice}`).value
+            ];
+            const horaFimPredefinida = fimHora.dataset.valorPredefinido || '';
+
+            return (
+                valoresObrigatorios.every((valor) => !valor) &&
+                (!fimHora.value || fimHora.value === horaFimPredefinida)
+            );
+        }
+
+        function criarAgendaFormularioEpe() {
+            const slotsPreenchidos = [...document.querySelectorAll('.epe-form-slot')]
+                .filter((slot) => !slotFormularioEpeEstaVazio(slot));
+
+            if (slotsPreenchidos.length === 0) {
+                throw new Error(
+                    'Preencha pelo menos uma determinação antes de submeter. ' +
+                    'Para remover um registo, utilize o respetivo botão Apagar.'
+                );
+            }
 
             return normalizarAgendamentosEpe({
-                agendamentos: [...restantes, registo]
+                agendamentos: slotsPreenchidos.map(lerSlotFormularioEpe)
             });
         }
 
@@ -2972,12 +2988,12 @@
             });
         }
 
-        function submeterSlotFormularioEpe(slot) {
-            const botao = slot.querySelector('.epe-form-submeter');
+        function submeterFormularioEpe() {
+            const botao = document.getElementById('submeter-epe');
 
             try {
                 botao.disabled = true;
-                const agendamentos = criarAgendaComSlotEpe(slot);
+                const agendamentos = criarAgendaFormularioEpe();
                 abrirPedidoGithubEpe(agendamentos);
                 apresentarAgendaPendenteEpe(agendamentos);
             } catch (erro) {
@@ -3142,6 +3158,7 @@
 
             formulario.addEventListener('submit', (evento) => {
                 evento.preventDefault();
+                submeterFormularioEpe();
             });
         }
 
