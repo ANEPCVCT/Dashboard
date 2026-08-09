@@ -101,7 +101,11 @@ function securityHeaders(headers, contentType = '') {
 }
 
 async function serveAsset(request, env) {
-  const response = await env.ASSETS.fetch(request);
+  const url = new URL(request.url);
+  const assetRequest = url.pathname === '/'
+    ? new Request(new URL('/index.html', url), request)
+    : request;
+  const response = await env.ASSETS.fetch(assetRequest);
   const headers = securityHeaders(new Headers(response.headers), response.headers.get('Content-Type') || '');
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 }

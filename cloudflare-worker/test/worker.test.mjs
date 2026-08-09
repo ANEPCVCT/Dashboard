@@ -142,7 +142,7 @@ test('Dashboard autenticado', async (suite) => {
       headers: { Cookie: rootSession.cookie }
     }), env);
     assert.equal(protectedPage.status, 200);
-    assert.match(await protectedPage.text(), /<p>\/<\/p>/);
+    assert.match(await protectedPage.text(), /<p>\/index\.html<\/p>/);
 
     const dashboardPage = await worker.fetch(new Request('https://worker.test/dashboard.html', {
       headers: { Cookie: rootSession.cookie }
