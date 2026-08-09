@@ -199,16 +199,39 @@ def build_csv(schedules: list[Schedule], now: datetime | None = None) -> str:
     return stream.getvalue()
 
 
+def extract_event_payload(event: dict) -> dict:
+    issue = event.get("issue")
+    if isinstance(issue, dict):
+        association = str(issue.get("author_association") or "").upper()
+
+        if association not in AUTHORIZED_ASSOCIATIONS:
+            raise RequestError(
+                "O autor não é proprietário, membro ou colaborador autorizado do repositório."
+            )
+
+        return extract_payload(issue.get("body"))
+
+    inputs = event.get("inputs")
+    if not isinstance(inputs, dict):
+        raise RequestError("O evento não contém um pedido EPE reconhecido.")
+
+    raw_payload = inputs.get("epe_payload")
+    if not isinstance(raw_payload, str) or not raw_payload.strip():
+        raise RequestError("O pedido direto não contém dados EPE.")
+
+    try:
+        payload = json.loads(raw_payload)
+    except json.JSONDecodeError as exc:
+        raise RequestError("O pedido direto não contém JSON válido.") from exc
+
+    if not isinstance(payload, dict):
+        raise RequestError("O pedido direto tem uma estrutura inválida.")
+
+    return payload
+
+
 def process_event(event: dict, output_path: Path) -> int:
-    issue = event.get("issue") or {}
-    association = str(issue.get("author_association") or "").upper()
-
-    if association not in AUTHORIZED_ASSOCIATIONS:
-        raise RequestError(
-            "O autor não é proprietário, membro ou colaborador autorizado do repositório."
-        )
-
-    payload = extract_payload(issue.get("body"))
+    payload = extract_event_payload(event)
     schedules = validate_payload(payload)
     output_path.write_text(build_csv(schedules), encoding="utf-8", newline="")
     return len(schedules)
