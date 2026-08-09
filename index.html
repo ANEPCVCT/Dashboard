@@ -3312,6 +3312,11 @@
             const diaSemana = new Intl.DateTimeFormat('pt-PT', {
                 weekday: 'long'
             }).format(agora);
+            const data = new Intl.DateTimeFormat('pt-PT', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            }).format(agora);
             const hora = new Intl.DateTimeFormat('pt-PT', {
                 hour: '2-digit',
                 minute: '2-digit',
@@ -3321,7 +3326,7 @@
             const diaFormatado = diaSemana.charAt(0).toUpperCase() + diaSemana.slice(1);
             const elemento = document.getElementById('current-datetime');
 
-            elemento.textContent = `${diaFormatado} · ${hora}`;
+            elemento.textContent = `${diaFormatado}, ${data}, ${hora}`;
             elemento.dateTime = agora.toISOString();
         }
 
