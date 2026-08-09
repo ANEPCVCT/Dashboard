@@ -1,0 +1,2200 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Operacional — Alto Minho</title>
+
+    <style>
+        :root {
+            --header-height: clamp(88px, 11vh, 122px);
+            --page-gap: clamp(8px, 0.65vw, 14px);
+            --page-padding: clamp(8px, 0.65vw, 14px);
+            --border-color: #25313b;
+            --panel-background: #ffffff;
+            --panel-title-background: #f3f5f6;
+            --page-background: #e8ecef;
+            --text-color: #18232d;
+            --muted-color: #5b6872;
+            --brand-red: #a7191f;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        body {
+            background: var(--page-background);
+            color: var(--text-color);
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        #main-container {
+            display: grid;
+            grid-template-rows: var(--header-height) minmax(0, 1fr);
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+        }
+
+        /* Cabeçalho geral, fora da área útil de 50% reservada ao PIR. */
+        #brand-header {
+            display: grid;
+            grid-template-columns: clamp(78px, 7vw, 112px) minmax(0, 1fr) auto;
+            align-items: center;
+            gap: clamp(12px, 1.2vw, 24px);
+            min-width: 0;
+            padding: 8px var(--page-padding);
+            background: #ffffff;
+            border-bottom: 3px solid var(--brand-red);
+        }
+
+        #brand-header img {
+            display: block;
+            width: 100%;
+            max-height: calc(var(--header-height) - 16px);
+            object-fit: contain;
+            object-position: left center;
+        }
+
+        #brand-header h1 {
+            min-width: 0;
+            margin: 0;
+            font-size: clamp(25px, 2.2vw, 42px);
+            font-weight: 700;
+            line-height: 1.05;
+            letter-spacing: 0.01em;
+            color: #202b34;
+        }
+
+        #current-datetime {
+            margin: 0;
+            white-space: nowrap;
+            text-align: right;
+            font-size: clamp(19px, 1.55vw, 30px);
+            font-weight: 700;
+            line-height: 1;
+            letter-spacing: 0.01em;
+            color: #202b34;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Duas metades horizontais iguais abaixo do cabeçalho. */
+        #dashboard-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            gap: var(--page-gap);
+            min-width: 0;
+            min-height: 0;
+            padding: var(--page-padding);
+        }
+
+        /*
+         * Metade esquerda: apenas PIR.
+         * Hoje ocupa a metade superior; amanhã e depois de amanhã
+         * dividem, em partes iguais, a metade inferior.
+         */
+        #pir-area {
+            display: grid;
+            grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+            gap: var(--page-gap);
+            min-width: 0;
+            min-height: 0;
+        }
+
+        #pir-futuro {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            gap: var(--page-gap);
+            min-width: 0;
+            min-height: 0;
+        }
+
+        .palco {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            min-height: 0;
+            overflow: hidden;
+            background: var(--panel-background);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgb(29 43 54 / 12%);
+        }
+
+        .palco-titulo {
+            flex: 0 0 auto;
+            min-height: clamp(34px, 4.1vh, 48px);
+            display: flex;
+            align-items: center;
+            padding: 5px clamp(8px, 0.7vw, 14px);
+            background: var(--panel-title-background);
+            border-bottom: 1px solid #c8d0d5;
+            color: #35434e;
+            font-size: clamp(15px, 1vw, 20px);
+            font-weight: 700;
+            line-height: 1.1;
+            text-transform: uppercase;
+        }
+
+        .palco-conteudo {
+            position: relative;
+            flex: 1 1 auto;
+            min-width: 0;
+            min-height: 0;
+        }
+
+        .pir-map-frame {
+            position: absolute;
+            inset: 0;
+            display: grid;
+            place-items: center;
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+            background: #e3e6e8;
+        }
+
+        /*
+         * Todos os PNG foram desenhados sobre a mesma tela de 743 × 662 px.
+         * A pilha tem uma única geometria; assim, cada pixel de cada concelho
+         * coincide com o mesmo pixel das restantes camadas.
+         */
+        .pir-image-stack {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .pir-image-layer {
+            position: absolute;
+            inset: 0;
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            object-position: center;
+            pointer-events: none;
+            user-select: none;
+        }
+
+        .pir-concelho-layer {
+            z-index: 10;
+        }
+
+        .pir-tracado-layer {
+            z-index: 20;
+        }
+
+        /*
+         * No painel de hoje, a meteorologia fica fora do mapa: cinco concelhos
+         * à esquerda, o mapa ao centro e cinco concelhos à direita.
+         */
+        .pir-hoje-layout {
+            position: absolute;
+            inset: 0;
+            display: grid;
+            grid-template-columns:
+                minmax(150px, 0.92fr)
+                minmax(250px, 1.45fr)
+                minmax(150px, 0.92fr);
+            min-width: 0;
+            min-height: 0;
+            overflow: hidden;
+            background: #e3e6e8;
+        }
+
+        .pir-hoje-map {
+            position: relative;
+            min-width: 0;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        .pir-weather-column {
+            display: grid;
+            grid-template-rows: repeat(5, minmax(0, 1fr));
+            min-width: 0;
+            min-height: 0;
+            overflow: hidden;
+            padding: clamp(4px, 0.35vw, 7px);
+            color: #000000;
+        }
+
+        .pir-weather-column-left {
+            padding-left: clamp(6px, 0.5vw, 10px);
+            text-align: left;
+        }
+
+        .pir-weather-column-right {
+            padding-right: clamp(6px, 0.5vw, 10px);
+            text-align: right;
+        }
+
+        .pir-weather-item {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-width: 0;
+            min-height: 0;
+            padding: 2px 0;
+            overflow: hidden;
+            border: 0;
+            background: transparent;
+            box-shadow: none;
+            color: #000000;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: clamp(9px, 0.64vw, 13px);
+            font-weight: 700;
+            line-height: 1.12;
+            white-space: nowrap;
+        }
+
+        .pir-weather-item strong,
+        .pir-weather-item span {
+            display: block;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .pir-weather-item strong {
+            margin-bottom: 2px;
+            font-size: clamp(10px, 0.74vw, 15px);
+            line-height: 1.05;
+        }
+
+        .pir-weather-item.is-unavailable {
+            color: #000000;
+        }
+
+        .pir-weather-item.is-unavailable span {
+            white-space: normal;
+        }
+
+        .pir-weather-column-status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            grid-row: 1 / -1;
+            padding: 8px;
+            color: #000000;
+            font-size: clamp(11px, 0.75vw, 15px);
+            font-weight: 700;
+            line-height: 1.2;
+            text-align: inherit;
+        }
+
+        .map-loading {
+            position: absolute;
+            z-index: 1000;
+            inset: 50% auto auto 50%;
+            transform: translate(-50%, -50%);
+            max-width: calc(100% - 24px);
+            padding: 9px 12px;
+            border: 1px solid #b6c0c7;
+            border-radius: 5px;
+            background: rgb(255 255 255 / 94%);
+            color: #46545e;
+            font-size: clamp(12px, 0.8vw, 16px);
+            font-weight: 700;
+            line-height: 1.25;
+            text-align: center;
+            pointer-events: none;
+        }
+
+        .map-loading.erro {
+            color: #8f1117;
+            border-color: #c55d62;
+            background: #fff2f2;
+        }
+
+        /* Metade direita: avisos meteorológicos e estado de prontidão. */
+        #right-area {
+            display: grid;
+            grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+            gap: var(--page-gap);
+            min-width: 0;
+            min-height: 0;
+        }
+
+        #avisos-conteudo {
+            display: grid;
+            grid-template-rows: minmax(0, 1fr) auto;
+            gap: clamp(4px, 0.35vw, 7px);
+            min-width: 0;
+            min-height: 0;
+            padding: clamp(6px, 0.5vw, 10px);
+            overflow: hidden;
+        }
+
+        .avisos-grelha {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-rows: repeat(4, minmax(0, 1fr));
+            gap: clamp(4px, 0.35vw, 7px);
+            min-width: 0;
+            min-height: 0;
+        }
+
+        .aviso-item {
+            --aviso-cor: #64717a;
+            --aviso-fundo: #f4f6f7;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            min-height: 0;
+            padding: clamp(4px, 0.35vw, 7px);
+            overflow: hidden;
+            border: 1px solid var(--aviso-cor);
+            border-left-width: clamp(4px, 0.35vw, 7px);
+            border-radius: 6px;
+            background: var(--aviso-fundo);
+        }
+
+        .aviso-cabecalho {
+            display: grid;
+            grid-template-columns: clamp(28px, 2.15vw, 40px) minmax(0, 1fr) auto;
+            align-items: center;
+            gap: clamp(4px, 0.35vw, 7px);
+            min-width: 0;
+        }
+
+        .aviso-icone {
+            display: block;
+            width: clamp(27px, 2vw, 38px);
+            height: clamp(27px, 2vw, 38px);
+            object-fit: contain;
+        }
+
+        .aviso-nome {
+            min-width: 0;
+            overflow: hidden;
+            color: #17222b;
+            font-size: clamp(12px, 0.82vw, 16px);
+            font-weight: 800;
+            line-height: 1.05;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .aviso-nivel {
+            padding: 3px 6px;
+            border-radius: 999px;
+            background: var(--aviso-cor);
+            color: #ffffff;
+            font-size: clamp(8px, 0.54vw, 11px);
+            font-weight: 800;
+            line-height: 1;
+            letter-spacing: 0.025em;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .aviso-periodos {
+            display: flex;
+            flex: 1 1 auto;
+            flex-direction: column;
+            min-height: 0;
+            margin-top: 3px;
+            overflow: hidden;
+        }
+
+        .aviso-periodo {
+            display: flex;
+            flex: 1 1 0;
+            flex-direction: column;
+            min-height: 0;
+            padding-top: 2px;
+            border-top: 1px solid rgb(47 61 71 / 18%);
+        }
+
+        .aviso-periodo + .aviso-periodo {
+            margin-top: 3px;
+        }
+
+        .aviso-descricao {
+            display: -webkit-box;
+            margin: 2px 0 0;
+            overflow: hidden;
+            color: #26343e;
+            font-size: clamp(8px, 0.54vw, 11px);
+            font-weight: 600;
+            line-height: 1.12;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 2;
+        }
+
+        /*
+         * Linha temporal dos avisos de risco: momento atual, início, fim e
+         * regresso à situação normal. Os cartões verdes não recebem esta área.
+         */
+        .aviso-escala {
+            flex: 0 0 auto;
+            min-width: 0;
+            margin-top: auto;
+            padding-top: 3px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .aviso-escala-marcos {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            align-items: end;
+            gap: 3px;
+            min-width: 0;
+        }
+
+        .aviso-escala-marco {
+            min-width: 0;
+            font-size: clamp(7px, 0.47vw, 10px);
+            font-weight: 800;
+            line-height: 1.05;
+            text-align: center;
+        }
+
+        .aviso-escala-marco:first-child {
+            text-align: left;
+        }
+
+        .aviso-escala-marco:last-child {
+            text-align: right;
+        }
+
+        .aviso-escala-rotulo {
+            display: block;
+            font-size: 0.82em;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+        }
+
+        .aviso-escala-marco time {
+            display: block;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .aviso-escala-normal {
+            color: #2e7d32;
+        }
+
+        .aviso-escala-risco {
+            color: var(--aviso-cor);
+        }
+
+        .aviso-escala-linha {
+            --escala-horas: 24;
+            --aviso-inicio: 0%;
+            --aviso-largura: 0%;
+            position: relative;
+            height: clamp(7px, 0.55vw, 10px);
+            margin-top: 3px;
+            overflow: hidden;
+            border: 1px solid rgb(23 34 43 / 42%);
+            border-radius: 2px;
+            background: #2e7d32;
+            box-shadow: inset 0 0 0 1px rgb(255 255 255 / 42%);
+        }
+
+        .aviso-escala-preenchimento {
+            position: absolute;
+            z-index: 1;
+            top: 0;
+            bottom: 0;
+            left: var(--aviso-inicio);
+            width: var(--aviso-largura);
+            min-width: 2px;
+            background: var(--aviso-cor);
+            box-shadow: inset 1px 0 rgb(23 34 43 / 45%), inset -1px 0 rgb(23 34 43 / 45%);
+        }
+
+        .aviso-escala-tracos {
+            position: absolute;
+            z-index: 2;
+            inset: 0;
+            background-image:
+                linear-gradient(to right, rgb(23 34 43 / 16%) 1px, transparent 1px),
+                linear-gradient(to right, rgb(23 34 43 / 42%) 1px, transparent 1px);
+            background-size:
+                calc(100% / var(--escala-horas)) 100%,
+                calc(600% / var(--escala-horas)) 100%;
+            pointer-events: none;
+        }
+
+        .aviso-escala-legenda {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 1px;
+            color: #5b6872;
+            font-size: clamp(6px, 0.4vw, 8px);
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .aviso-com-multiplos-periodos .aviso-descricao {
+            font-size: clamp(7px, 0.48vw, 9px);
+            -webkit-line-clamp: 1;
+        }
+
+        .aviso-com-multiplos-periodos .aviso-periodo + .aviso-periodo {
+            margin-top: 2px;
+        }
+
+        .aviso-com-multiplos-periodos .aviso-escala {
+            padding-top: 1px;
+        }
+
+        .aviso-com-multiplos-periodos .aviso-escala-linha {
+            height: clamp(5px, 0.4vw, 7px);
+            margin-top: 1px;
+        }
+
+        .aviso-green {
+            --aviso-cor: #2e7d32;
+            --aviso-fundo: #edf7ee;
+        }
+
+        .aviso-yellow {
+            --aviso-cor: #d5a000;
+            --aviso-fundo: #fff9d7;
+        }
+
+        .aviso-yellow .aviso-nivel {
+            color: #171717;
+        }
+
+        .aviso-orange {
+            --aviso-cor: #ef6c00;
+            --aviso-fundo: #fff0df;
+        }
+
+        .aviso-red {
+            --aviso-cor: #c62828;
+            --aviso-fundo: #ffebee;
+        }
+
+        .aviso-indisponivel {
+            --aviso-cor: #64717a;
+            --aviso-fundo: #f1f3f4;
+        }
+
+        .avisos-estado {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            padding: 12px;
+            border: 1px solid #b8c1c7;
+            border-radius: 6px;
+            background: #f7f8f9;
+            color: #46545e;
+            font-size: clamp(13px, 0.9vw, 18px);
+            font-weight: 700;
+            text-align: center;
+        }
+
+        .avisos-estado.erro {
+            border-color: #c55d62;
+            background: #fff2f2;
+            color: #8f1117;
+        }
+
+        .avisos-rodape {
+            color: #5b6872;
+            font-size: clamp(9px, 0.6vw, 12px);
+            font-weight: 700;
+            line-height: 1;
+            text-align: right;
+        }
+
+        .avisos-rodape.simulacao {
+            color: #8a6400;
+        }
+
+        #epe-conteudo {
+            display: grid;
+            grid-template-rows: minmax(108px, 0.9fr) minmax(0, 1.25fr) auto;
+            gap: clamp(6px, 0.5vw, 10px);
+            height: 100%;
+            min-width: 0;
+            min-height: 0;
+            padding: clamp(7px, 0.6vw, 12px);
+            overflow: hidden;
+        }
+
+        .epe-atual {
+            --epe-cor: #2e7d32;
+            --epe-fundo: #edf7ee;
+            --epe-texto: #ffffff;
+            display: grid;
+            grid-template-columns: clamp(82px, 6.2vw, 118px) minmax(0, 1fr);
+            min-width: 0;
+            min-height: 0;
+            overflow: hidden;
+            border: 2px solid var(--epe-cor);
+            border-radius: 8px;
+            background: var(--epe-fundo);
+            box-shadow: 0 2px 5px rgb(29 43 54 / 10%);
+        }
+
+        .epe-atual-sigla {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px;
+            background: var(--epe-cor);
+            color: var(--epe-texto);
+            font-size: clamp(27px, 2.4vw, 46px);
+            font-weight: 900;
+            line-height: 1;
+            letter-spacing: -0.04em;
+        }
+
+        .epe-atual-detalhe {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-width: 0;
+            padding: clamp(8px, 0.65vw, 13px);
+        }
+
+        .epe-atual-rotulo {
+            margin-bottom: 3px;
+            color: var(--epe-cor);
+            font-size: clamp(9px, 0.62vw, 12px);
+            font-weight: 900;
+            line-height: 1;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .epe-atual-titulo {
+            margin: 0;
+            color: #17222b;
+            font-size: clamp(17px, 1.25vw, 24px);
+            font-weight: 900;
+            line-height: 1.05;
+        }
+
+        .epe-atual-periodo {
+            margin: 5px 0 0;
+            color: #394954;
+            font-size: clamp(10px, 0.68vw, 14px);
+            font-weight: 700;
+            line-height: 1.15;
+        }
+
+        .epe-agenda {
+            display: grid;
+            grid-template-rows: auto minmax(0, 1fr);
+            min-width: 0;
+            min-height: 0;
+            overflow: hidden;
+            border: 1px solid #b8c1c7;
+            border-radius: 7px;
+            background: #f7f8f9;
+        }
+
+        .epe-agenda-cabecalho {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 6px 9px;
+            border-bottom: 1px solid #ccd3d8;
+            color: #34434e;
+            font-size: clamp(10px, 0.68vw, 14px);
+            font-weight: 900;
+            line-height: 1;
+            text-transform: uppercase;
+        }
+
+        .epe-agenda-contagem {
+            color: #63717b;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .epe-agenda-lista {
+            display: grid;
+            grid-template-rows: repeat(3, minmax(0, 1fr));
+            min-width: 0;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        .epe-agenda-item {
+            --epe-cor: #52616c;
+            --epe-fundo: #f2f4f5;
+            --epe-texto: #ffffff;
+            display: grid;
+            grid-template-columns: clamp(62px, 5vw, 94px) minmax(0, 1fr) minmax(0, 1fr) auto;
+            align-items: center;
+            gap: clamp(5px, 0.45vw, 9px);
+            min-width: 0;
+            min-height: 0;
+            padding: 4px 8px 4px 0;
+            overflow: hidden;
+            border-left: 6px solid var(--epe-cor);
+            background: var(--epe-fundo);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .epe-agenda-item + .epe-agenda-item {
+            border-top: 1px solid #d3d9dd;
+        }
+
+        .epe-agenda-nivel {
+            color: var(--epe-cor);
+            font-size: clamp(11px, 0.78vw, 15px);
+            font-weight: 900;
+            line-height: 1;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .epe-agenda-data {
+            min-width: 0;
+            color: #22313b;
+            font-size: clamp(9px, 0.61vw, 12px);
+            font-weight: 800;
+            line-height: 1.1;
+        }
+
+        .epe-agenda-data span {
+            display: block;
+            margin-bottom: 2px;
+            color: #697680;
+            font-size: 0.82em;
+            letter-spacing: 0.035em;
+            text-transform: uppercase;
+        }
+
+        .epe-agenda-data time {
+            display: block;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .epe-agenda-estado {
+            padding: 3px 6px;
+            border-radius: 999px;
+            background: var(--epe-cor);
+            color: var(--epe-texto);
+            font-size: clamp(7px, 0.48vw, 10px);
+            font-weight: 900;
+            line-height: 1;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .epe-agenda-vazia,
+        .epe-estado-carregamento {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            grid-row: 1 / -1;
+            min-height: 0;
+            padding: 12px;
+            color: #65727c;
+            font-size: clamp(11px, 0.74vw, 15px);
+            font-weight: 700;
+            line-height: 1.2;
+            text-align: center;
+        }
+
+        .epe-estado-carregamento.erro {
+            border: 1px solid #c55d62;
+            border-radius: 7px;
+            background: #fff2f2;
+            color: #8f1117;
+        }
+
+        .epe-rodape {
+            overflow: hidden;
+            color: #64717a;
+            font-size: clamp(8px, 0.54vw, 11px);
+            font-weight: 700;
+            line-height: 1.1;
+            text-align: right;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .epe-rodape.aviso {
+            color: #9a5a00;
+        }
+
+        .epe-nivel-epn {
+            --epe-cor: #2e7d32;
+            --epe-fundo: #edf7ee;
+            --epe-texto: #ffffff;
+        }
+
+        .epe-nivel-i {
+            --epe-cor: #1976d2;
+            --epe-fundo: #e8f3fd;
+            --epe-texto: #ffffff;
+        }
+
+        .epe-nivel-ii {
+            --epe-cor: #d5a000;
+            --epe-fundo: #fff9d7;
+            --epe-texto: #171717;
+        }
+
+        .epe-nivel-iii {
+            --epe-cor: #ef6c00;
+            --epe-fundo: #fff0df;
+            --epe-texto: #ffffff;
+        }
+
+        .epe-nivel-iv {
+            --epe-cor: #c62828;
+            --epe-fundo: #ffebee;
+            --epe-texto: #ffffff;
+        }
+
+        @media (max-aspect-ratio: 4 / 3) {
+            :root {
+                --header-height: clamp(82px, 10vh, 104px);
+            }
+
+            #brand-header h1 {
+                font-size: clamp(22px, 2.5vw, 34px);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="main-container">
+        <header id="brand-header">
+            <img src="anepc_logo.png" alt="Logótipo da ANEPC">
+            <h1>Comando Sub-Regional do Alto Minho</h1>
+            <time id="current-datetime"></time>
+        </header>
+
+        <main id="dashboard-grid">
+            <section id="pir-area" aria-label="Perigo de incêndio rural">
+                <article class="palco" id="palco-pir-hoje">
+                    <div class="palco-titulo">PIR — Hoje</div>
+                    <div class="palco-conteudo">
+                        <div class="pir-hoje-layout">
+                            <div
+                                id="meteorologia-hoje-esquerda"
+                                class="pir-weather-column pir-weather-column-left"
+                                aria-label="Meteorologia dos concelhos à esquerda"
+                            >
+                                <div class="pir-weather-column-status">A carregar dados de hoje…</div>
+                            </div>
+
+                            <div class="pir-hoje-map">
+                                <div id="mapa-pir0" class="pir-image-stack"></div>
+                                <div class="map-loading" id="load0">A carregar PIR de hoje…</div>
+                            </div>
+
+                            <div
+                                id="meteorologia-hoje-direita"
+                                class="pir-weather-column pir-weather-column-right"
+                                aria-label="Meteorologia dos concelhos à direita"
+                            >
+                                <div class="pir-weather-column-status">A carregar dados de hoje…</div>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                <div id="pir-futuro">
+                    <article class="palco" id="palco-pir-amanha">
+                        <div class="palco-titulo">PIR — Amanhã</div>
+                        <div class="palco-conteudo">
+                            <div class="pir-map-frame">
+                                <div id="mapa-pir1" class="pir-image-stack"></div>
+                            </div>
+                            <div class="map-loading" id="load1">A carregar PIR de amanhã…</div>
+                        </div>
+                    </article>
+
+                    <article class="palco" id="palco-pir-depois">
+                        <div class="palco-titulo">PIR — Depois de amanhã</div>
+                        <div class="palco-conteudo">
+                            <div class="pir-map-frame">
+                                <div id="mapa-pir2" class="pir-image-stack"></div>
+                            </div>
+                            <div class="map-loading" id="load2">A carregar PIR…</div>
+                        </div>
+                    </article>
+                </div>
+            </section>
+
+            <aside id="right-area" aria-label="Avisos e estado de prontidão">
+                <section class="palco" id="palco-avisos">
+                    <div class="palco-titulo">Avisos meteorológicos — Viana do Castelo · 3 dias</div>
+                    <div class="palco-conteudo" id="avisos-conteudo">
+                        <div class="avisos-estado">A carregar avisos do IPMA…</div>
+                    </div>
+                </section>
+
+                <section class="palco" id="palco-epe">
+                    <div class="palco-titulo">Estado Prontidão Especial (EPE)</div>
+                    <div class="palco-conteudo" id="epe-conteudo" aria-live="polite">
+                        <div class="epe-estado-carregamento">A carregar o estado de prontidão…</div>
+                    </div>
+                </section>
+            </aside>
+        </main>
+    </div>
+
+    <script>
+        'use strict';
+
+        const concelhoNomes = {
+            '1601': 'arcos',
+            '1602': 'caminha',
+            '1603': 'melgaco',
+            '1604': 'moncao',
+            '1605': 'coura',
+            '1606': 'pbarca',
+            '1607': 'plima',
+            '1608': 'valenca',
+            '1609': 'viana',
+            '1610': 'cerveira'
+        };
+
+        /* Os nomes físicos das pastas existentes mantêm "IRI" para não quebrar os PNG. */
+        const nivelPasta = {
+            '1': 'IRI Reduzido',
+            '2': 'IRI Moderado',
+            '3': 'IRI Elevado',
+            '4': 'IRI Muito Elevado',
+            '5': 'IRI Maximo'
+        };
+
+        const nomesRisco = {
+            '1': 'Reduzido',
+            '2': 'Moderado',
+            '3': 'Elevado',
+            '4': 'Muito elevado',
+            '5': 'Máximo'
+        };
+
+        const nomesConcelho = {
+            '1601': 'Arcos de Valdevez',
+            '1602': 'Caminha',
+            '1603': 'Melgaço',
+            '1604': 'Monção',
+            '1605': 'Paredes de Coura',
+            '1606': 'Ponte da Barca',
+            '1607': 'Ponte de Lima',
+            '1608': 'Valença',
+            '1609': 'Viana do Castelo',
+            '1610': 'Vila Nova de Cerveira'
+        };
+
+        const globalIdLocalPorDico = {
+            '1601': 1160100,
+            '1602': 1160200,
+            '1603': 1160300,
+            '1604': 1160400,
+            '1605': 1160500,
+            '1606': 1160600,
+            '1607': 1160700,
+            '1608': 1160800,
+            '1609': 1160900,
+            '1610': 1161000
+        };
+
+        const concelhosMeteorologiaEsquerda = [
+            '1601',
+            '1602',
+            '1603',
+            '1604',
+            '1605'
+        ];
+
+        const concelhosMeteorologiaDireita = [
+            '1606',
+            '1607',
+            '1608',
+            '1609',
+            '1610'
+        ];
+
+        const nomesClasseVento = {
+            '1': 'Fraco',
+            '2': 'Moderado',
+            '3': 'Forte',
+            '4': 'Muito forte'
+        };
+
+        const direcoesVentoValidas = new Set([
+            'N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'
+        ]);
+
+        const baseIconesAvisosIpma =
+            'https://www.ipma.pt/opencms/bin/icons/svg/warnings/';
+        const tiposAvisoIpma = [
+            { nome: 'Trovoada', icone: 'thunderstorm.svg' },
+            { nome: 'Agitação Marítima', icone: 'coastalevent.svg' },
+            { nome: 'Precipitação', icone: 'rain.svg' },
+            { nome: 'Vento', icone: 'wind.svg' },
+            { nome: 'Neve', icone: 'snow-ice.svg' },
+            { nome: 'Tempo Frio', icone: 'low-temperature.svg' },
+            { nome: 'Tempo Quente', icone: 'high-temperature.svg' },
+            { nome: 'Nevoeiro', icone: 'fog.svg' }
+        ];
+        const niveisAvisoIpma = {
+            green: { nome: 'Verde', classe: 'aviso-green', prioridade: 0 },
+            yellow: { nome: 'Amarelo', classe: 'aviso-yellow', prioridade: 1 },
+            orange: { nome: 'Laranja', classe: 'aviso-orange', prioridade: 2 },
+            red: { nome: 'Vermelho', classe: 'aviso-red', prioridade: 3 }
+        };
+
+        const niveisEpe = {
+            I: { nome: 'Nível I', classe: 'epe-nivel-i', ordem: 1 },
+            II: { nome: 'Nível II', classe: 'epe-nivel-ii', ordem: 2 },
+            III: { nome: 'Nível III', classe: 'epe-nivel-iii', ordem: 3 },
+            IV: { nome: 'Nível IV', classe: 'epe-nivel-iv', ordem: 4 }
+        };
+
+        /*
+         * PRÉ-VISUALIZAÇÃO TEMPORÁRIA
+         * true  = mostra um aviso amarelo simulado de precipitação;
+         * false = apresenta exclusivamente os dados oficiais do IPMA.
+         */
+        const simularAvisoMeteorologico = false;
+
+        const intervaloAtualizacaoPirMs = 60 * 60 * 1000;
+        const intervaloAtualizacaoAvisosMs = 60 * 60 * 1000;
+        const intervaloAtualizacaoEpeMs = 60 * 1000;
+        let atualizacaoPirEmCurso = false;
+        let atualizacaoAvisosEmCurso = false;
+        let atualizacaoEpeEmCurso = false;
+        let agendamentosEpe = [];
+        let epeJaCarregado = false;
+        let ultimaLeituraEpe = null;
+        let avisoAtualizacaoEpe = '';
+        let temporizadorMudancaEpe = null;
+
+        function definirEstadoLoading(loadingId, mensagem, erro = false) {
+            const elemento = document.getElementById(loadingId);
+            elemento.textContent = mensagem;
+            elemento.classList.toggle('erro', erro);
+            elemento.style.display = 'block';
+        }
+
+        function esconderLoading(loadingId) {
+            document.getElementById(loadingId).style.display = 'none';
+        }
+
+        function extrairRiscoDistrital(json) {
+            const resultado = {};
+
+            if (!json || typeof json.local !== 'object' || json.local === null) {
+                return resultado;
+            }
+
+            Object.entries(json.local).forEach(([dico, local]) => {
+                const risco = String(local?.data?.rcm ?? '');
+
+                if (dico.startsWith('16') && nivelPasta[risco]) {
+                    resultado[dico] = risco;
+                }
+            });
+
+            return resultado;
+        }
+
+        function adicionarImagemConcelho(pilha, dico, risco) {
+            return new Promise((resolve) => {
+                const pasta = nivelPasta[risco];
+                const ficheiro = concelhoNomes[dico];
+                const urlImagem = `${pasta}/${ficheiro}.png`;
+                const imagem = document.createElement('img');
+
+                imagem.className = 'pir-image-layer pir-concelho-layer';
+                imagem.alt = `${nomesConcelho[dico]} — risco ${nomesRisco[risco]}`;
+                imagem.dataset.dico = dico;
+                imagem.dataset.risco = risco;
+                imagem.addEventListener(
+                    'load',
+                    () => resolve({ dico, estado: 'carregado' }),
+                    { once: true }
+                );
+                imagem.addEventListener(
+                    'error',
+                    () => resolve({ dico, estado: 'erro', urlImagem }),
+                    { once: true }
+                );
+
+                pilha.appendChild(imagem);
+                imagem.src = urlImagem;
+            });
+        }
+
+        function adicionarTracado(pilha) {
+            return new Promise((resolve) => {
+                const tracado = document.createElement('img');
+
+                tracado.className = 'pir-image-layer pir-tracado-layer';
+                tracado.alt = '';
+                tracado.setAttribute('aria-hidden', 'true');
+                tracado.addEventListener(
+                    'load',
+                    () => resolve({ estado: 'carregado' }),
+                    { once: true }
+                );
+                tracado.addEventListener(
+                    'error',
+                    () => resolve({ estado: 'erro', urlImagem: 'tracadovct.png' }),
+                    { once: true }
+                );
+
+                /* Inserido por último e com z-index superior: é sempre o topo. */
+                pilha.appendChild(tracado);
+                tracado.src = 'tracadovct.png';
+            });
+        }
+
+        function obterNumeroValido(valor, minimo = -90, maximo = Number.POSITIVE_INFINITY) {
+            const numero = Number(valor);
+
+            return Number.isFinite(numero) && numero >= minimo && numero <= maximo
+                ? numero
+                : null;
+        }
+
+        function obterExtremos(valores) {
+            const validos = valores.filter((valor) => valor !== null);
+
+            if (validos.length === 0) {
+                return { minimo: null, maximo: null };
+            }
+
+            return {
+                minimo: Math.min(...validos),
+                maximo: Math.max(...validos)
+            };
+        }
+
+        function obterModa(valores) {
+            const contagens = new Map();
+            let moda = null;
+            let maiorContagem = 0;
+
+            valores.forEach((valor) => {
+                const novaContagem = (contagens.get(valor) || 0) + 1;
+                contagens.set(valor, novaContagem);
+
+                if (novaContagem > maiorContagem) {
+                    moda = valor;
+                    maiorContagem = novaContagem;
+                }
+            });
+
+            return moda;
+        }
+
+        function extrairDataIso(valor) {
+            const resultado = String(valor ?? '').match(/^\d{4}-\d{2}-\d{2}/);
+            return resultado ? resultado[0] : null;
+        }
+
+        function extrairMeteorologiaDiaria(respostaAggregate, dataReferencia) {
+            const registos = Array.isArray(respostaAggregate)
+                ? respostaAggregate
+                : Array.isArray(respostaAggregate?.data)
+                    ? respostaAggregate.data
+                    : [];
+            const registosDia = registos.filter(
+                (registo) => extrairDataIso(registo?.dataPrev) === dataReferencia
+            );
+            const resumoDiario = registosDia.find(
+                (registo) =>
+                    obterNumeroValido(registo?.tMin, -60, 60) !== null ||
+                    obterNumeroValido(registo?.tMax, -60, 60) !== null
+            ) || {};
+            const temperaturasHorarias = registosDia.map((registo) =>
+                obterNumeroValido(registo?.tMed, -60, 60)
+            );
+            const extremosTemperaturaHoraria = obterExtremos(temperaturasHorarias);
+            const temperaturaMinima =
+                obterNumeroValido(resumoDiario.tMin, -60, 60) ??
+                extremosTemperaturaHoraria.minimo;
+            const temperaturaMaxima =
+                obterNumeroValido(resumoDiario.tMax, -60, 60) ??
+                extremosTemperaturaHoraria.maximo;
+            const extremosHumidade = obterExtremos(
+                registosDia.map((registo) => obterNumeroValido(registo?.hR, 0, 100))
+            );
+            const extremosVento = obterExtremos(
+                registosDia.map((registo) => obterNumeroValido(registo?.ffVento, 0, 300))
+            );
+            const direcaoResumo = String(resumoDiario.ddVento ?? '').toUpperCase();
+            const direcoesHorarias = registosDia
+                .map((registo) => String(registo?.ddVento ?? '').toUpperCase())
+                .filter((direcao) => direcoesVentoValidas.has(direcao));
+            const direcaoVento = direcoesVentoValidas.has(direcaoResumo)
+                ? direcaoResumo
+                : obterModa(direcoesHorarias);
+            const classeVento = nomesClasseVento[String(resumoDiario.idFfxVento)] || null;
+            const dados = {
+                temperaturaMinima,
+                temperaturaMaxima,
+                humidadeMinima: extremosHumidade.minimo,
+                humidadeMaxima: extremosHumidade.maximo,
+                direcaoVento,
+                velocidadeMaximaVento: extremosVento.maximo,
+                classeVento,
+                dataUpdate: resumoDiario.dataUpdate || registosDia[0]?.dataUpdate || null
+            };
+
+            dados.disponivel = [
+                dados.temperaturaMinima,
+                dados.temperaturaMaxima,
+                dados.humidadeMinima,
+                dados.humidadeMaxima,
+                dados.direcaoVento,
+                dados.velocidadeMaximaVento,
+                dados.classeVento
+            ].some((valor) => valor !== null);
+
+            return dados;
+        }
+
+        function formatarNumero(valor) {
+            if (valor === null) {
+                return '—';
+            }
+
+            return new Intl.NumberFormat('pt-PT', {
+                maximumFractionDigits: 0
+            }).format(valor);
+        }
+
+        function formatarIntervalo(minimo, maximo, unidade) {
+            if (minimo === null || maximo === null) {
+                return '—';
+            }
+
+            return `${formatarNumero(minimo)}–${formatarNumero(maximo)}${unidade}`;
+        }
+
+        function adicionarLinhaMeteorologia(item, texto) {
+            const linha = document.createElement('span');
+            linha.textContent = texto;
+            item.appendChild(linha);
+        }
+
+        function criarItemMeteorologia(dico, meteorologiaMunicipal, dataReferencia) {
+            const dados = extrairMeteorologiaDiaria(
+                meteorologiaMunicipal[dico],
+                dataReferencia
+            );
+            const item = document.createElement('div');
+            const nome = document.createElement('strong');
+
+            item.className = 'pir-weather-item';
+            nome.textContent = nomesConcelho[dico];
+            item.appendChild(nome);
+
+            if (!dados.disponivel) {
+                item.classList.add('is-unavailable');
+                adicionarLinhaMeteorologia(item, 'Dados indisponíveis');
+                item.title = `${nomesConcelho[dico]}: dados indisponíveis`;
+                return item;
+            }
+
+            const temperatura = formatarIntervalo(
+                dados.temperaturaMinima,
+                dados.temperaturaMaxima,
+                '°C'
+            );
+            const humidade = formatarIntervalo(
+                dados.humidadeMinima,
+                dados.humidadeMaxima,
+                '%'
+            );
+            const direcao = dados.direcaoVento || '—';
+            const velocidade = dados.velocidadeMaximaVento === null
+                ? dados.classeVento || '—'
+                : `${formatarNumero(dados.velocidadeMaximaVento)} km/h`;
+            const vento = `${direcao} · ${velocidade}`;
+
+            adicionarLinhaMeteorologia(item, `Temperatura: ${temperatura}`);
+            adicionarLinhaMeteorologia(item, `Humidade: ${humidade}`);
+            adicionarLinhaMeteorologia(item, `Vento: ${vento}`);
+
+            item.title =
+                `${nomesConcelho[dico]}: temperatura ${temperatura}; ` +
+                `humidade relativa ${humidade}; vento ${vento}` +
+                (dados.classeVento ? `, ${dados.classeVento.toLowerCase()}` : '');
+
+            return item;
+        }
+
+        function preencherColunaMeteorologia(
+            containerId,
+            concelhos,
+            meteorologiaMunicipal,
+            dataReferencia
+        ) {
+            const container = document.getElementById(containerId);
+            const fragmento = document.createDocumentFragment();
+
+            concelhos.forEach((dico) => {
+                fragmento.appendChild(
+                    criarItemMeteorologia(dico, meteorologiaMunicipal, dataReferencia)
+                );
+            });
+
+            container.replaceChildren(fragmento);
+        }
+
+        function apresentarMeteorologiaHoje(meteorologiaMunicipal, dataReferencia) {
+            preencherColunaMeteorologia(
+                'meteorologia-hoje-esquerda',
+                concelhosMeteorologiaEsquerda,
+                meteorologiaMunicipal,
+                dataReferencia
+            );
+            preencherColunaMeteorologia(
+                'meteorologia-hoje-direita',
+                concelhosMeteorologiaDireita,
+                meteorologiaMunicipal,
+                dataReferencia
+            );
+        }
+
+        function definirMeteorologiaHojeIndisponivel() {
+            const mensagem = document.createElement('div');
+            mensagem.className = 'pir-weather-column-status';
+            mensagem.textContent = 'Dados de hoje indisponíveis.';
+
+            document
+                .getElementById('meteorologia-hoje-esquerda')
+                .replaceChildren(mensagem.cloneNode(true));
+            document
+                .getElementById('meteorologia-hoje-direita')
+                .replaceChildren(mensagem);
+        }
+
+        async function carregarConcelhosPNG(
+            pilhaId,
+            dadosRcmIpma,
+            loadingId
+        ) {
+            const pilha = document.getElementById(pilhaId);
+            const concelhosComDados = Object.keys(concelhoNomes).filter(
+                (dico) => Boolean(dadosRcmIpma[dico])
+            );
+
+            if (concelhosComDados.length === 0) {
+                throw new Error('A resposta do IPMA não contém dados PIR para o Alto Minho.');
+            }
+
+            pilha.replaceChildren();
+
+            const [resultados, resultadoTracado] = await Promise.all([
+                Promise.all(
+                    concelhosComDados.map((dico) =>
+                        adicionarImagemConcelho(pilha, dico, dadosRcmIpma[dico])
+                    )
+                ),
+                adicionarTracado(pilha)
+            ]);
+
+            const falhas = resultados.filter((resultado) => resultado.estado === 'erro');
+
+            if (resultadoTracado.estado === 'erro') {
+                falhas.push(resultadoTracado);
+            }
+
+            if (falhas.length > 0) {
+                console.error('Imagens PIR em falta ou inacessíveis:', falhas);
+                definirEstadoLoading(
+                    loadingId,
+                    `${falhas.length} imagem(ns) PIR não carregaram.`,
+                    true
+                );
+                return;
+            }
+
+            esconderLoading(loadingId);
+        }
+
+        async function obterJson(url) {
+            const resposta = await fetch(url, { cache: 'no-store' });
+
+            if (!resposta.ok) {
+                throw new Error(`Pedido falhou com HTTP ${resposta.status}.`);
+            }
+
+            return resposta.json();
+        }
+
+        async function carregarMeteorologiaMunicipal() {
+            const baseUrl = 'https://api.ipma.pt/public-data/forecast/aggregate/';
+            const entradas = Object.entries(globalIdLocalPorDico);
+            const respostas = await Promise.allSettled(
+                entradas.map(async ([dico, globalIdLocal]) => {
+                    const dados = await obterJson(`${baseUrl}${globalIdLocal}.json`);
+                    const registos = Array.isArray(dados)
+                        ? dados
+                        : Array.isArray(dados?.data)
+                            ? dados.data
+                            : [];
+                    const correspondeAoConcelho = registos.some(
+                        (registo) => Number(registo?.globalIdLocal) === globalIdLocal
+                    );
+
+                    if (!correspondeAoConcelho) {
+                        throw new Error(
+                            `O endpoint ${globalIdLocal} não devolveu o identificador esperado.`
+                        );
+                    }
+
+                    return { dico, dados };
+                })
+            );
+            const meteorologiaMunicipal = {};
+
+            respostas.forEach((resposta, indice) => {
+                const [dico, globalIdLocal] = entradas[indice];
+
+                if (resposta.status === 'fulfilled') {
+                    meteorologiaMunicipal[dico] = resposta.value.dados;
+                    return;
+                }
+
+                console.error(
+                    `Erro na previsão meteorológica de ${nomesConcelho[dico]} ` +
+                    `(${globalIdLocal}):`,
+                    resposta.reason
+                );
+            });
+
+            return meteorologiaMunicipal;
+        }
+
+        async function carregarPir() {
+            const baseUrlPir = 'https://api.ipma.pt/open-data/forecast/meteorology/rcm/';
+            const pedidosPir = ['rcm-d0.json', 'rcm-d1.json', 'rcm-d2.json'].map(
+                (ficheiro) => obterJson(baseUrlPir + ficheiro)
+            );
+            const [respostasPir, meteorologiaMunicipal] = await Promise.all([
+                Promise.allSettled(pedidosPir),
+                carregarMeteorologiaMunicipal()
+            ]);
+
+            await Promise.all(
+                respostasPir.map(async (resposta, indice) => {
+                    const loadingId = `load${indice}`;
+
+                    if (resposta.status === 'rejected') {
+                        console.error(`Erro ao carregar PIR D${indice}:`, resposta.reason);
+                        definirEstadoLoading(loadingId, 'PIR temporariamente indisponível.', true);
+
+                        if (indice === 0) {
+                            definirMeteorologiaHojeIndisponivel();
+                        }
+
+                        return;
+                    }
+
+                    try {
+                        const risco = extrairRiscoDistrital(resposta.value);
+                        const dataReferencia = extrairDataIso(resposta.value?.dataPrev);
+
+                        if (!dataReferencia) {
+                            throw new Error('A resposta PIR não identifica a data de previsão.');
+                        }
+
+                        if (indice === 0) {
+                            apresentarMeteorologiaHoje(
+                                meteorologiaMunicipal,
+                                dataReferencia
+                            );
+                        }
+
+                        await carregarConcelhosPNG(
+                            `mapa-pir${indice}`,
+                            risco,
+                            loadingId
+                        );
+                    } catch (erro) {
+                        console.error(`Erro ao apresentar PIR D${indice}:`, erro);
+                        definirEstadoLoading(loadingId, 'Não foi possível apresentar o PIR.', true);
+
+                        if (indice === 0) {
+                            definirMeteorologiaHojeIndisponivel();
+                        }
+                    }
+                })
+            );
+        }
+
+        async function atualizarPir() {
+            if (atualizacaoPirEmCurso) {
+                return;
+            }
+
+            atualizacaoPirEmCurso = true;
+
+            try {
+                await carregarPir();
+            } finally {
+                atualizacaoPirEmCurso = false;
+            }
+        }
+
+        function obterDataAvisoUtc(valor) {
+            const texto = String(valor ?? '').trim();
+
+            if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(texto)) {
+                return null;
+            }
+
+            const incluiFusoHorario = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(texto);
+            const data = new Date(incluiFusoHorario ? texto : `${texto}Z`);
+
+            return Number.isNaN(data.getTime()) ? null : data;
+        }
+
+        function formatarInstanteEscalaAvisoUtc(valor) {
+            const data = valor instanceof Date ? valor : obterDataAvisoUtc(valor);
+
+            if (!data) {
+                return '—';
+            }
+
+            const partes = new Intl.DateTimeFormat('pt-PT', {
+                day: '2-digit',
+                month: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false,
+                timeZone: 'UTC'
+            }).formatToParts(data);
+            const obterParte = (tipo) =>
+                partes.find((parte) => parte.type === tipo)?.value || '';
+
+            return (
+                `${obterParte('day')}/${obterParte('month')} ` +
+                `${obterParte('hour')}:${obterParte('minute')}`
+            );
+        }
+
+        function limitarPercentagem(valor) {
+            return Math.max(0, Math.min(100, valor));
+        }
+
+        function obterNivelAvisoMaisElevado(periodos) {
+            return periodos.reduce((nivelAtual, periodo) => {
+                const nivel = niveisAvisoIpma[periodo.awarenessLevelID];
+
+                return nivel && nivel.prioridade > nivelAtual.prioridade
+                    ? nivel
+                    : nivelAtual;
+            }, niveisAvisoIpma.green);
+        }
+
+        function selecionarPeriodosAviso(registos) {
+            const validos = registos.filter(
+                (aviso) =>
+                    niveisAvisoIpma[aviso.awarenessLevelID] &&
+                    obterDataAvisoUtc(aviso.startTime) &&
+                    obterDataAvisoUtc(aviso.endTime)
+            );
+            const comAviso = validos.filter(
+                (aviso) => aviso.awarenessLevelID !== 'green'
+            );
+            const selecionados = comAviso.length > 0
+                ? comAviso
+                : validos.filter((aviso) => aviso.awarenessLevelID === 'green');
+
+            return selecionados.sort(
+                (a, b) =>
+                    obterDataAvisoUtc(a.startTime).getTime() -
+                    obterDataAvisoUtc(b.startTime).getTime()
+            );
+        }
+
+        function criarAvisoMeteorologicoSimulado() {
+            const agora = new Date();
+            const inicio = new Date(agora.getTime() + 2 * 60 * 60 * 1000);
+            const fim = new Date(inicio.getTime() + 18 * 60 * 60 * 1000);
+
+            inicio.setUTCMinutes(0, 0, 0);
+            fim.setUTCMinutes(0, 0, 0);
+
+            return {
+                text: 'SIMULAÇÃO — Precipitação por vezes forte, podendo ser acompanhada de trovoada.',
+                awarenessTypeName: 'Precipitação',
+                idAreaAviso: 'VCT',
+                startTime: inicio.toISOString(),
+                awarenessLevelID: 'yellow',
+                endTime: fim.toISOString(),
+                simulacao: true
+            };
+        }
+
+        function criarMarcoEscalaAviso(rotulo, valor, dataTime, estado) {
+            const marco = document.createElement('div');
+            const nome = document.createElement('span');
+            const tempo = document.createElement('time');
+
+            marco.className = `aviso-escala-marco aviso-escala-${estado}`;
+            nome.className = 'aviso-escala-rotulo';
+            nome.textContent = rotulo;
+            tempo.textContent = valor;
+
+            if (dataTime) {
+                tempo.dateTime = dataTime;
+            }
+
+            marco.append(nome, tempo);
+            return marco;
+        }
+
+        function criarEscalaPeriodoAviso(aviso) {
+            const inicio = obterDataAvisoUtc(aviso.startTime);
+            const fim = obterDataAvisoUtc(aviso.endTime);
+            const agora = new Date();
+            const umaHoraMs = 60 * 60 * 1000;
+            const fimDaEscala = new Date(Math.max(fim.getTime(), agora.getTime()) + umaHoraMs);
+            const duracaoJanela = fimDaEscala.getTime() - agora.getTime();
+            const inicioLimitado = Math.max(
+                agora.getTime(),
+                Math.min(fimDaEscala.getTime(), inicio.getTime())
+            );
+            const fimLimitado = Math.max(
+                agora.getTime(),
+                Math.min(fimDaEscala.getTime(), fim.getTime())
+            );
+            const posicaoInicio = limitarPercentagem(
+                ((inicioLimitado - agora.getTime()) / duracaoJanela) * 100
+            );
+            const posicaoFim = limitarPercentagem(
+                ((fimLimitado - agora.getTime()) / duracaoJanela) * 100
+            );
+            const totalHoras = Math.max(1, Math.ceil(duracaoJanela / umaHoraMs));
+            const avisoAtivoAgora = agora >= inicio && agora < fim;
+            const escala = document.createElement('div');
+            const marcos = document.createElement('div');
+            const linha = document.createElement('div');
+            const preenchimento = document.createElement('span');
+            const tracos = document.createElement('span');
+            const legenda = document.createElement('div');
+            const inicioIso = inicio.toISOString();
+            const fimIso = fim.toISOString();
+            const agoraIso = agora.toISOString();
+            const agoraVisivel = formatarInstanteEscalaAvisoUtc(agora);
+            const inicioVisivel = formatarInstanteEscalaAvisoUtc(aviso.startTime);
+            const fimVisivel = formatarInstanteEscalaAvisoUtc(aviso.endTime);
+
+            escala.className = 'aviso-escala';
+            escala.setAttribute(
+                'aria-label',
+                `Agora ${agoraVisivel} UTC; início ${inicioVisivel} UTC; ` +
+                `fim ${fimVisivel} UTC; situação normal a partir de ${fimVisivel} UTC.`
+            );
+            marcos.className = 'aviso-escala-marcos';
+            marcos.append(
+                criarMarcoEscalaAviso(
+                    'Agora',
+                    agoraVisivel,
+                    agoraIso,
+                    avisoAtivoAgora ? 'risco' : 'normal'
+                ),
+                criarMarcoEscalaAviso('Início', inicioVisivel, inicioIso, 'risco'),
+                criarMarcoEscalaAviso('Fim', fimVisivel, fimIso, 'risco'),
+                criarMarcoEscalaAviso('Normal', fimVisivel, fimIso, 'normal')
+            );
+            linha.className = 'aviso-escala-linha';
+            linha.style.setProperty('--escala-horas', String(totalHoras));
+            linha.style.setProperty('--aviso-inicio', `${posicaoInicio}%`);
+            linha.style.setProperty(
+                '--aviso-largura',
+                `${Math.max(0, posicaoFim - posicaoInicio)}%`
+            );
+            preenchimento.className = 'aviso-escala-preenchimento';
+            preenchimento.hidden = posicaoFim <= posicaoInicio;
+            tracos.className = 'aviso-escala-tracos';
+            preenchimento.setAttribute('aria-hidden', 'true');
+            tracos.setAttribute('aria-hidden', 'true');
+            linha.append(preenchimento, tracos);
+            legenda.className = 'aviso-escala-legenda';
+            legenda.innerHTML = '<span>Situação normal</span><span>graduação horária</span><span>Normal</span>';
+            escala.append(marcos, linha, legenda);
+
+            return escala;
+        }
+
+        function criarCartaoAviso(tipoAviso, avisosViana) {
+            const registosTipo = avisosViana.filter(
+                (aviso) => aviso.awarenessTypeName === tipoAviso.nome
+            );
+            const periodos = selecionarPeriodosAviso(registosTipo);
+            const nivel = periodos.length > 0
+                ? obterNivelAvisoMaisElevado(periodos)
+                : { nome: 'Indisponível', classe: 'aviso-indisponivel' };
+            const item = document.createElement('article');
+            const cabecalho = document.createElement('div');
+            const icone = document.createElement('img');
+            const nome = document.createElement('div');
+            const etiquetaNivel = document.createElement('span');
+            const periodosContainer = document.createElement('div');
+
+            item.className = `aviso-item ${nivel.classe}`;
+            item.classList.toggle(
+                'aviso-com-multiplos-periodos',
+                periodos.length > 1
+            );
+            cabecalho.className = 'aviso-cabecalho';
+            icone.className = 'aviso-icone';
+            icone.src = baseIconesAvisosIpma + tipoAviso.icone;
+            icone.alt = '';
+            icone.setAttribute('aria-hidden', 'true');
+            nome.className = 'aviso-nome';
+            nome.textContent = tipoAviso.nome;
+            etiquetaNivel.className = 'aviso-nivel';
+            etiquetaNivel.textContent = nivel.nome;
+            periodosContainer.className = 'aviso-periodos';
+            cabecalho.append(icone, nome, etiquetaNivel);
+            item.append(cabecalho, periodosContainer);
+
+            if (periodos.length === 0) {
+                const descricao = document.createElement('p');
+                descricao.className = 'aviso-descricao';
+                descricao.textContent = 'Dados temporariamente indisponíveis.';
+                periodosContainer.appendChild(descricao);
+                return item;
+            }
+
+            periodos.forEach((aviso) => {
+                const periodo = document.createElement('section');
+                const descricao = document.createElement('p');
+                const nivelPeriodo = niveisAvisoIpma[aviso.awarenessLevelID];
+                const textoIpma = String(aviso.text || '').trim();
+
+                periodo.className = `aviso-periodo ${nivelPeriodo.classe}`;
+
+                descricao.className = 'aviso-descricao';
+                descricao.textContent = textoIpma
+                    ? `${nivelPeriodo.nome}: ${textoIpma}`
+                    : 'Sem situação meteorológica de risco prevista.';
+                descricao.title = descricao.textContent;
+                periodo.appendChild(descricao);
+
+                if (aviso.awarenessLevelID !== 'green') {
+                    periodo.appendChild(criarEscalaPeriodoAviso(aviso));
+                }
+
+                periodosContainer.appendChild(periodo);
+            });
+
+            return item;
+        }
+
+        function mostrarEstadoAvisos(mensagem, erro = false) {
+            const container = document.getElementById('avisos-conteudo');
+            const estado = document.createElement('div');
+
+            estado.className = `avisos-estado${erro ? ' erro' : ''}`;
+            estado.textContent = mensagem;
+            container.replaceChildren(estado);
+        }
+
+        async function carregarAvisos() {
+            const container = document.getElementById('avisos-conteudo');
+            container.setAttribute('aria-busy', 'true');
+
+            try {
+                const data = await obterJson(
+                    'https://api.ipma.pt/open-data/forecast/warnings/warnings_www.json'
+                );
+
+                if (!Array.isArray(data)) {
+                    throw new Error('A resposta de avisos do IPMA não é uma lista.');
+                }
+
+                const avisosViana = data.filter(
+                    (aviso) => aviso?.idAreaAviso === 'VCT'
+                );
+
+                if (avisosViana.length === 0) {
+                    throw new Error('O IPMA não devolveu avisos para a área VCT.');
+                }
+
+                if (simularAvisoMeteorologico) {
+                    avisosViana.push(criarAvisoMeteorologicoSimulado());
+                }
+
+                const grelha = document.createElement('div');
+                const rodape = document.createElement('div');
+
+                grelha.className = 'avisos-grelha';
+                tiposAvisoIpma.forEach((tipoAviso) => {
+                    grelha.appendChild(criarCartaoAviso(tipoAviso, avisosViana));
+                });
+
+                rodape.className = 'avisos-rodape';
+                if (simularAvisoMeteorologico) {
+                    rodape.classList.add('simulacao');
+                    rodape.textContent =
+                        'SIMULAÇÃO ATIVA · Precipitação amarela fictícia · Restantes dados: IPMA';
+                } else {
+                    rodape.textContent = 'Período até 3 dias · Horas UTC · Fonte: IPMA';
+                }
+                container.replaceChildren(grelha, rodape);
+            } catch (erro) {
+                console.error('Erro ao carregar avisos:', erro);
+                mostrarEstadoAvisos(
+                    'Avisos meteorológicos temporariamente indisponíveis.',
+                    true
+                );
+            } finally {
+                container.setAttribute('aria-busy', 'false');
+            }
+        }
+
+        async function atualizarAvisos() {
+            if (atualizacaoAvisosEmCurso) {
+                return;
+            }
+
+            atualizacaoAvisosEmCurso = true;
+
+            try {
+                await carregarAvisos();
+            } finally {
+                atualizacaoAvisosEmCurso = false;
+            }
+        }
+
+        function obterDataEpe(valor) {
+            const texto = String(valor ?? '').trim();
+            const formatoIsoComFuso =
+                /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})$/i;
+
+            if (!formatoIsoComFuso.test(texto)) {
+                return null;
+            }
+
+            const data = new Date(texto);
+            return Number.isNaN(data.getTime()) ? null : data;
+        }
+
+        function normalizarAgendamentosEpe(configuracao) {
+            if (!configuracao || !Array.isArray(configuracao.agendamentos)) {
+                throw new Error('O ficheiro epe.json não contém a lista "agendamentos".');
+            }
+
+            if (configuracao.agendamentos.length > 3) {
+                throw new Error('O ficheiro epe.json só pode conter até três agendamentos.');
+            }
+
+            const ativos = configuracao.agendamentos.filter(
+                (agendamento) => agendamento?.ativo === true
+            );
+            const normalizados = ativos.map((agendamento, indice) => {
+                const id = String(agendamento.id || `epe-${indice + 1}`).trim();
+                const nivel = String(agendamento.nivel || '').trim().toUpperCase();
+                const inicio = obterDataEpe(agendamento.inicio);
+                const fim = obterDataEpe(agendamento.fim);
+
+                if (!niveisEpe[nivel]) {
+                    throw new Error(
+                        `${id}: o nível deve ser I, II, III ou IV.`
+                    );
+                }
+
+                if (!inicio || !fim) {
+                    throw new Error(
+                        `${id}: início e fim devem usar data ISO com fuso horário.`
+                    );
+                }
+
+                if (fim.getTime() <= inicio.getTime()) {
+                    throw new Error(`${id}: a hora de fim tem de ser posterior ao início.`);
+                }
+
+                return { id, nivel, inicio, fim };
+            }).sort((a, b) => a.inicio.getTime() - b.inicio.getTime());
+
+            for (let indice = 1; indice < normalizados.length; indice += 1) {
+                const anterior = normalizados[indice - 1];
+                const atual = normalizados[indice];
+
+                if (atual.inicio.getTime() < anterior.fim.getTime()) {
+                    throw new Error(
+                        `${anterior.id} e ${atual.id}: os períodos não podem sobrepor-se.`
+                    );
+                }
+            }
+
+            return normalizados;
+        }
+
+        function formatarDataHoraEpe(data) {
+            return new Intl.DateTimeFormat('pt-PT', {
+                weekday: 'short',
+                day: '2-digit',
+                month: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false,
+                timeZone: 'Europe/Lisbon'
+            }).format(data).replace(',', ' ·');
+        }
+
+        function criarCartaoEstadoEpe(agendamentoAtivo) {
+            const nivel = agendamentoAtivo
+                ? niveisEpe[agendamentoAtivo.nivel]
+                : null;
+            const cartao = document.createElement('article');
+            const sigla = document.createElement('div');
+            const detalhe = document.createElement('div');
+            const rotulo = document.createElement('div');
+            const titulo = document.createElement('h3');
+            const periodo = document.createElement('p');
+
+            cartao.className = `epe-atual ${nivel ? nivel.classe : 'epe-nivel-epn'}`;
+            sigla.className = 'epe-atual-sigla';
+            sigla.textContent = agendamentoAtivo ? 'EPE' : 'EPN';
+            detalhe.className = 'epe-atual-detalhe';
+            rotulo.className = 'epe-atual-rotulo';
+            rotulo.textContent = 'Estado atual';
+            titulo.className = 'epe-atual-titulo';
+            titulo.textContent = agendamentoAtivo
+                ? `Estado de Prontidão Especial — ${nivel.nome}`
+                : 'Estado de Prontidão Normal';
+            periodo.className = 'epe-atual-periodo';
+            periodo.textContent = agendamentoAtivo
+                ? (
+                    `Em vigor: ${formatarDataHoraEpe(agendamentoAtivo.inicio)} ` +
+                    `— ${formatarDataHoraEpe(agendamentoAtivo.fim)}`
+                )
+                : 'Sem EPE ativa neste momento.';
+
+            detalhe.append(rotulo, titulo, periodo);
+            cartao.append(sigla, detalhe);
+            cartao.setAttribute(
+                'aria-label',
+                agendamentoAtivo
+                    ? `EPE ${nivel.nome} em vigor.`
+                    : 'EPN, Estado de Prontidão Normal.'
+            );
+
+            return cartao;
+        }
+
+        function criarCampoDataAgendaEpe(rotulo, data) {
+            const campo = document.createElement('div');
+            const nome = document.createElement('span');
+            const tempo = document.createElement('time');
+
+            campo.className = 'epe-agenda-data';
+            nome.textContent = rotulo;
+            tempo.textContent = formatarDataHoraEpe(data);
+            tempo.dateTime = data.toISOString();
+            campo.append(nome, tempo);
+
+            return campo;
+        }
+
+        function criarItemAgendaEpe(agendamento, agora) {
+            const nivel = niveisEpe[agendamento.nivel];
+            const emVigor = agora >= agendamento.inicio && agora < agendamento.fim;
+            const item = document.createElement('article');
+            const nomeNivel = document.createElement('div');
+            const estado = document.createElement('span');
+
+            item.className = `epe-agenda-item ${nivel.classe}`;
+            nomeNivel.className = 'epe-agenda-nivel';
+            nomeNivel.textContent = `EPE ${agendamento.nivel}`;
+            estado.className = 'epe-agenda-estado';
+            estado.textContent = emVigor ? 'Em vigor' : 'Agendada';
+            item.append(
+                nomeNivel,
+                criarCampoDataAgendaEpe('Início', agendamento.inicio),
+                criarCampoDataAgendaEpe('Fim', agendamento.fim),
+                estado
+            );
+
+            return item;
+        }
+
+        function agendarProximaMudancaEpe(agora) {
+            window.clearTimeout(temporizadorMudancaEpe);
+
+            const proximoLimite = agendamentosEpe
+                .flatMap((agendamento) => [agendamento.inicio, agendamento.fim])
+                .map((data) => data.getTime())
+                .filter((instante) => instante > agora.getTime())
+                .sort((a, b) => a - b)[0];
+
+            if (!proximoLimite) {
+                temporizadorMudancaEpe = null;
+                return;
+            }
+
+            const atrasoMaximo = 2_147_000_000;
+            const atraso = Math.min(
+                atrasoMaximo,
+                Math.max(100, proximoLimite - agora.getTime() + 100)
+            );
+
+            temporizadorMudancaEpe = window.setTimeout(renderizarEpe, atraso);
+        }
+
+        function renderizarEpe() {
+            const container = document.getElementById('epe-conteudo');
+
+            if (!epeJaCarregado) {
+                return;
+            }
+
+            const agora = new Date();
+            const agendamentoAtivo = agendamentosEpe.find(
+                (agendamento) => agora >= agendamento.inicio && agora < agendamento.fim
+            ) || null;
+            const visiveis = agendamentosEpe.filter(
+                (agendamento) => agendamento.fim.getTime() > agora.getTime()
+            ).slice(0, 3);
+            const agenda = document.createElement('section');
+            const cabecalho = document.createElement('div');
+            const titulo = document.createElement('span');
+            const contagem = document.createElement('span');
+            const lista = document.createElement('div');
+            const rodape = document.createElement('div');
+
+            agenda.className = 'epe-agenda';
+            cabecalho.className = 'epe-agenda-cabecalho';
+            titulo.textContent = 'Determinações configuradas';
+            contagem.className = 'epe-agenda-contagem';
+            contagem.textContent = `${visiveis.length}/3`;
+            lista.className = 'epe-agenda-lista';
+
+            if (visiveis.length === 0) {
+                const vazio = document.createElement('div');
+                vazio.className = 'epe-agenda-vazia';
+                vazio.textContent = 'Sem determinações EPE ativas ou futuras.';
+                lista.appendChild(vazio);
+            } else {
+                visiveis.forEach((agendamento) => {
+                    lista.appendChild(criarItemAgendaEpe(agendamento, agora));
+                });
+            }
+
+            cabecalho.append(titulo, contagem);
+            agenda.append(cabecalho, lista);
+            rodape.className = `epe-rodape${avisoAtualizacaoEpe ? ' aviso' : ''}`;
+            rodape.textContent = avisoAtualizacaoEpe || (
+                `epe.json · leitura ${formatarDataHoraEpe(ultimaLeituraEpe)} · ` +
+                'atualização automática a cada minuto · hora de Lisboa'
+            );
+            container.replaceChildren(
+                criarCartaoEstadoEpe(agendamentoAtivo),
+                agenda,
+                rodape
+            );
+
+            agendarProximaMudancaEpe(agora);
+        }
+
+        function mostrarErroEpe(mensagem) {
+            const container = document.getElementById('epe-conteudo');
+            const estado = document.createElement('div');
+
+            estado.className = 'epe-estado-carregamento erro';
+            estado.textContent = mensagem;
+            container.replaceChildren(estado);
+        }
+
+        async function carregarEpe() {
+            const configuracao = await obterJson(`epe.json?_=${Date.now()}`);
+            const normalizados = normalizarAgendamentosEpe(configuracao);
+
+            agendamentosEpe = normalizados;
+            ultimaLeituraEpe = new Date();
+            avisoAtualizacaoEpe = '';
+            epeJaCarregado = true;
+            renderizarEpe();
+        }
+
+        async function atualizarEpe() {
+            if (atualizacaoEpeEmCurso) {
+                return;
+            }
+
+            atualizacaoEpeEmCurso = true;
+
+            try {
+                await carregarEpe();
+            } catch (erro) {
+                console.error('Erro ao carregar EPE:', erro);
+
+                if (epeJaCarregado) {
+                    avisoAtualizacaoEpe =
+                        `Não foi possível atualizar epe.json: ${erro.message}`;
+                    renderizarEpe();
+                } else {
+                    mostrarErroEpe(
+                        `Estado de prontidão indisponível: ${erro.message}`
+                    );
+                }
+            } finally {
+                atualizacaoEpeEmCurso = false;
+            }
+        }
+
+        async function iniciar() {
+            atualizarDataHora();
+            window.setInterval(atualizarDataHora, 1000);
+
+            await Promise.allSettled([
+                atualizarPir(),
+                atualizarAvisos(),
+                atualizarEpe()
+            ]);
+
+            /* Cada bloco consulta novamente apenas a sua própria fonte oficial. */
+            window.setInterval(atualizarPir, intervaloAtualizacaoPirMs);
+            window.setInterval(atualizarAvisos, intervaloAtualizacaoAvisosMs);
+            window.setInterval(atualizarEpe, intervaloAtualizacaoEpeMs);
+        }
+
+        function atualizarDataHora() {
+            const agora = new Date();
+            const diaSemana = new Intl.DateTimeFormat('pt-PT', {
+                weekday: 'long'
+            }).format(agora);
+            const hora = new Intl.DateTimeFormat('pt-PT', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            }).format(agora);
+            const diaFormatado = diaSemana.charAt(0).toUpperCase() + diaSemana.slice(1);
+            const elemento = document.getElementById('current-datetime');
+
+            elemento.textContent = `${diaFormatado} · ${hora}`;
+            elemento.dateTime = agora.toISOString();
+        }
+
+        iniciar();
+    </script>
+</body>
+</html>

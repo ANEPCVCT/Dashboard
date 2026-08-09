@@ -1,0 +1,26 @@
+{
+  "timezone": "Europe/Lisbon",
+  "agendamentos": [
+    {
+      "id": "epe-1",
+      "ativo": false,
+      "nivel": "I",
+      "inicio": "",
+      "fim": ""
+    },
+    {
+      "id": "epe-2",
+      "ativo": false,
+      "nivel": "II",
+      "inicio": "",
+      "fim": ""
+    },
+    {
+      "id": "epe-3",
+      "ativo": false,
+      "nivel": "III",
+      "inicio": "",
+      "fim": ""
+    }
+  ]
+}
