@@ -1,0 +1,55 @@
+name: Testar Dashboard protegido
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "cloudflare-worker/**"
+      - ".github/workflows/test-dashboard-worker.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: test-dashboard-worker-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Testar autenticação no workerd
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Obter o repositório
+        uses: actions/checkout@v6
+
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: cloudflare-worker/package-lock.json
+
+      - name: Instalar dependências
+        working-directory: cloudflare-worker
+        run: npm ci
+
+      - name: Testar regras, permissões e EPE
+        working-directory: cloudflare-worker
+        run: npm test
+
+      - name: Preparar ficheiros privados do Dashboard
+        run: |
+          rm -rf cloudflare-worker/public
+          mkdir -p cloudflare-worker/public
+          cp index.html login.html anepc_logo.png tracadovct.png cloudflare-worker/public/
+          for directory in "IRI Reduzido" "IRI Moderado" "IRI Elevado" "IRI Muito Elevado" "IRI Maximo"; do
+            test -d "$directory" || { echo "Pasta em falta: $directory"; exit 1; }
+            cp -R "$directory" cloudflare-worker/public/
+          done
+
+      - name: Testar página, contas e primeiro login no workerd
+        working-directory: cloudflare-worker
+        run: npm run test:runtime
