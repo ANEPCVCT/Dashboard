@@ -1,4 +1,5 @@
-export const PBKDF2_ITERATIONS = 600_000;
+// workerd aceita no máximo 100 000 iterações PBKDF2 por operação.
+export const PBKDF2_ITERATIONS = 100_000;
 export const PASSWORD_MIN_LENGTH = 12;
 export const PASSWORD_MAX_LENGTH = 128;
 export const SESSION_DURATION_MS = 8 * 60 * 60 * 1000;
@@ -188,4 +189,3 @@ export async function readJson(request, maxBytes = 16 * 1024) {
     throw new Error('O pedido contém JSON inválido.');
   }
 }
-
