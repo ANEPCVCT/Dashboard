@@ -12,7 +12,8 @@ class MemoryStorage {
     return structuredClone(this.values.get(key));
   }
 
-  async put(key, value) {
+  async put(key, value, options) {
+    assert.equal(options, undefined, 'Durable Object storage.put não aceita opções de expiração');
     this.values.set(key, structuredClone(value));
   }
 
@@ -294,3 +295,13 @@ test('Dashboard autenticado', async (suite) => {
   });
 });
 
+test('erros assíncronos do armazenamento são convertidos numa resposta controlada', async () => {
+  const env = createEnv();
+  env.DASHBOARD_PASSWORD_PEPPER = 'curto';
+  const response = await worker.fetch(apiRequest('/api/session'), env);
+  assert.equal(response.status, 503);
+  assert.deepEqual(await response.json(), {
+    ok: false,
+    error: 'O serviço de contas não está disponível. Tente novamente.'
+  });
+});

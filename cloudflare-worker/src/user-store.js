@@ -3,6 +3,7 @@ import {
   LOGIN_WINDOW_MS,
   MAX_IP_ATTEMPTS,
   MAX_USER_ATTEMPTS,
+  PBKDF2_ITERATIONS,
   SESSION_DURATION_MS,
   clearSessionCookie,
   createPasswordRecord,
@@ -178,9 +179,7 @@ export class UserStore {
       created_at: createdAt,
       expires_at: new Date(Date.now() + SESSION_DURATION_MS).toISOString()
     };
-    await this.storage.put(`${SESSION_PREFIX}${tokenHash}`, session, {
-      expiration: Math.floor(Date.now() / 1000 + SESSION_DURATION_MS / 1000)
-    });
+    await this.storage.put(`${SESSION_PREFIX}${tokenHash}`, session);
     return { rawToken, csrfToken, session };
   }
 
@@ -234,9 +233,7 @@ export class UserStore {
     if (current.attempts >= MAX_IP_ATTEMPTS) {
       current.blocked_until = new Date(Date.now() + LOGIN_BLOCK_MS).toISOString();
     }
-    await this.storage.put(rate.key, current, {
-      expiration: Math.floor(Date.now() / 1000 + LOGIN_WINDOW_MS / 1000 + LOGIN_BLOCK_MS / 1000)
-    });
+    await this.storage.put(rate.key, current);
 
     if (user) {
       const failed = Number(user.failed_attempts || 0) + 1;
@@ -277,7 +274,7 @@ export class UserStore {
     } else {
       const dummy = {
         password_salt: 'ZGFzaGJvYXJkLWFuZXBjLWR1bW15',
-        password_iterations: 600_000,
+        password_iterations: PBKDF2_ITERATIONS,
         password_hash: 'invalid'
       };
       await verifyPassword(password, dummy, this.env.DASHBOARD_PASSWORD_PEPPER);
@@ -363,9 +360,7 @@ export class UserStore {
       expires_at: new Date(Date.now() + SESSION_DURATION_MS).toISOString()
     };
     await this.storage.put(userKey(updated.email), updated);
-    await this.storage.put(current.key, session, {
-      expiration: Math.floor(Date.now() / 1000 + SESSION_DURATION_MS / 1000)
-    });
+    await this.storage.put(current.key, session);
     await this.audit(updated.email, 'change_password', updated.email, null, null);
     return json(200, {
       ok: true,
@@ -540,23 +535,23 @@ export class UserStore {
   async fetch(request) {
     const url = new URL(request.url);
     try {
-      if (request.method === 'POST' && url.pathname === '/login') return this.login(request);
-      if (request.method === 'GET' && url.pathname === '/session') return this.session(request);
-      if (request.method === 'POST' && url.pathname === '/logout') return this.logout(request);
+      if (request.method === 'POST' && url.pathname === '/login') return await this.login(request);
+      if (request.method === 'GET' && url.pathname === '/session') return await this.session(request);
+      if (request.method === 'POST' && url.pathname === '/logout') return await this.logout(request);
       if (request.method === 'POST' && url.pathname === '/change-password') {
-        return this.changePassword(request);
+        return await this.changePassword(request);
       }
-      if (request.method === 'GET' && url.pathname === '/authorize') return this.authorize(request, url);
-      if (request.method === 'GET' && url.pathname === '/users') return this.listUsers(request);
-      if (request.method === 'POST' && url.pathname === '/users') return this.createUser(request);
+      if (request.method === 'GET' && url.pathname === '/authorize') return await this.authorize(request, url);
+      if (request.method === 'GET' && url.pathname === '/users') return await this.listUsers(request);
+      if (request.method === 'POST' && url.pathname === '/users') return await this.createUser(request);
 
       const resetMatch = url.pathname.match(/^\/users\/([^/]+)\/reset-password$/);
       if (request.method === 'POST' && resetMatch) {
-        return this.resetPassword(request, decodeURIComponent(resetMatch[1]));
+        return await this.resetPassword(request, decodeURIComponent(resetMatch[1]));
       }
       const userMatch = url.pathname.match(/^\/users\/([^/]+)$/);
       if (request.method === 'PUT' && userMatch) {
-        return this.updateUser(request, decodeURIComponent(userMatch[1]));
+        return await this.updateUser(request, decodeURIComponent(userMatch[1]));
       }
       return json(404, { ok: false, error: 'Operação de autenticação não encontrada.' });
     } catch (error) {

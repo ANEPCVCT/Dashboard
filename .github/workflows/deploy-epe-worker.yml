@@ -2,6 +2,12 @@ name: Deploy Dashboard protegido
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/deploy-epe-worker.yml"
+      - "cloudflare-worker/**"
 
 permissions:
   contents: read
@@ -77,6 +83,10 @@ jobs:
             cp -R "$directory" cloudflare-worker/public/
           done
 
+      - name: Testar no runtime real da Cloudflare
+        working-directory: cloudflare-worker
+        run: npm run test:runtime
+
       - name: Publicar o Dashboard protegido
         id: deploy
         uses: cloudflare/wrangler-action@v4
@@ -99,10 +109,7 @@ jobs:
       - name: Validar o Worker publicado
         env:
           DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
-        run: |
-          test -n "$DEPLOYMENT_URL" || { echo "A Cloudflare não devolveu o URL da implantação."; exit 1; }
-          HEALTH_URL="${DEPLOYMENT_URL%/}/health"
-          RESPONSE="$(curl --fail --silent --show-error --retry 8 --retry-all-errors --retry-delay 4 "$HEALTH_URL")"
-          printf '%s' "$RESPONSE" | python -c \
-            'import json, sys; data = json.load(sys.stdin); assert data == {"ok": True, "service": "dashboard-anepc"}'
-
+          DASHBOARD_ROOT_EMAIL: ${{ secrets.DASHBOARD_ROOT_EMAIL }}
+          DASHBOARD_ROOT_INITIAL_PASSWORD: ${{ secrets.DASHBOARD_ROOT_INITIAL_PASSWORD }}
+        working-directory: cloudflare-worker
+        run: node scripts/verify-deployment.mjs
