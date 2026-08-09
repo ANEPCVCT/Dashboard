@@ -65,11 +65,27 @@
             object-position: left center;
         }
 
+        .brand-copy {
+            display: grid;
+            gap: clamp(2px, 0.25vh, 4px);
+            min-width: 0;
+        }
+
         #brand-header h1 {
             min-width: 0;
             margin: 0;
             font-size: clamp(25px, 2.2vw, 42px);
             font-weight: 700;
+            line-height: 1.05;
+            letter-spacing: 0.01em;
+            color: #202b34;
+        }
+
+        .brand-subtitle {
+            min-width: 0;
+            margin: 0;
+            font-size: clamp(12.5px, 1.1vw, 21px);
+            font-weight: 600;
             line-height: 1.05;
             letter-spacing: 0.01em;
             color: #202b34;
@@ -1122,6 +1138,10 @@
             #brand-header h1 {
                 font-size: clamp(22px, 2.5vw, 34px);
             }
+
+            .brand-subtitle {
+                font-size: clamp(11px, 1.25vw, 17px);
+            }
         }
     </style>
 </head>
@@ -1130,7 +1150,10 @@
     <div id="main-container">
         <header id="brand-header">
             <img src="anepc_logo.png" alt="Logótipo da ANEPC">
-            <h1>Comando Sub-Regional do Alto Minho</h1>
+            <div class="brand-copy">
+                <h1>Comando Sub-Regional do Alto Minho</h1>
+                <p class="brand-subtitle">Autoridade Nacional de Emergência e Proteção Civil</p>
+            </div>
             <time id="current-datetime"></time>
         </header>
 
