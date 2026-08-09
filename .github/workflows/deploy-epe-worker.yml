@@ -2,6 +2,11 @@ name: Deploy Dashboard protegido
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/deploy-epe-worker.yml"
 
 permissions:
   contents: read
