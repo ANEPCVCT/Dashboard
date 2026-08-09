@@ -9,7 +9,6 @@ on:
       - ".github/workflows/test-dashboard-worker.yml"
 
 permissions:
-  actions: read
   contents: read
 
 concurrency:
@@ -25,18 +24,6 @@ jobs:
     steps:
       - name: Obter o repositório
         uses: actions/checkout@v6
-
-      - name: Identificar a última publicação do Dashboard
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: |
-          RESPONSE="$(curl --fail --silent --show-error \
-            --header "Accept: application/vnd.github+json" \
-            --header "Authorization: Bearer $GITHUB_TOKEN" \
-            --header "X-GitHub-Api-Version: 2022-11-28" \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/deploy-epe-worker.yml/runs?event=push&branch=main&per_page=1")"
-          printf '%s' "$RESPONSE" | python -c \
-            'import json, sys; run=json.load(sys.stdin)["workflow_runs"][0]; print({key: run[key] for key in ("id", "status", "conclusion", "head_sha", "html_url")})'
 
       - name: Preparar Node.js
         uses: actions/setup-node@v4
