@@ -68,5 +68,9 @@ jobs:
           ISSUE_NUMBER: ${{ github.event.issue.number }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          gh issue comment "$ISSUE_NUMBER" --body "O pedido não foi aplicado: o autor não está autorizado ou os dados falharam a validação. Consulte o registo da validação: ${RUN_URL}"
+          REASON="$(cat .epe-validation-error.txt 2>/dev/null || true)"
+          if [ -z "$REASON" ]; then
+            REASON="ocorreu um erro inesperado durante a validação"
+          fi
+          gh issue comment "$ISSUE_NUMBER" --body "O pedido não foi aplicado: ${REASON} Registo técnico: ${RUN_URL}"
           gh issue close "$ISSUE_NUMBER"
