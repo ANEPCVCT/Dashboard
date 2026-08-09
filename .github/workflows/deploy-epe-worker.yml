@@ -8,8 +8,10 @@ on:
     paths:
       - .github/workflows/deploy-epe-worker.yml
 
+# TEMPORÁRIO: necessário apenas para gravar deployment-status.json.
+# Deve regressar a contents: read imediatamente após a validação.
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: deploy-epe-worker
@@ -55,3 +57,60 @@ jobs:
         env:
           EPE_OPERATOR_KEY: ${{ secrets.EPE_OPERATOR_KEY }}
           GITHUB_TOKEN: ${{ secrets.EPE_GITHUB_TOKEN }}
+
+      - name: Validar o endpoint publicado
+        id: health
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
+        run: |
+          test -n "$DEPLOYMENT_URL" || { echo "A Cloudflare não devolveu o URL da implantação."; exit 1; }
+          HEALTH_URL="${DEPLOYMENT_URL%/}/health"
+          RESPONSE="$(curl --fail --silent --show-error --retry 5 --retry-all-errors --retry-delay 3 \
+            -H 'Origin: https://anepcvct.github.io' "$HEALTH_URL")"
+          printf '%s' "$RESPONSE" | python -c \
+            'import json, sys; data = json.load(sys.stdin); assert data == {"ok": True, "service": "dashboard-anepc-epe"}'
+
+      - name: Preparar registo da implantação
+        if: always()
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
+          DEPLOY_OUTCOME: ${{ steps.deploy.outcome }}
+          HEALTH_OUTCOME: ${{ steps.health.outcome }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          succeeded = (
+              os.environ.get("DEPLOY_OUTCOME") == "success"
+              and os.environ.get("HEALTH_OUTCOME") == "success"
+          )
+          deployment_url = os.environ.get("DEPLOYMENT_URL", "").strip() or None
+          result = {
+              "status": "success" if succeeded else "failure",
+              "deployment_url": deployment_url,
+              "health_url": f"{deployment_url.rstrip('/')}/health" if deployment_url else None,
+              "workflow_run": (
+                  f"https://github.com/{os.environ['GITHUB_REPOSITORY']}"
+                  f"/actions/runs/{os.environ['GITHUB_RUN_ID']}"
+              ),
+              "source_commit": os.environ["GITHUB_SHA"],
+              "checked_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+          }
+          Path("cloudflare-worker/deployment-status.json").write_text(
+              json.dumps(result, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Guardar registo da implantação
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add cloudflare-worker/deployment-status.json
+          git diff --cached --quiet && exit 0
+          git commit -m "Registar implantação do EPE Worker"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
