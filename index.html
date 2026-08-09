@@ -1426,7 +1426,9 @@
 
         const intervaloAtualizacaoPirMs = 60 * 60 * 1000;
         const intervaloAtualizacaoAvisosMs = 60 * 60 * 1000;
-        const intervaloAtualizacaoEpeMs = 60 * 1000;
+        const intervaloAtualizacaoEpeMs = 5 * 1000;
+        const intervaloRefreshPaginaMs = 5 * 60 * 1000;
+        const atrasoRefreshAposPedidoEpeMs = 1_000;
         const repositorioGithubEpe = 'ANEPCVCT/Dashboard';
         const urlNovoPedidoEpe = `https://github.com/${repositorioGithubEpe}/issues/new`;
         const chaveAgendaPendenteEpe = 'dashboard-anepc-epe-pendente-v1';
@@ -1441,6 +1443,8 @@
         let ultimaLeituraEpe = null;
         let avisoAtualizacaoEpe = '';
         let temporizadorMudancaEpe = null;
+        let assinaturaRemotaEpe = null;
+        let refreshPaginaAgendado = false;
 
         function definirEstadoLoading(loadingId, mensagem, erro = false) {
             const elemento = document.getElementById(loadingId);
@@ -2559,7 +2563,7 @@
             rodape.className = `epe-rodape${avisoAtualizacaoEpe ? ' aviso' : ''}`;
             rodape.textContent = avisoAtualizacaoEpe || (
                 `epe.csv · leitura ${formatarDataHoraEpe(ultimaLeituraEpe)} · ` +
-                'atualização automática a cada minuto · hora do sistema'
+                'sincronização automática entre postos · hora do sistema'
             );
             container.replaceChildren(
                 criarCartaoEstadoEpe(agendamentoAtivo),
@@ -3031,6 +3035,17 @@
             }
         }
 
+        function agendarRefreshPaginaEpe() {
+            if (refreshPaginaAgendado) {
+                return;
+            }
+
+            refreshPaginaAgendado = true;
+            window.setTimeout(() => {
+                window.location.reload();
+            }, atrasoRefreshAposPedidoEpeMs);
+        }
+
         function apresentarAgendaPendenteEpe(agendamentos) {
             guardarAgendaPendenteEpe(agendamentos);
             agendamentosEpe = agendamentos;
@@ -3043,9 +3058,7 @@
             renderizarEpe();
             fecharGestorEpe();
 
-            [5_000, 15_000, 30_000].forEach((atraso) => {
-                window.setTimeout(atualizarEpe, atraso);
-            });
+            agendarRefreshPaginaEpe();
         }
 
         function submeterFormularioEpe() {
@@ -3240,7 +3253,16 @@
         async function carregarEpe() {
             const conteudo = await obterTexto(`epe.csv?_=${Date.now()}`);
             const agendaRemota = lerConteudoCsvEpe(conteudo);
+            const novaAssinaturaRemotaEpe = assinaturaAgendaEpe(agendaRemota);
             const agendaPendente = obterAgendaPendenteEpe();
+
+            if (assinaturaRemotaEpe === null) {
+                assinaturaRemotaEpe = novaAssinaturaRemotaEpe;
+            } else if (assinaturaRemotaEpe !== novaAssinaturaRemotaEpe) {
+                assinaturaRemotaEpe = novaAssinaturaRemotaEpe;
+                window.location.reload();
+                return;
+            }
 
             if (
                 agendaPendente &&
@@ -3301,10 +3323,13 @@
                 atualizarEpe()
             ]);
 
-            /* Cada bloco consulta novamente apenas a sua própria fonte oficial. */
+            /* O EPE é verificado frequentemente para sincronizar todos os postos. */
             window.setInterval(atualizarPir, intervaloAtualizacaoPirMs);
             window.setInterval(atualizarAvisos, intervaloAtualizacaoAvisosMs);
             window.setInterval(atualizarEpe, intervaloAtualizacaoEpeMs);
+            window.setTimeout(() => {
+                window.location.reload();
+            }, intervaloRefreshPaginaMs);
         }
 
         function atualizarDataHora() {
