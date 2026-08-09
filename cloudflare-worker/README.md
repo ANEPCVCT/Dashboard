@@ -1,38 +1,46 @@
-# Serviço protegido de submissão EPE
+# Dashboard ANEPC protegido
 
-Este Cloudflare Worker recebe os pedidos do Dashboard ANEPC, valida a origem e a chave de operador e aciona o workflow `atualizar-epe.yml` através de `workflow_dispatch`.
+O Cloudflare Worker serve o Dashboard, autentica contas individuais e autoriza cada
+operação no servidor. O endereço GitHub Pages deve ser desativado apenas depois de a
+versão protegida estar validada.
 
-## Implantação protegida pelo GitHub Actions
+## Contas e permissões
 
-O workflow `.github/workflows/deploy-epe-worker.yml` testa e publica o Worker sem gravar credenciais no repositório. Antes da primeira execução, devem existir estes **Repository secrets**:
+- `ADMIN principal`: única conta externa a `@prociv.pt`; tem de ser Gmail, recebe todas
+  as permissões e não pode ser desativada.
+- As restantes contas têm obrigatoriamente o sufixo `@prociv.pt`.
+- As permissões são independentes: `Ver Dashboard`, `Gerir EPE` e `Gerir utilizadores`.
+- Toda a conta criada ou cuja password seja redefinida fica obrigada a trocar a password
+  provisória antes de usar qualquer funcionalidade.
 
-- `CLOUDFLARE_ACCOUNT_ID`: identificador da conta Cloudflare onde o Worker será criado;
-- `CLOUDFLARE_API_TOKEN`: token Cloudflare limitado à edição de Workers nessa conta;
-- `EPE_OPERATOR_KEY`: chave longa e exclusiva usada pelos postos autorizados;
-- `EPE_GITHUB_TOKEN`: fine-grained personal access token limitado ao repositório `ANEPCVCT/Dashboard`, com permissão **Actions: Read and write**.
+As passwords são derivadas com PBKDF2-HMAC-SHA-256, 600 000 iterações, sal aleatório por
+conta e um pepper guardado apenas como segredo do Worker. As sessões usam cookies
+`HttpOnly`, `Secure` e `SameSite=Strict`, com proteção CSRF e bloqueio temporário após
+tentativas repetidas.
 
-Depois de configurados, executar manualmente o workflow **Deploy EPE Worker**. A Action valida a presença dos quatro segredos, corre os testes e publica `dashboard-anepc-epe` com `EPE_OPERATOR_KEY` e `GITHUB_TOKEN` guardados como segredos do Worker.
+## Persistência
 
-## Configuração manual equivalente
+As contas, sessões e auditoria ficam num Durable Object com armazenamento SQLite. A
+migração `v1` é criada automaticamente na primeira publicação e não requer uma base D1
+separada. A conta gratuita da Cloudflare suporta Durable Objects SQLite.
 
-As variáveis públicas estão em `wrangler.toml`. Para uma implantação manual, os dois valores consumidos pelo Worker devem ser configurados como segredos e nunca gravados no repositório:
+## Segredos do GitHub Actions
 
-```bash
-npx wrangler secret put EPE_OPERATOR_KEY
-npx wrangler secret put GITHUB_TOKEN
-npx wrangler deploy
-```
+Além dos segredos Cloudflare e GitHub já existentes, o workflow necessita de:
 
-O serviço fica publicado em `https://dashboard-anepc-epe.anepcvct.workers.dev`.
-O endpoint do Dashboard é `POST /epe`; o diagnóstico sem credenciais é `GET /health`.
-Ambos aceitam exclusivamente a origem autorizada. O gestor EPE pede a chave de operador
-na primeira alteração de cada sessão e conserva-a apenas no `sessionStorage` desse posto.
+- `DASHBOARD_ROOT_EMAIL`: email Gmail do ADMIN principal;
+- `DASHBOARD_ROOT_INITIAL_PASSWORD`: password provisória, exclusiva do Dashboard, com
+  pelo menos 12 caracteres;
+- `DASHBOARD_PASSWORD_PEPPER`: valor aleatório de pelo menos 32 caracteres, conservado
+  permanentemente.
 
-## Segurança
+`EPE_OPERATOR_KEY` deixa de ser usado. O token `EPE_GITHUB_TOKEN` continua guardado como
+`GITHUB_TOKEN` no Worker para acionar exclusivamente o workflow EPE.
 
-- CORS limitado a `https://anepcvct.github.io`;
-- autenticação Bearer com chave guardada apenas na sessão do navegador;
-- token GitHub guardado exclusivamente como segredo Cloudflare;
-- corpo limitado a 16 KiB;
-- validação superficial no Worker e validação integral no processador Python da Action;
-- respostas sem cache e sem exposição de detalhes ou credenciais.
+## Publicação
+
+O workflow `.github/workflows/deploy-epe-worker.yml` instala as dependências, executa os
+testes, copia apenas os ficheiros públicos necessários para o pacote privado e publica o
+Worker `dashboard-anepc-epe`. O endpoint público `/health` não contém dados operacionais;
+todo o restante conteúdo requer uma sessão autorizada.
+
