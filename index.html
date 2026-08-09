@@ -1007,7 +1007,7 @@
                 minmax(105px, 0.72fr)
                 minmax(135px, 1fr)
                 minmax(105px, 0.72fr)
-                auto;
+                minmax(96px, auto);
             align-items: end;
             gap: 9px;
             margin: 0;
@@ -1046,12 +1046,28 @@
             font: 700 13px Arial, Helvetica, sans-serif;
         }
 
-        .epe-form-limpar {
+        .epe-form-acoes {
+            display: grid;
+            align-self: end;
+            gap: 6px;
+        }
+
+        .epe-form-submeter,
+        .epe-form-apagar {
             height: 38px;
             padding: 6px 10px;
+            font-size: 12px;
+        }
+
+        .epe-form-submeter {
+            border-color: #8f1117;
+            background: #a7191f;
+            color: #ffffff;
+        }
+
+        .epe-form-apagar {
             border-color: #9d686b;
             color: #8f1117;
-            font-size: 12px;
         }
 
         .epe-form-mensagem {
@@ -1095,7 +1111,7 @@
                 grid-template-columns: repeat(2, minmax(0, 1fr));
             }
 
-            .epe-form-limpar {
+            .epe-form-acoes {
                 grid-column: 1 / -1;
             }
         }
@@ -1219,13 +1235,12 @@
 
             <form class="epe-formulario" id="formulario-epe">
                 <p class="epe-form-nota">
-                    Configure até três determinações. Os períodos terminados deixam
-                    automaticamente de aparecer e o estado regressa a Prontidão Normal.
-                    As horas são introduzidas manualmente ao minuto; a hora de fim
-                    sugerida é 23:59, mas pode ser alterada livremente.
-                    Ao enviar, o GitHub abre um pedido já preenchido. Depois de o operador
-                    confirmar o pedido, a agenda partilhada é validada e gravada em
-                    <strong>epe.csv</strong> pelo próprio GitHub.
+                    Cada linha corresponde a uma determinação. Use <strong>Submeter</strong>
+                    para criar ou alterar esse EPE e <strong>Apagar</strong> para o remover.
+                    O palco é atualizado imediatamente. A hora de fim sugerida é 23:59,
+                    mas pode ser alterada ao minuto. Na página do GitHub que abrir,
+                    confirme o pedido para concluir a gravação partilhada em
+                    <strong>epe.csv</strong>.
                 </p>
 
                 <div class="epe-form-grelha" id="epe-form-grelha"></div>
@@ -1233,14 +1248,7 @@
             </form>
 
             <footer class="epe-modal-acoes">
-                <button class="epe-botao" id="recarregar-epe" type="button">Recarregar agenda</button>
-                <button class="epe-botao" id="cancelar-epe" type="button">Cancelar</button>
-                <button
-                    class="epe-botao epe-botao-primario"
-                    id="guardar-epe"
-                    type="submit"
-                    form="formulario-epe"
-                >Guardar EPE no GitHub</button>
+                <button class="epe-botao" id="cancelar-epe" type="button">Fechar</button>
             </footer>
         </section>
     </div>
@@ -1410,6 +1418,8 @@
         const intervaloAtualizacaoEpeMs = 60 * 1000;
         const repositorioGithubEpe = 'ANEPCVCT/Dashboard';
         const urlNovoPedidoEpe = `https://github.com/${repositorioGithubEpe}/issues/new`;
+        const chaveAgendaPendenteEpe = 'dashboard-anepc-epe-pendente-v1';
+        const validadeAgendaPendenteEpeMs = 30 * 60 * 1000;
         let atualizacaoPirEmCurso = false;
         let atualizacaoAvisosEmCurso = false;
         let atualizacaoEpeEmCurso = false;
@@ -2631,7 +2641,9 @@
             const inicioHora = document.createElement('input');
             const fimDia = document.createElement('select');
             const fimHora = document.createElement('input');
-            const limpar = document.createElement('button');
+            const acoes = document.createElement('div');
+            const submeter = document.createElement('button');
+            const apagar = document.createElement('button');
 
             slot.className = 'epe-form-slot';
             slot.dataset.indice = String(indice);
@@ -2663,10 +2675,19 @@
             configurarCampoHoraEpe(inicioHora);
             configurarCampoHoraEpe(fimHora, '23:59');
 
-            limpar.className = 'epe-botao epe-form-limpar';
-            limpar.type = 'button';
-            limpar.textContent = 'Limpar';
-            limpar.addEventListener('click', () => limparSlotFormularioEpe(slot));
+            acoes.className = 'epe-form-acoes';
+            submeter.className = 'epe-botao epe-form-submeter';
+            submeter.type = 'button';
+            submeter.textContent = 'Submeter';
+            submeter.setAttribute('aria-label', `Submeter determinação ${indice + 1}`);
+            submeter.addEventListener('click', () => submeterSlotFormularioEpe(slot));
+
+            apagar.className = 'epe-botao epe-form-apagar';
+            apagar.type = 'button';
+            apagar.textContent = 'Apagar';
+            apagar.setAttribute('aria-label', `Apagar determinação ${indice + 1}`);
+            apagar.addEventListener('click', () => apagarSlotFormularioEpe(slot));
+            acoes.append(submeter, apagar);
 
             slot.append(
                 legenda,
@@ -2676,7 +2697,7 @@
                 envolverCampoEpe('Hora de início (HH:MM)', inicioHora),
                 envolverCampoEpe('Dia de fim', fimDia),
                 envolverCampoEpe('Hora de fim (sugerida: 23:59)', fimHora),
-                limpar
+                acoes
             );
 
             return slot;
@@ -2717,56 +2738,79 @@
             mostrarMensagemFormularioEpe('');
         }
 
-        function lerFormularioEpe() {
-            const slots = [...document.querySelectorAll('.epe-form-slot')];
-            const registos = [];
+        function lerSlotFormularioEpe(slot) {
+            const indice = Number(slot.dataset.indice);
+            const numero = indice + 1;
+            const nivel = slot.querySelector(`#epe-nivel-${indice}`).value;
+            const tipo = slot.querySelector(`#epe-tipo-${indice}`).value;
+            const inicioDia = slot.querySelector(`#epe-inicio-dia-${indice}`).value;
+            const inicioHora = slot.querySelector(`#epe-inicio-hora-${indice}`).value;
+            const fimDia = slot.querySelector(`#epe-fim-dia-${indice}`).value;
+            const fimHora = slot.querySelector(`#epe-fim-hora-${indice}`).value;
+            const valores = [nivel, tipo, inicioDia, inicioHora, fimDia, fimHora];
 
-            slots.forEach((slot, indice) => {
-                const nivel = slot.querySelector(`#epe-nivel-${indice}`).value;
-                const tipo = slot.querySelector(`#epe-tipo-${indice}`).value;
-                const inicioDia = slot.querySelector(`#epe-inicio-dia-${indice}`).value;
-                const inicioHora = slot.querySelector(`#epe-inicio-hora-${indice}`).value;
-                const fimDia = slot.querySelector(`#epe-fim-dia-${indice}`).value;
-                const fimHora = slot.querySelector(`#epe-fim-hora-${indice}`).value;
-                const valores = [nivel, tipo, inicioDia, inicioHora, fimDia, fimHora];
-                const valoresSemFimPredefinido = [
-                    nivel,
-                    tipo,
-                    inicioDia,
-                    inicioHora,
-                    fimDia
-                ];
+            if (valores.some((valor) => !valor)) {
+                throw new Error(
+                    `Determinação ${numero}: preencha os seis campos antes de submeter.`
+                );
+            }
 
-                if (valoresSemFimPredefinido.every((valor) => !valor)) {
-                    return;
-                }
+            const inicio = criarDataSistemaEpe(inicioDia, inicioHora);
+            const fim = criarDataSistemaEpe(fimDia, fimHora);
 
-                if (valores.some((valor) => !valor)) {
-                    throw new Error(
-                        `Determinação ${indice + 1}: preencha os seis campos ou limpe a linha.`
-                    );
-                }
+            if (!inicio || !fim) {
+                throw new Error(
+                    `Determinação ${numero}: a data ou a hora não é válida.`
+                );
+            }
 
-                const inicio = criarDataSistemaEpe(inicioDia, inicioHora);
-                const fim = criarDataSistemaEpe(fimDia, fimHora);
+            if (fim.getTime() <= inicio.getTime()) {
+                throw new Error(
+                    `Determinação ${numero}: o fim tem de ser posterior ao início.`
+                );
+            }
 
-                if (!inicio || !fim) {
-                    throw new Error(
-                        `Determinação ${indice + 1}: a data ou a hora não é válida.`
-                    );
-                }
+            if (fim.getTime() <= Date.now()) {
+                throw new Error(
+                    `Determinação ${numero}: o período já terminou. ` +
+                    'Corrija o dia ou a hora de fim.'
+                );
+            }
 
-                registos.push({
-                    id: slot.dataset.agendamentoId || `epe-${Date.now()}-${indice + 1}`,
-                    ativo: true,
-                    nivel,
-                    tipo,
-                    inicio: inicio.toISOString(),
-                    fim: fim.toISOString()
-                });
+            return {
+                id: slot.dataset.agendamentoId || `epe-${Date.now()}-${numero}`,
+                ativo: true,
+                nivel,
+                tipo,
+                inicio,
+                fim
+            };
+        }
+
+        function criarAgendaComSlotEpe(slot) {
+            const registo = lerSlotFormularioEpe(slot);
+            const idExistente = slot.dataset.agendamentoId;
+            const restantes = idExistente
+                ? agendamentosEpe.filter((agendamento) => agendamento.id !== idExistente)
+                : [...agendamentosEpe];
+
+            return normalizarAgendamentosEpe({
+                agendamentos: [...restantes, registo]
             });
+        }
 
-            return normalizarAgendamentosEpe({ agendamentos: registos });
+        function criarAgendaSemSlotEpe(slot) {
+            const idExistente = slot.dataset.agendamentoId;
+
+            if (!idExistente) {
+                return [...agendamentosEpe];
+            }
+
+            return normalizarAgendamentosEpe({
+                agendamentos: agendamentosEpe.filter(
+                    (agendamento) => agendamento.id !== idExistente
+                )
+            });
         }
 
         function criarPayloadPedidoEpe(agendamentos) {
@@ -2833,6 +2877,136 @@
             }
 
             janela.opener = null;
+        }
+
+        function assinaturaAgendaEpe(agendamentos) {
+            return JSON.stringify(agendamentos.map((agendamento) => ({
+                nivel: agendamento.nivel,
+                tipo: agendamento.tipo,
+                inicio: agendamento.inicio.toISOString(),
+                fim: agendamento.fim.toISOString()
+            })));
+        }
+
+        function guardarAgendaPendenteEpe(agendamentos) {
+            const dados = {
+                criadoEm: Date.now(),
+                agendamentos: agendamentos.map((agendamento) => ({
+                    id: agendamento.id,
+                    ativo: true,
+                    nivel: agendamento.nivel,
+                    tipo: agendamento.tipo,
+                    inicio: agendamento.inicio.toISOString(),
+                    fim: agendamento.fim.toISOString()
+                }))
+            };
+
+            try {
+                window.localStorage.setItem(chaveAgendaPendenteEpe, JSON.stringify(dados));
+            } catch (erro) {
+                console.warn('Não foi possível conservar a pré-visualização EPE:', erro);
+            }
+        }
+
+        function apagarAgendaPendenteEpe() {
+            try {
+                window.localStorage.removeItem(chaveAgendaPendenteEpe);
+            } catch (erro) {
+                console.warn('Não foi possível limpar a pré-visualização EPE:', erro);
+            }
+        }
+
+        function obterAgendaPendenteEpe() {
+            let texto;
+
+            try {
+                texto = window.localStorage.getItem(chaveAgendaPendenteEpe);
+            } catch (erro) {
+                console.warn('Não foi possível ler a pré-visualização EPE:', erro);
+                return null;
+            }
+
+            if (!texto) {
+                return null;
+            }
+
+            try {
+                const dados = JSON.parse(texto);
+                const criadoEm = Number(dados?.criadoEm);
+
+                if (
+                    !Number.isFinite(criadoEm) ||
+                    Date.now() - criadoEm > validadeAgendaPendenteEpeMs
+                ) {
+                    apagarAgendaPendenteEpe();
+                    return null;
+                }
+
+                return {
+                    criadoEm,
+                    agendamentos: normalizarAgendamentosEpe({
+                        agendamentos: dados.agendamentos
+                    })
+                };
+            } catch (erro) {
+                console.warn('Pré-visualização EPE inválida:', erro);
+                apagarAgendaPendenteEpe();
+                return null;
+            }
+        }
+
+        function apresentarAgendaPendenteEpe(agendamentos) {
+            guardarAgendaPendenteEpe(agendamentos);
+            agendamentosEpe = agendamentos;
+            ultimaLeituraEpe = new Date();
+            avisoAtualizacaoEpe = (
+                'Alteração apresentada. Confirme o pedido aberto no GitHub para ' +
+                'concluir a gravação em epe.csv.'
+            );
+            epeJaCarregado = true;
+            renderizarEpe();
+            fecharGestorEpe();
+
+            [5_000, 15_000, 30_000].forEach((atraso) => {
+                window.setTimeout(atualizarEpe, atraso);
+            });
+        }
+
+        function submeterSlotFormularioEpe(slot) {
+            const botao = slot.querySelector('.epe-form-submeter');
+
+            try {
+                botao.disabled = true;
+                const agendamentos = criarAgendaComSlotEpe(slot);
+                abrirPedidoGithubEpe(agendamentos);
+                apresentarAgendaPendenteEpe(agendamentos);
+            } catch (erro) {
+                mostrarMensagemFormularioEpe(erro.message, true);
+            } finally {
+                botao.disabled = false;
+            }
+        }
+
+        function apagarSlotFormularioEpe(slot) {
+            const botao = slot.querySelector('.epe-form-apagar');
+
+            try {
+                botao.disabled = true;
+
+                if (!slot.dataset.agendamentoId) {
+                    limparSlotFormularioEpe(slot);
+                    fecharGestorEpe();
+                    return;
+                }
+
+                const agendamentos = criarAgendaSemSlotEpe(slot);
+                abrirPedidoGithubEpe(agendamentos);
+                apresentarAgendaPendenteEpe(agendamentos);
+            } catch (erro) {
+                mostrarMensagemFormularioEpe(erro.message, true);
+            } finally {
+                botao.disabled = false;
+            }
         }
 
         function separarLinhaCsvEpe(linha) {
@@ -2966,41 +3140,37 @@
                 }
             });
 
-            formulario.addEventListener('submit', async (evento) => {
+            formulario.addEventListener('submit', (evento) => {
                 evento.preventDefault();
-                const botaoGuardar = document.getElementById('guardar-epe');
-
-                try {
-                    botaoGuardar.disabled = true;
-                    const agendamentos = lerFormularioEpe();
-                    abrirPedidoGithubEpe(agendamentos);
-                    mostrarMensagemFormularioEpe(
-                        'Pedido aberto no GitHub. Confirme através de “Submit new issue”.'
-                    );
-                } catch (erro) {
-                    mostrarMensagemFormularioEpe(erro.message, true);
-                } finally {
-                    botaoGuardar.disabled = false;
-                }
-            });
-
-            document.getElementById('recarregar-epe').addEventListener('click', async () => {
-                try {
-                    await carregarEpe();
-                    preencherFormularioEpe();
-                    mostrarMensagemFormularioEpe('Agenda recarregada a partir de epe.csv.');
-                } catch (erro) {
-                    mostrarMensagemFormularioEpe(erro.message, true);
-                }
             });
         }
 
         async function carregarEpe() {
             const conteudo = await obterTexto(`epe.csv?_=${Date.now()}`);
-            agendamentosEpe = lerConteudoCsvEpe(conteudo);
+            const agendaRemota = lerConteudoCsvEpe(conteudo);
+            const agendaPendente = obterAgendaPendenteEpe();
+
+            if (
+                agendaPendente &&
+                assinaturaAgendaEpe(agendaPendente.agendamentos) !==
+                    assinaturaAgendaEpe(agendaRemota)
+            ) {
+                agendamentosEpe = agendaPendente.agendamentos;
+                avisoAtualizacaoEpe = (
+                    'Alteração apresentada. Confirme o pedido aberto no GitHub para ' +
+                    'concluir a gravação em epe.csv.'
+                );
+            } else {
+                agendamentosEpe = agendaRemota;
+                avisoAtualizacaoEpe = '';
+
+                if (agendaPendente) {
+                    apagarAgendaPendenteEpe();
+                }
+            }
+
             removerAgendamentosEpeTerminados(new Date());
             ultimaLeituraEpe = new Date();
-            avisoAtualizacaoEpe = '';
             epeJaCarregado = true;
             renderizarEpe();
         }
